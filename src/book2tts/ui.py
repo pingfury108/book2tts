@@ -20,7 +20,8 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
         voices = asyncio.run(edge_tts.list_voices())
         voices = sorted(voices, key=lambda voice: voice["ShortName"])
         tts_mode = gr.Dropdown([v.get("ShortName") for v in voices],
-                               label="选择声音模型")
+                               label="选择声音模型",
+                               value="zh-CN-YunxiNeural")
         btn1 = gr.Button("生成 TTS")
         pass
     with gr.Row():
