@@ -28,7 +28,7 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
         pass
 
     with gr.Row():
-        text_content = gr.Textbox(label="章节内容")
+        text_content = gr.TextArea(label="章节内容")
         pass
 
     with gr.Row():
@@ -51,7 +51,7 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
         texts = [get_content_with_href(book, href) or "" for href in hrefs]
         texts = list(map(lambda v: v or "", texts))
         texts = list(map(lambda v: v.strip(), texts))
-        return "\n\n".join(texts)
+        return "\n\n\n\n".join(texts)
 
     def gen_tts(text_content, tts_mode, book_title, dir_tree):
         os.makedirs("/tmp/book2tts", exist_ok=True)
