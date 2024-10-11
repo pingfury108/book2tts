@@ -68,7 +68,6 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
             prefix=f'{book_title}{outfile_prefix()}',
             delete=False)
         outfile = tmpfile.name
-        print(outfile)
         communicate = edge_tts.Communicate(text_content, tts_mode)
         asyncio.run(communicate.save(outfile))
         return outfile, outfile
