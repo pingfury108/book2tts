@@ -1,4 +1,3 @@
-import ebooklib
 from ebooklib import epub
 from bs4 import BeautifulSoup
 
@@ -20,7 +19,12 @@ def get_content_with_href(book, href: str):
 
     if item:
         soup = BeautifulSoup(item.get_content(), 'html.parser')
-        return soup.get_text('\n\n', strip=True)
+        texts = soup.get_text('\n', strip=True)
+        texts = '\n'.join(
+            list(
+                map(lambda s: s.replace(' ', '').replace('\xa0', ''),
+                    texts.split('\n'))))
+        return texts
     else:
         return None
 
