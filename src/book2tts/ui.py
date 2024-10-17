@@ -79,7 +79,7 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
             texts = [
                 book_toc[i] for i in [int(s.split("-")[-1]) for s in value]
             ]
-            return "\n\n\n\n".join(texts), gen_out_file(book_title, value)
+            return "\n\n\n".join(texts), gen_out_file(book_title, value)
 
         hrefs = [t.get("href") for t in book_toc if t.get("title") in value]
         texts = [get_content_with_href(book, href) or "" for href in hrefs]
@@ -120,9 +120,10 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
 
     def llm_gen(text, api_key):
         results = []
-        for part in llm_parse_text_streaming(text, api_key):
-            results.append(part)
-            yield "".join(results)  #每次yield累加后的结果
+        for sub_text in text.split("\n\n\n"):
+            for part in llm_parse_text_streaming(sub_text, api_key):
+                results.append(part)
+                yield "".join(results)  #每次yield累加后的结果
         pass
 
     file.change(parse_toc, inputs=file, outputs=[dir_tree, book_title])
