@@ -24,9 +24,9 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
             pass
         with gr.Column():
             dify_api_key = gr.Textbox(label="dify api token")
-            btn_llm = gr.Button("AI处理")
-            btn1 = gr.Button("生成 TTS")
-            btn_clean = gr.Button("清理临时文件")
+            btn_llm = gr.Button("处理文本")
+            btn1 = gr.Button("生成语音")
+            btn_clean = gr.Button("清理")
             pass
         pass
     with gr.Row():
@@ -39,7 +39,7 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
             text_content = gr.TextArea(label="章节内容")
             pass
         with gr.Column():
-            tts_content = gr.TextArea(label="语言文本")
+            tts_content = gr.TextArea(label="语音文本")
             pass
         pass
 
