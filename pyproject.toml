@@ -11,6 +11,8 @@ dependencies = [
     "edge-tts>=6.1.12",
     "gradio>=4.44.1",
     "pypdf>=5.0.1",
+    "pdfminer-six>=20240706",
+    "dify-client>=0.1.10",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
