@@ -6,8 +6,8 @@ import shutil
 import os
 
 from book2tts.ebook import get_content_with_href, open_ebook, ebook_toc
-from book2tts.pdf import extract_text_by_page
-from book2tts.dify import llm_parse_text, llm_parse_text_streaming
+from book2tts.pdf import extract_text_by_page, extract_img_by_page, save_img
+from book2tts.dify import llm_parse_text, llm_parse_text_streaming, file_upload, file_2_md
 
 with gr.Blocks(title="Book 2 TTS") as book2tts:
     gr.Markdown("# Book 2 TTS")
@@ -21,11 +21,14 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
             tts_mode = gr.Dropdown([v.get("ShortName") for v in voices],
                                    label="选择声音模型",
                                    value="zh-CN-YunxiNeural")
+            dify_api_key = gr.Textbox(label="dify api token")
             pass
         with gr.Column():
-            dify_api_key = gr.Textbox(label="dify api token")
+            pdf_img = gr.Checkbox(label="扫描版本PDF")
             btn_llm = gr.Button("处理文本")
+            btn_ocr = gr.Button("识别文本")
             btn1 = gr.Button("生成语音")
+
             btn_clean = gr.Button("清理")
             pass
         pass
@@ -51,16 +54,20 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
     book = None
     book_toc = []
     book_type = None
+    book_type_pdf_img = False
     default_replace_texts = []
 
     replace_texts = default_replace_texts
 
     def parse_toc(file):
-        global book, book_toc, book_type
+        global book, book_toc, book_type, book_type_pdf_img
         if file.endswith(".pdf"):
             book_type = "pdf"
             #book = open_pdf_reader(file)
-            book_toc = extract_text_by_page(file)
+            if book_type_pdf_img:
+                book_toc = extract_img_by_page(file)
+            else:
+                book_toc = extract_text_by_page(file)
             dropdown = gr.Dropdown(
                 choices=[f'page-{i}' for i, _ in enumerate(book_toc)],
                 multiselect=True)
@@ -74,12 +81,39 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
             return dropdown, book.title
         pass
 
+    def ocr_content(value, api_key):
+        if book_type == "pdf":
+            if book_type_pdf_img:
+                results = []
+                for i in [int(s.split("-")[-1]) for s in value]:
+                    text = llm_parse_text(
+                        text="",
+                        api_key=api_key,
+                        files=[{
+                            "type":
+                            "image",
+                            "transfer_method":
+                            "local_file",
+                            "upload_file_id":
+                            file_upload(api_key,
+                                        files=file_2_md(save_img(book_toc[i])))
+                        }])
+                    results.append(text)
+                    yield "\n\n\n".join(results)
+                    pass
+            pass
+        return ""
+
     def parse_content(value, book_title):
         if book_type == "pdf":
-            texts = [
-                book_toc[i] for i in [int(s.split("-")[-1]) for s in value]
-            ]
-            return "\n\n\n".join(texts), gen_out_file(book_title, value)
+            if book_type_pdf_img:
+                return "", gen_out_file(book_title, value)
+            else:
+                texts = [
+                    book_toc[i]
+                    for i in [int(s.split("-")[-1]) for s in value]
+                ]
+                return "\n\n\n".join(texts), gen_out_file(book_title, value)
 
         hrefs = [t.get("href") for t in book_toc if t.get("title") in value]
         texts = [get_content_with_href(book, href) or "" for href in hrefs]
@@ -126,6 +160,12 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                 yield "".join(results)  #每次yield累加后的结果
         pass
 
+    def is_pdf_img(v):
+        global book_type_pdf_img
+        book_type_pdf_img = v
+        print(book_type_pdf_img)
+        return v
+
     file.change(parse_toc, inputs=file, outputs=[dir_tree, book_title])
     dir_tree.change(parse_content,
                     inputs=[dir_tree, book_title],
@@ -138,6 +178,10 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
     btn_llm.click(llm_gen,
                   inputs=[text_content, dify_api_key],
                   outputs=tts_content)
+    pdf_img.change(is_pdf_img, inputs=pdf_img)
+    btn_ocr.click(ocr_content,
+                  inputs=[dir_tree, dify_api_key],
+                  outputs=[text_content])
     pass
 
 if __name__ == "__main__":

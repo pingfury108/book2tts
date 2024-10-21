@@ -1,6 +1,11 @@
 import unicodedata
+import tempfile
+import os
 
-from io import StringIO
+from PIL import Image
+from pypdf import PdfReader
+from io import StringIO, BytesIO
+
 from pdfminer.converter import TextConverter
 from pdfminer.layout import LAParams
 from pdfminer.pdfdocument import PDFDocument
@@ -44,3 +49,20 @@ def extract_text_by_page(pdf_path):
 def clean_text(text):
     text = unicodedata.normalize('NFKC', text)
     return text
+
+
+def extract_img_by_page(pdf_path):
+    reader = PdfReader(pdf_path)
+    return [page.images[0] for page in reader.pages]
+
+
+def save_img(image):
+    os.makedirs("/tmp/book2tts/imgs", exist_ok=True)
+
+    img = Image.open(BytesIO(image.data))
+    tmpfile = tempfile.NamedTemporaryFile(suffix=".jpg",
+                                          dir="/tmp/book2tts/imgs",
+                                          delete=False)
+    img.save(tmpfile.name)
+
+    return tmpfile.name

@@ -51,7 +51,7 @@ dify-client==0.1.10
     # via book2tts
 ebooklib==0.18
     # via book2tts
-edge-tts==6.1.12
+edge-tts==6.1.14
     # via book2tts
 fastapi==0.115.0
     # via gradio
