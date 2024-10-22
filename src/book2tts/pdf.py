@@ -1,6 +1,7 @@
 import unicodedata
 import tempfile
 import os
+import pymupdf
 
 from PIL import Image
 from pypdf import PdfReader
@@ -53,16 +54,23 @@ def clean_text(text):
 
 def extract_img_by_page(pdf_path):
     reader = PdfReader(pdf_path)
-    return [page.images[0] for page in reader.pages if len(page.images) > 0]
+    print("pdf img page")
+
+    return [page.images[0].data for page in reader.pages if page.images]
 
 
-def save_img(image):
+def save_img(image_data, img_type: str = ".jpeg"):
     os.makedirs("/tmp/book2tts/imgs", exist_ok=True)
-
-    img = Image.open(BytesIO(image.data))
-    tmpfile = tempfile.NamedTemporaryFile(suffix=".jpg",
+    img = Image.open(BytesIO(image_data))
+    tmpfile = tempfile.NamedTemporaryFile(suffix=img_type,
                                           dir="/tmp/book2tts/imgs",
                                           delete=False)
     img.save(tmpfile.name)
 
     return tmpfile.name
+
+
+def extract_img_vector_by_page(pdf_path):
+    doc = pymupdf.open(pdf_path)
+    print("pdf vector img page")
+    return [page.get_pixmap().tobytes() for page in doc]

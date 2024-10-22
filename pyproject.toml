@@ -14,6 +14,7 @@ dependencies = [
     "dify-client>=0.1.10",
     "google-generativeai>=0.8.3",
     "pdfminer-six>=20240706",
+    "pymupdf>=1.24.12",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"

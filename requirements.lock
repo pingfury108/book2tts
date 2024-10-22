@@ -186,6 +186,8 @@ pydub==0.25.1
     # via gradio
 pygments==2.18.0
     # via rich
+pymupdf==1.24.12
+    # via book2tts
 pyparsing==3.1.4
     # via httplib2
     # via matplotlib

@@ -6,8 +6,9 @@ import shutil
 import os
 
 from book2tts.ebook import get_content_with_href, open_ebook, ebook_toc
-from book2tts.pdf import extract_text_by_page, extract_img_by_page, save_img
+from book2tts.pdf import extract_text_by_page, extract_img_by_page, save_img, extract_img_vector_by_page
 from book2tts.dify import llm_parse_text, llm_parse_text_streaming, file_upload, file_2_md
+from book2tts.llm import ocr_gemini
 
 with gr.Blocks(title="Book 2 TTS") as book2tts:
     gr.Markdown("# Book 2 TTS")
@@ -32,7 +33,10 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                                    value="zh-CN-YunxiNeural")
             pass
         with gr.Column():
-            pdf_img = gr.Checkbox(label="扫描版本PDF")
+            with gr.Row():
+                pdf_img = gr.Checkbox(label="扫描版本PDF")
+                pdf_img_vector = gr.Checkbox(label="矢量图PDF")
+                pass
             btn_llm = gr.Button("处理语言文本")
             btn_ocr = gr.Button("识别PDF图片")
             btn1 = gr.Button("生成语音")
@@ -62,6 +66,8 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
     book_toc = []
     book_type = None
     book_type_pdf_img = False
+    book_type_pdf_img_vector = False
+
     default_replace_texts = []
 
     replace_texts = default_replace_texts
@@ -74,7 +80,10 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
             book_type = "pdf"
             #book = open_pdf_reader(file)
             if book_type_pdf_img:
-                book_toc = extract_img_by_page(file)
+                if book_type_pdf_img_vector:
+                    book_toc = extract_img_vector_by_page(file)
+                else:
+                    book_toc = extract_img_by_page(file)
             else:
                 book_toc = extract_text_by_page(file)
                 pass
@@ -178,10 +187,12 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                 yield "".join(results)  #每次yield累加后的结果
         pass
 
-    def is_pdf_img(v):
-        global book_type_pdf_img
-        book_type_pdf_img = v
-        return v
+    def is_pdf_img(img, vector):
+        global book_type_pdf_img, book_type_pdf_img_vector
+        book_type_pdf_img = img
+        book_type_pdf_img_vector = vector
+        print(book_type_pdf_img, book_type_pdf_img_vector)
+        return img, vector
 
     file.change(parse_toc, inputs=file, outputs=[dir_tree, book_title])
     dir_tree.change(parse_content,
@@ -195,7 +206,8 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
     btn_llm.click(llm_gen,
                   inputs=[text_content, dify_api_key],
                   outputs=tts_content)
-    pdf_img.change(is_pdf_img, inputs=pdf_img)
+    pdf_img.change(is_pdf_img, inputs=[pdf_img, pdf_img_vector])
+    pdf_img_vector.change(is_pdf_img, inputs=[pdf_img, pdf_img_vector])
     btn_ocr.click(ocr_content,
                   inputs=[dir_tree, dify_api_key, start_page, end_page],
                   outputs=[text_content])
