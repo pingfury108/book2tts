@@ -16,19 +16,26 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
         with gr.Column():
             book_title = gr.Textbox(label="书名")
             dir_tree = gr.Dropdown([], label="选择章节", multiselect=True)
+            with gr.Row():
+                start_page = gr.Slider(0, 500, label="开始页数")
+                end_page = gr.Slider(0, 500, label="结束页数")
+                pass
+            pass
+        with gr.Column():
+            dify_base_api = gr.Textbox(label="Dify BASE API",
+                                       value="http://47.109.61.89:5908/v1")
+            dify_api_key = gr.Textbox(label="Dify API Token")
             voices = asyncio.run(edge_tts.list_voices())
             voices = sorted(voices, key=lambda voice: voice["ShortName"])
             tts_mode = gr.Dropdown([v.get("ShortName") for v in voices],
                                    label="选择声音模型",
                                    value="zh-CN-YunxiNeural")
-            dify_api_key = gr.Textbox(label="dify api token")
             pass
         with gr.Column():
             pdf_img = gr.Checkbox(label="扫描版本PDF")
-            btn_llm = gr.Button("处理文本")
-            btn_ocr = gr.Button("识别文本")
+            btn_llm = gr.Button("处理语言文本")
+            btn_ocr = gr.Button("识别PDF图片")
             btn1 = gr.Button("生成语音")
-
             btn_clean = gr.Button("清理")
             pass
         pass
@@ -68,10 +75,10 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                 book_toc = extract_img_by_page(file)
             else:
                 book_toc = extract_text_by_page(file)
-            dropdown = gr.Dropdown(
-                choices=[f'page-{i}' for i, _ in enumerate(book_toc)],
-                multiselect=True)
-            return dropdown, file.split('/')[-1].split(".")[0]
+                dropdown = gr.Dropdown(
+                    choices=[f'page-{i}' for i, _ in enumerate(book_toc)],
+                    multiselect=True)
+                return dropdown, file.split('/')[-1].split(".")[0]
         elif file.endswith(".epub"):
             book_type = "epub"
             book = open_ebook(file)
@@ -81,7 +88,10 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
             return dropdown, book.title
         pass
 
-    def ocr_content(value, api_key):
+    def ocr_content(value, api_key, start_page: int, end_page: int):
+        if start_page > 0 and end_page > start_page:
+            value = [f'page-{i}' for i in range(start_page, end_page)]
+            pass
         if book_type == "pdf":
             if book_type_pdf_img:
                 results = []
@@ -98,6 +108,9 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                             file_upload(api_key,
                                         files=file_2_md(save_img(book_toc[i])))
                         }])
+                    """
+                    text = ocr_gemini(save_img(book_toc[i]))
+                    """
                     results.append(text)
                     yield "\n\n\n".join(results)
                     pass
@@ -163,7 +176,6 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
     def is_pdf_img(v):
         global book_type_pdf_img
         book_type_pdf_img = v
-        print(book_type_pdf_img)
         return v
 
     file.change(parse_toc, inputs=file, outputs=[dir_tree, book_title])
@@ -180,7 +192,7 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                   outputs=tts_content)
     pdf_img.change(is_pdf_img, inputs=pdf_img)
     btn_ocr.click(ocr_content,
-                  inputs=[dir_tree, dify_api_key],
+                  inputs=[dir_tree, dify_api_key, start_page, end_page],
                   outputs=[text_content])
     pass
 

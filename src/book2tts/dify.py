@@ -2,9 +2,13 @@ import json
 import os
 from dify_client import CompletionClient
 
+#BASE_API = "http://dify.pingfury.top/v1"
+BASE_API = "http://47.109.61.89:5908/v1"
+
 
 def llm_parse_text(text: str, api_key: str, files=None) -> str:
-    completion_client = CompletionClient(api_key)
+    completion_client = CompletionClient(api_key, )
+    completion_client.base_url = BASE_API
     # Create Completion Message using CompletionClient
     completion_response = completion_client.create_completion_message(
         inputs={"query": text},
@@ -20,6 +24,8 @@ def llm_parse_text(text: str, api_key: str, files=None) -> str:
 
 def llm_parse_text_streaming(text: str, api_key: str, files=None):
     completion_client = CompletionClient(api_key)
+    completion_client.base_url = BASE_API
+
     # Create Completion Message using CompletionClient
     completion_response = completion_client.create_completion_message(
         inputs={"query": text},
@@ -44,6 +50,8 @@ def llm_parse_text_streaming(text: str, api_key: str, files=None):
 
 def file_upload(api_key: str, files):
     completion_client = CompletionClient(api_key)
+    completion_client.base_url = BASE_API
+
     completion_response = completion_client.file_upload(user="book2tts",
                                                         files=files)
     completion_response.raise_for_status()

@@ -53,7 +53,7 @@ def clean_text(text):
 
 def extract_img_by_page(pdf_path):
     reader = PdfReader(pdf_path)
-    return [page.images[0] for page in reader.pages]
+    return [page.images[0] for page in reader.pages if len(page.images) > 0]
 
 
 def save_img(image):
