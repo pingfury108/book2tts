@@ -68,6 +68,8 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
 
     def parse_toc(file):
         global book, book_toc, book_type, book_type_pdf_img
+        if file is None:
+            return None, None
         if file.endswith(".pdf"):
             book_type = "pdf"
             #book = open_pdf_reader(file)
@@ -75,10 +77,11 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                 book_toc = extract_img_by_page(file)
             else:
                 book_toc = extract_text_by_page(file)
-                dropdown = gr.Dropdown(
-                    choices=[f'page-{i}' for i, _ in enumerate(book_toc)],
-                    multiselect=True)
-                return dropdown, file.split('/')[-1].split(".")[0]
+                pass
+            dropdown = gr.Dropdown(
+                choices=[f'page-{i}' for i, _ in enumerate(book_toc)],
+                multiselect=True)
+            return dropdown, file.split('/')[-1].split(".")[0]
         elif file.endswith(".epub"):
             book_type = "epub"
             book = open_ebook(file)
@@ -118,6 +121,8 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
         return ""
 
     def parse_content(value, book_title):
+        if value is None or book_title is None:
+            return None, None
         if book_type == "pdf":
             if book_type_pdf_img:
                 return "", gen_out_file(book_title, value)
