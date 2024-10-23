@@ -10,10 +10,8 @@ dependencies = [
     "ebooklib>=0.18",
     "edge-tts>=6.1.14",
     "gradio>=4.44.1",
-    "pypdf>=5.0.1",
     "dify-client>=0.1.10",
     "google-generativeai>=0.8.3",
-    "pdfminer-six>=20240706",
     "pymupdf>=1.24.12",
     "volcengine>=1.0.157",
 ]

@@ -171,7 +171,7 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                 return "", gen_out_file(book_title, value)
             else:
                 texts = [
-                    book_toc[i]
+                    str(book_toc[i])
                     for i in [int(s.split("-")[-1]) for s in value]
                 ]
                 return "\n\n\n".join(texts), gen_out_file(book_title, value)
