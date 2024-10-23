@@ -65,6 +65,7 @@ def save_img(image_data, img_type: str = ".jpeg"):
     tmpfile = tempfile.NamedTemporaryFile(suffix=img_type,
                                           dir="/tmp/book2tts/imgs",
                                           delete=False)
+    img = img.convert('L')
     img.save(tmpfile.name)
 
     return tmpfile.name

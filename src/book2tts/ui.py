@@ -4,16 +4,24 @@ import asyncio
 import tempfile
 import shutil
 import os
+import time
 
 from book2tts.ebook import get_content_with_href, open_ebook, ebook_toc
 from book2tts.pdf import extract_text_by_page, extract_img_by_page, save_img, extract_img_vector_by_page
-from book2tts.dify import llm_parse_text, llm_parse_text_streaming, file_upload, file_2_md
+from book2tts.dify import llm_parse_text, llm_parse_text_streaming, file_upload, file_2_md, BASE_API
 from book2tts.llm import ocr_gemini
+from book2tts.ocr import ocr_volc
 
 with gr.Blocks(title="Book 2 TTS") as book2tts:
     gr.Markdown("# Book 2 TTS")
     with gr.Row():
-        file = gr.File(label="选择书")
+        with gr.Column():
+            with gr.Row():
+                pdf_img = gr.Checkbox(label="扫描版本PDF")
+                pdf_img_vector = gr.Checkbox(label="矢量图PDF")
+                pass
+            file = gr.File(label="选择书")
+            pass
         with gr.Column():
             book_title = gr.Textbox(label="书名")
             dir_tree = gr.Dropdown([], label="选择章节", multiselect=True)
@@ -23,23 +31,28 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                 pass
             pass
         with gr.Column():
-            dify_base_api = gr.Textbox(label="Dify BASE API",
-                                       value="http://47.109.61.89:5908/v1")
+            dify_base_api = gr.Textbox(label="Dify BASE API", value=BASE_API)
             dify_api_key = gr.Textbox(label="Dify API Token")
+            btn_ocr = gr.Button("识别PDF图片(LLM)")
+
+            pass
+        with gr.Column():
+            volc_ak = gr.Textbox(label="火山云AK")
+            volc_sk = gr.Textbox(label="火山云SK")
+            btn_ocr_volc = gr.Button("识别PDF图片(OCR)")
+            pass
+
+    with gr.Row():
+        with gr.Column():
             voices = asyncio.run(edge_tts.list_voices())
             voices = sorted(voices, key=lambda voice: voice["ShortName"])
             tts_mode = gr.Dropdown([v.get("ShortName") for v in voices],
                                    label="选择声音模型",
                                    value="zh-CN-YunxiNeural")
+            btn1 = gr.Button("生成语音")
             pass
         with gr.Column():
-            with gr.Row():
-                pdf_img = gr.Checkbox(label="扫描版本PDF")
-                pdf_img_vector = gr.Checkbox(label="矢量图PDF")
-                pass
             btn_llm = gr.Button("处理语言文本")
-            btn_ocr = gr.Button("识别PDF图片")
-            btn1 = gr.Button("生成语音")
             btn_clean = gr.Button("清理")
             pass
         pass
@@ -90,7 +103,8 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
             dropdown = gr.Dropdown(
                 choices=[f'page-{i}' for i, _ in enumerate(book_toc)],
                 multiselect=True)
-            return dropdown, file.split('/')[-1].split(".")[0]
+            return dropdown, file.split('/')[-1].split(".")[0].replace(
+                " ", "_")
         elif file.endswith(".epub"):
             book_type = "epub"
             book = open_ebook(file)
@@ -100,7 +114,8 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
             return dropdown, book.title
         pass
 
-    def ocr_content(value, api_key, start_page: int, end_page: int):
+    def ocr_content_llm(value, api_key, base_api, start_page: int,
+                        end_page: int):
         if start_page > 0 and end_page > start_page:
             value = [f'page-{i}' for i in range(start_page, end_page)]
             pass
@@ -119,10 +134,27 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                             "upload_file_id":
                             file_upload(api_key,
                                         files=file_2_md(save_img(book_toc[i])))
-                        }])
+                        }],
+                        base_api=base_api)
                     """
                     text = ocr_gemini(save_img(book_toc[i]))
                     """
+                    results.append(text)
+                    yield "\n\n\n".join(results)
+                    pass
+            pass
+        return ""
+
+    def ocr_content_volc(value, ak, sk, start_page: int, end_page: int):
+        if start_page > 0 and end_page > start_page:
+            value = [f'page-{i}' for i in range(start_page, end_page)]
+            pass
+        if book_type == "pdf":
+            if book_type_pdf_img:
+                results = []
+                for i in [int(s.split("-")[-1]) for s in value]:
+                    time.sleep(1)
+                    text = ocr_volc(ak, sk, save_img(book_toc[i]))
                     results.append(text)
                     yield "\n\n\n".join(results)
                     pass
@@ -179,10 +211,15 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
         shutil.rmtree("/tmp/book2tts")
         return
 
-    def llm_gen(text, api_key):
+    def exclude_text(text):
+        return "\n".join(text.split("\n")[1:-1])
+
+    def llm_gen(text, api_key, base_api):
         results = []
         for sub_text in text.split("\n\n\n"):
-            for part in llm_parse_text_streaming(sub_text, api_key):
+            for part in llm_parse_text_streaming(exclude_text(sub_text),
+                                                 api_key,
+                                                 base_api=base_api):
                 results.append(part)
                 yield "".join(results)  #每次yield累加后的结果
         pass
@@ -204,13 +241,18 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                outputs=[audio])
     btn_clean.click(clean_tmp_file)
     btn_llm.click(llm_gen,
-                  inputs=[text_content, dify_api_key],
+                  inputs=[text_content, dify_api_key, dify_base_api],
                   outputs=tts_content)
     pdf_img.change(is_pdf_img, inputs=[pdf_img, pdf_img_vector])
     pdf_img_vector.change(is_pdf_img, inputs=[pdf_img, pdf_img_vector])
-    btn_ocr.click(ocr_content,
-                  inputs=[dir_tree, dify_api_key, start_page, end_page],
-                  outputs=[text_content])
+    btn_ocr.click(
+        ocr_content_llm,
+        inputs=[dir_tree, dify_api_key, dify_base_api, start_page, end_page],
+        outputs=[text_content])
+    btn_ocr_volc.click(
+        ocr_content_volc,
+        inputs=[dir_tree, volc_ak, volc_sk, start_page, end_page],
+        outputs=[text_content])
     pass
 
 if __name__ == "__main__":

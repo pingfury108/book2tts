@@ -2,13 +2,16 @@ import json
 import os
 from dify_client import CompletionClient
 
-#BASE_API = "http://dify.pingfury.top/v1"
-BASE_API = "http://47.109.61.89:5908/v1"
+BASE_API = "https://api.dify.ai/v1"
+#BASE_API = "http://47.109.61.89:5908/v1"
 
 
-def llm_parse_text(text: str, api_key: str, files=None) -> str:
+def llm_parse_text(text: str,
+                   api_key: str,
+                   files=None,
+                   base_api=BASE_API) -> str:
     completion_client = CompletionClient(api_key, )
-    completion_client.base_url = BASE_API
+    completion_client.base_url = base_api
     # Create Completion Message using CompletionClient
     completion_response = completion_client.create_completion_message(
         inputs={"query": text},
@@ -22,9 +25,12 @@ def llm_parse_text(text: str, api_key: str, files=None) -> str:
     return result.get('answer')
 
 
-def llm_parse_text_streaming(text: str, api_key: str, files=None):
+def llm_parse_text_streaming(text: str,
+                             api_key: str,
+                             files=None,
+                             base_api=BASE_API):
     completion_client = CompletionClient(api_key)
-    completion_client.base_url = BASE_API
+    completion_client.base_url = base_api
 
     # Create Completion Message using CompletionClient
     completion_response = completion_client.create_completion_message(
@@ -48,9 +54,9 @@ def llm_parse_text_streaming(text: str, api_key: str, files=None):
                 print(f"JSON decoding error: {e}")
 
 
-def file_upload(api_key: str, files):
+def file_upload(api_key: str, files, base_api=BASE_API):
     completion_client = CompletionClient(api_key)
-    completion_client.base_url = BASE_API
+    completion_client.base_url = base_api
 
     completion_response = completion_client.file_upload(user="book2tts",
                                                         files=files)
