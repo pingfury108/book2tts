@@ -53,10 +53,15 @@ def clean_text(text):
 
 
 def extract_img_by_page(pdf_path):
+    """
     reader = PdfReader(pdf_path)
     print("pdf img page")
 
     return [page.images[0].data for page in reader.pages if page.images]
+    """
+    doc = pymupdf.open(pdf_path)
+    print("pdf img page")
+    return [page.get_pixmap().tobytes() for page in doc]
 
 
 def save_img(image_data, img_type: str = ".jpeg"):

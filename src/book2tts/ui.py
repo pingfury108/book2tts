@@ -20,30 +20,15 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                 pdf_img = gr.Checkbox(label="扫描版本PDF")
                 pdf_img_vector = gr.Checkbox(label="矢量图PDF")
                 pass
+            book_title = gr.Textbox(label="书名")
             file = gr.File(label="选择书")
             pass
         with gr.Column():
-            book_title = gr.Textbox(label="书名")
             dir_tree = gr.Dropdown([], label="选择章节", multiselect=True)
             with gr.Row():
                 start_page = gr.Slider(0, 500, label="开始页数")
                 end_page = gr.Slider(0, 500, label="结束页数")
                 pass
-            pass
-        with gr.Column():
-            dify_base_api = gr.Textbox(label="Dify BASE API", value=BASE_API)
-            dify_api_key = gr.Textbox(label="Dify API Token")
-            btn_ocr = gr.Button("识别PDF图片(LLM)")
-
-            pass
-        with gr.Column():
-            volc_ak = gr.Textbox(label="火山云AK")
-            volc_sk = gr.Textbox(label="火山云SK")
-            btn_ocr_volc = gr.Button("识别PDF图片(OCR)")
-            pass
-
-    with gr.Row():
-        with gr.Column():
             voices = asyncio.run(edge_tts.list_voices())
             voices = sorted(voices, key=lambda voice: voice["ShortName"])
             tts_mode = gr.Dropdown([v.get("ShortName") for v in voices],
@@ -52,9 +37,26 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
             btn1 = gr.Button("生成语音")
             pass
         with gr.Column():
+            dify_base_api = gr.Textbox(label="Dify BASE API", value=BASE_API)
+            dify_api_key = gr.Textbox(label="Dify API Token")
+            volc_ak = gr.Textbox(label="火山云AK")
+            volc_sk = gr.Textbox(label="火山云SK")
+
+            pass
+        with gr.Column():
+            btn_ocr = gr.Button("识别PDF图片(LLM)")
+            btn_ocr_volc = gr.Button("识别PDF图片(OCR)")
+            with gr.Row():
+                line_num_head = gr.Slider(label="掐头行数", )
+                line_num_tail = gr.Slider(label="去尾行数", )
+                pass
             btn_llm = gr.Button("处理语言文本")
             btn_clean = gr.Button("清理")
             pass
+
+    with gr.Row():
+
+        pass
         pass
     with gr.Row():
         outfile = gr.Textbox(label="输出文件名称")
@@ -211,13 +213,20 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
         shutil.rmtree("/tmp/book2tts")
         return
 
-    def exclude_text(text):
-        return "\n".join(text.split("\n")[1:-1])
+    def exclude_text(text, line_num_head: int = 1, line_num_tail: int = 1):
+        lines = text.split("\n")
+        if line_num_tail == 0:
+            line_num_tail = len(lines)
+        else:
+            line_num_tail = -line_num_tail
+            pass
+        return "\n".join(lines[line_num_head:line_num_tail])
 
-    def llm_gen(text, api_key, base_api):
+    def llm_gen(text, api_key, base_api, line_num_head, line_num_tail):
         results = []
         for sub_text in text.split("\n\n\n"):
-            for part in llm_parse_text_streaming(exclude_text(sub_text),
+            for part in llm_parse_text_streaming(exclude_text(
+                    sub_text, line_num_head, line_num_tail),
                                                  api_key,
                                                  base_api=base_api):
                 results.append(part)
@@ -241,7 +250,10 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                outputs=[audio])
     btn_clean.click(clean_tmp_file)
     btn_llm.click(llm_gen,
-                  inputs=[text_content, dify_api_key, dify_base_api],
+                  inputs=[
+                      text_content, dify_api_key, dify_base_api, line_num_head,
+                      line_num_tail
+                  ],
                   outputs=tts_content)
     pdf_img.change(is_pdf_img, inputs=[pdf_img, pdf_img_vector])
     pdf_img_vector.change(is_pdf_img, inputs=[pdf_img, pdf_img_vector])
