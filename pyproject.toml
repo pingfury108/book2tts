@@ -10,11 +10,12 @@ dependencies = [
     "ebooklib>=0.18",
     "edge-tts>=6.1.14",
     "gradio>=4.44.1",
-    "dify-client>=0.1.10",
+    #"dify-client>=0.1.12",
     "google-generativeai>=0.8.3",
     "pymupdf>=1.24.12",
     "volcengine>=1.0.157",
     "django>=5.1.2",
+    "dify-client @ https://tmpf.pingfury.top/dify-client-0.1.12.tar.gz",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
@@ -26,6 +27,7 @@ build-backend = "hatchling.build"
 [tool.rye]
 managed = true
 dev-dependencies = []
+
 
 [tool.hatch.metadata]
 allow-direct-references = true

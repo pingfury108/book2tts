@@ -7,9 +7,12 @@ import os
 import time
 
 from book2tts.ebook import get_content_with_href, open_ebook, ebook_toc
-from book2tts.pdf import extract_text_by_page, extract_img_by_page, save_img, extract_img_vector_by_page
-from book2tts.dify import llm_parse_text, llm_parse_text_streaming, file_upload, file_2_md, BASE_API
-from book2tts.llm import ocr_gemini
+from book2tts.pdf import (extract_text_by_page, extract_img_by_page, save_img,
+                          extract_img_vector_by_page)
+from book2tts.dify import (llm_parse_text, llm_parse_text_streaming,
+                           file_upload, file_2_md, BASE_API,
+                           llm_parse_text_workflow)
+#from book2tts.llm import ocr_gemini
 from book2tts.ocr import ocr_volc
 
 with gr.Blocks(title="Book 2 TTS") as book2tts:
@@ -46,6 +49,8 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
         with gr.Column():
             btn_ocr = gr.Button("识别PDF图片(LLM)")
             btn_ocr_volc = gr.Button("识别PDF图片(OCR)")
+            btn_get_text = gr.Button("提取PDF区间页文本")
+
             with gr.Row():
                 line_num_head = gr.Slider(label="掐头行数", )
                 line_num_tail = gr.Slider(label="去尾行数", )
@@ -163,6 +168,21 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
             pass
         return ""
 
+    def parse_content_range(value, start_page: int, end_page: int):
+        if start_page > 0 and end_page > start_page:
+            value = [f'page-{i}' for i in range(start_page, end_page)]
+            pass
+        if book_type == "pdf":
+            if not book_type_pdf_img:
+                results = []
+                for i in [int(s.split("-")[-1]) for s in value]:
+                    text = book_toc[i]
+                    results.append(text)
+                    yield "\n\n\n".join(results)
+                    pass
+            pass
+        return ""
+
     def parse_content(value, book_title):
         if value is None or book_title is None:
             return None, None
@@ -225,12 +245,20 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
     def llm_gen(text, api_key, base_api, line_num_head, line_num_tail):
         results = []
         for sub_text in text.split("\n\n\n"):
+            """
             for part in llm_parse_text_streaming(exclude_text(
                     sub_text, line_num_head, line_num_tail),
                                                  api_key,
                                                  base_api=base_api):
                 results.append(part)
                 yield "".join(results)  #每次yield累加后的结果
+            """
+            result = llm_parse_text_workflow(exclude_text(
+                sub_text, line_num_head, line_num_tail),
+                                             api_key,
+                                             base_api=base_api)
+            results.append(result)
+            yield "".join(results)
         pass
 
     def is_pdf_img(img, vector):
@@ -265,6 +293,10 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
         ocr_content_volc,
         inputs=[dir_tree, volc_ak, volc_sk, start_page, end_page],
         outputs=[text_content])
+
+    btn_get_text.click(parse_content_range,
+                       inputs=[dir_tree, start_page, end_page],
+                       outputs=[text_content])
     pass
 
 if __name__ == "__main__":

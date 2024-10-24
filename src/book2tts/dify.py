@@ -1,6 +1,7 @@
 import json
 import os
 from dify_client import CompletionClient
+from dify_client.client import WorkflowClient
 
 BASE_API = "https://api.dify.ai/v1"
 #BASE_API = "http://47.109.61.89:5908/v1"
@@ -52,6 +53,21 @@ def llm_parse_text_streaming(text: str,
             except json.JSONDecodeError as e:
                 print(line)
                 print(f"JSON decoding error: {e}")
+
+
+def llm_parse_text_workflow(text: str, api_key: str, base_api=BASE_API):
+    workflow_client = WorkflowClient(api_key, )
+    workflow_client.base_url = base_api
+    workflow_response = workflow_client.run(
+        inputs={"query": text},
+        response_mode="blocking",
+        user="book2tts",
+    )
+
+    workflow_response.raise_for_status()
+    result = workflow_response.json()
+
+    return result.get('data', {}).get('outputs', {}).get('text')
 
 
 def file_upload(api_key: str, files, base_api=BASE_API):

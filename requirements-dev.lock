@@ -49,7 +49,7 @@ cycler==0.12.1
     # via matplotlib
 decorator==5.1.1
     # via retry
-dify-client==0.1.10
+dify-client @ https://tmpf.pingfury.top/dify-client-0.1.12.tar.gz
     # via book2tts
 django==5.1.2
     # via book2tts
