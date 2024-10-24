@@ -14,6 +14,7 @@ dependencies = [
     "google-generativeai>=0.8.3",
     "pymupdf>=1.24.12",
     "volcengine>=1.0.157",
+    "django>=5.1.2",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
