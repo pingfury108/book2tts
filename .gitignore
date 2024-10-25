@@ -8,7 +8,6 @@ wheels/
 
 # venv
 .venv
-
 *.txt
-
 *.sqlite3
+node_modules/

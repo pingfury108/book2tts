@@ -26,6 +26,7 @@ anyio==4.6.0
     # via starlette
 asgiref==3.8.1
     # via django
+    # via django-browser-reload
 attrs==24.2.0
     # via aiohttp
 beautifulsoup4==4.12.3
@@ -52,6 +53,12 @@ decorator==5.1.1
 dify-client @ https://tmpf.pingfury.top/dify-client-0.1.12.tar.gz
     # via book2tts
 django==5.1.2
+    # via book2tts
+    # via django-browser-reload
+    # via django-tailwind
+django-browser-reload==1.16.0
+    # via django-tailwind
+django-tailwind==3.8.0
     # via book2tts
 ebooklib==0.18
     # via book2tts
@@ -159,6 +166,8 @@ pandas==2.2.3
 pillow==10.4.0
     # via gradio
     # via matplotlib
+pip==24.2
+    # via book2tts
 propcache==0.2.0
     # via yarl
 proto-plus==1.24.0

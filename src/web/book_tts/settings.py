@@ -30,6 +30,9 @@ ALLOWED_HOSTS = ["*"]
 
 INSTALLED_APPS = [
     "home",
+    "tailwind",
+    "theme",
+    'django_browser_reload',
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -46,6 +49,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django_browser_reload.middleware.BrowserReloadMiddleware",
 ]
 
 ROOT_URLCONF = "book_tts.urls"
@@ -120,3 +124,5 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+TAILWIND_APP_NAME = 'theme'
