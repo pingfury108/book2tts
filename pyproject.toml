@@ -35,7 +35,7 @@ dev-dependencies = []
 allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/book2tts"]
+packages = ["src/book2tts", "src/web"]
 
 [tool.pyright]
 extraPaths = [".venv/lib/python3.12/"]
