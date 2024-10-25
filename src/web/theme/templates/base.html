@@ -10,7 +10,7 @@
     {% tailwind_css %}
 </head>
 
-<body class="bg-gray-50 font-serif leading-normal tracking-normal">
+<body>
     <div class="container mx-auto">
         <div class="navbar bg-base-100">
             <div class="navbar-start">
@@ -76,6 +76,8 @@
         </div>
 
         <div class="container">
+            {% block content %}
+            {% endblock %}
         </div>
 
     </div>
