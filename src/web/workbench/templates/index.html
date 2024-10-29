@@ -2,7 +2,7 @@
 
 
 {% block content %}
-<div class="flex p-2">
+<div class="flex p-2 h-full w-full">
     <div class="grow h-full w-1/5">
         <div class="container text-center">
             <h3>目录</h3>
@@ -25,11 +25,53 @@
     </div>
     <div class="divider divider-horizontal"></div>
     <div class="grow h-full w-1/5">
-        <div class="container text-center">
-            <h3>操作</h3>
+        <div class="mt-4 border rounded-lg h-1/3">
+            <div class="container text-center">
+                <h3>选择书籍</h3>
+            </div>
+            <div class="container">
+                <div class="flex flex-row p-3 self-center">
+                    <label class="label cursor-pointer w-1/2">
+                        <span class="label-text">PDF</span>
+                        <input type="radio" name="pdf" class="radio radio-accent" checked="checked" />
+                    </label>
+                    <label class="label cursor-pointer w-1/2">
+                        <span class="label-text">EPUB</span>
+                        <input type="radio" name="epub" class="radio radio-accent" checked="checked" />
+                    </label>
+                </div>
+                <div class="p-3">
+                    <input type="file" class="file-input file-input-bordered file-input-primary w-full max-w-xs" />
+                </div>
+                <div class="p-3">
+                    <button class="btn btn-outline btn-primary w-full self-center">上传</button>
+                </div>
+            </div>
         </div>
-        <div class="container pt-2">
-            <input type="file" class="file-input w-full max-w-xs" />
+
+        <div class="mt-4 border rounded-lg h-1/3">
+            <div class="container text-center">
+                <h3>内容处理</h3>
+            </div>
+            <div class="container">
+                <div class="pt-3">
+                    <button class="btn w-full self-center">排版内容</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 border rounded-lg h-1/3">
+            <div class="container text-center">
+                <h3>音频处理</h3>
+            </div>
+            <div class="container">
+                <div class="pt-3">
+                    <button class="btn w-full self-center">下载音频</button>
+                </div>
+                <div class="pt-3">
+                    <button class="btn w-full self-center">发布</button>
+                </div>
+            </div>
         </div>
     </div>
 </div>
