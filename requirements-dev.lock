@@ -27,6 +27,7 @@ anyio==4.6.0
 asgiref==3.8.1
     # via django
     # via django-browser-reload
+    # via django-htmx
 attrs==24.2.0
     # via aiohttp
 beautifulsoup4==4.12.3
@@ -55,9 +56,12 @@ dify-client @ https://tmpf.pingfury.top/dify-client-0.1.12.tar.gz
 django==5.1.2
     # via book2tts
     # via django-browser-reload
+    # via django-htmx
     # via django-tailwind
 django-browser-reload==1.16.0
     # via django-tailwind
+django-htmx==1.21.0
+    # via book2tts
 django-tailwind==3.8.0
     # via book2tts
 ebooklib==0.18

@@ -18,6 +18,7 @@ dependencies = [
     "dify-client @ https://tmpf.pingfury.top/dify-client-0.1.12.tar.gz",
     "django-tailwind[reload]>=3.8.0",
     "pip>=24.2",
+    "django-htmx>=1.21.0",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
