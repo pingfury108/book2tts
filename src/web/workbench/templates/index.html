@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+
+{% block content %}
+<div class="flex p-2">
+    <div class="grow h-full w-1/5">
+        <div class="container text-center">
+            <h3>目录</h3>
+        </div>
+        <div class="container pt-2">
+            <ul class="menu menu-sm bg-base-200 rounded-box">
+                <li><a>sm item 1</a></li>
+                <li><a>sm item 2</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="divider divider-horizontal"></div>
+    <div class="grow h-full w-3/5">
+        <div class="container text-center">
+            <h3>内容</h3>
+        </div>
+        <div class="container pt-2">
+            <textarea placeholder="Bio" class="textarea textarea-bordered textarea-lg w-full"></textarea>
+        </div>
+    </div>
+    <div class="divider divider-horizontal"></div>
+    <div class="grow h-full w-1/5">
+        <div class="container text-center">
+            <h3>操作</h3>
+        </div>
+        <div class="container pt-2">
+            <input type="file" class="file-input w-full max-w-xs" />
+        </div>
+    </div>
+</div>
+{% endblock %}

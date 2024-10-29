@@ -30,6 +30,7 @@ ALLOWED_HOSTS = ["*"]
 
 INSTALLED_APPS = [
     "home",
+    "workbench",
     "tailwind",
     "theme",
     'django_browser_reload',
