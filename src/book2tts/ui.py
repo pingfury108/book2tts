@@ -226,9 +226,23 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
         if tts_content.strip() != "":
             content = tts_content
 
+        # Generate TTS audio
         communicate = edge_tts.Communicate(content, tts_mode)
         await communicate.save(outfile)
-        return outfile
+
+        # Generate subtitle file
+        subtitle_file = outfile.replace('.mp3', '.vtt')
+        with open(subtitle_file, 'w') as f:
+            f.write("WEBVTT\n\n")
+            lines = content.split('\n')
+            for i, line in enumerate(lines):
+                start_time = i * 2  # Assuming each line takes 2 seconds
+                end_time = start_time + 2
+                f.write(f"{i+1}\n")
+                f.write(f"00:{start_time//60:02}:{start_time%60:02}.000 --> 00:{end_time//60:02}:{end_time%60:02}.000\n")
+                f.write(f"{line}\n\n")
+
+        return outfile, subtitle_file
 
     def clean_tmp_file():
         shutil.rmtree("/tmp/book2tts")
@@ -276,7 +290,7 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
 
     btn1.click(gen_tts,
                inputs=[text_content, tts_content, tts_mode, outfile],
-               outputs=[audio])
+               outputs=[audio, gr.Textbox(label="字幕文件")])
     btn_clean.click(clean_tmp_file)
     btn_llm.click(llm_gen,
                   inputs=[
