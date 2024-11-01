@@ -93,12 +93,16 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
     replace_texts = default_replace_texts
 
     def parse_toc(file):
+        """
+        解析目录文件并返回目录和书名
+        :param file: 文件对象
+        :return: 目录下拉框和书名
+        """
         global book, book_toc, book_type, book_type_pdf_img
         if file is None:
             return None, None
         if file.endswith(".pdf"):
             book_type = "pdf"
-            #book = open_pdf_reader(file)
             if book_type_pdf_img:
                 if book_type_pdf_img_vector:
                     book_toc = extract_img_vector_by_page(file)
@@ -106,7 +110,6 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                     book_toc = extract_img_by_page(file)
             else:
                 book_toc = extract_text_by_page(file)
-                pass
             dropdown = gr.Dropdown(
                 choices=[f'page-{i}' for i, _ in enumerate(book_toc)],
                 multiselect=True)
@@ -119,7 +122,6 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
             dropdown = gr.Dropdown(choices=[t.get("title") for t in book_toc],
                                    multiselect=True)
             return dropdown, book.title
-        pass
 
     def ocr_content_llm(value, api_key, base_api, start_page: int,
                         end_page: int):
@@ -219,14 +221,13 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
         outfile = tmpfile.name
         return outfile
 
-    def gen_tts(text_content, tts_content, tts_mode, outfile):
+    async def gen_tts(text_content, tts_content, tts_mode, outfile):
         content = text_content
         if tts_content.strip() != "":
             content = tts_content
-            pass
 
         communicate = edge_tts.Communicate(content, tts_mode)
-        asyncio.run(communicate.save(outfile))
+        await communicate.save(outfile)
         return outfile
 
     def clean_tmp_file():
