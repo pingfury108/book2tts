@@ -19,6 +19,9 @@ dependencies = [
     "django-tailwind[reload]>=3.8.0",
     "pip>=24.2",
     "django-htmx>=1.21.0",
+    "opendal>=0.45.11",
+    "click>=8.1.7",
+    "lxml>=5.3.0",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"

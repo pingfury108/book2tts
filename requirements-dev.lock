@@ -43,6 +43,7 @@ certifi==2024.8.30
 charset-normalizer==3.3.2
     # via requests
 click==8.1.7
+    # via book2tts
     # via typer
     # via uvicorn
 contourpy==1.3.0
@@ -140,6 +141,7 @@ jinja2==3.1.4
 kiwisolver==1.4.7
     # via matplotlib
 lxml==5.3.0
+    # via book2tts
     # via ebooklib
 markdown-it-py==3.0.0
     # via rich
@@ -158,6 +160,8 @@ numpy==2.1.2
     # via gradio
     # via matplotlib
     # via pandas
+opendal==0.45.11
+    # via book2tts
 orjson==3.10.7
     # via gradio
 packaging==24.1
