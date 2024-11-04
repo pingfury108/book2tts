@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 from book2tts.books import (Book, Metadata, TocEntry, Content)
 
 
-def traverse_toc(items, toc, level):
+def traverse_toc(book: Book, items, toc, level):
     level = level + 1
     for i, item in enumerate(items):
         if isinstance(item, tuple):
@@ -14,11 +14,11 @@ def traverse_toc(items, toc, level):
                 title=section.title,
                 level=level,
                 page=section.href,
-                position=0,
+                position=book.find_content_by_page(section.href)[0],
                 children=[],
                 index=i,
             )
-            traverse_toc(children, entry.children, level)
+            traverse_toc(book, children, entry.children, level)
             toc.append(entry)
         elif isinstance(item, epub.Link):
             entry = TocEntry(
@@ -30,6 +30,8 @@ def traverse_toc(items, toc, level):
                 index=i,
             )
             toc.append(entry)
+            pass
+        pass
 
     return
 
@@ -38,11 +40,11 @@ def html2texts(content):
     soup = BeautifulSoup(content, 'xml')
     texts = soup.get_text('\n', strip=True)
     """
-    texts = '\n'.join(
+        texts = '\n'.join(
         list(
             map(lambda s: s.replace(' ', '').replace('\xa0', ''),
                 texts.split('\n'))))
-    """
+        """
     return texts
 
 
@@ -57,9 +59,9 @@ def parse_epub(filename) -> Book:
         original_file=filename,
         created_at=datetime.now(),
     )
-    toc = []
-    traverse_toc(ebook.toc, toc, level=0)
-    contents = []
+
+    book = Book(metadata=md, table_of_contents=[], content=[])
+
     for i, it in enumerate(ebook.items):
         print(it.get_name())
         if it.get_type() == 9:
@@ -67,5 +69,9 @@ def parse_epub(filename) -> Book:
                               position=i,
                               text=html2texts(it.get_content()),
                               toc_index=None)
-            contents.append(content)
-    return Book(metadata=md, table_of_contents=toc, content=contents)
+            book.content.append(content)
+            pass
+        pass
+
+    traverse_toc(book, ebook.toc, book.table_of_contents, level=0)
+    return book

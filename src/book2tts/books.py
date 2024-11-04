@@ -20,7 +20,7 @@ class TocEntry:
     level: int
     page: Optional[str]
     index: int
-    position: int  # 在文本中的位置
+    position: Optional[int]
     children: List['TocEntry'] = field(default_factory=list)
     pass
 
@@ -52,6 +52,13 @@ class Book:
     metadata: Metadata
     table_of_contents: List[TocEntry]
     content: List[Content]
+
+    def find_content_by_page(self, page_name):
+        items = [(c.position, c.page) for c in self.content
+                 if c.page == page_name]
+        if len(items) > 0:
+            return items[0][0], items[0][-1]
+        return None, None
 
     def save_json(self, file_path: str):
         """将书籍数据保存为JSON格式"""
@@ -87,7 +94,11 @@ class Book:
         os.makedirs(content_dir, exist_ok=True)
 
         for c in self.content:
-            with open(os.path.join(content_dir, f"page_{c.position}.txt"),
+            page_name = c.page or ""
+            page_name = page_name.replace("/", "")
+
+            with open(os.path.join(content_dir,
+                                   f"page_{c.position}_{page_name}.txt"),
                       'w',
                       encoding='utf-8') as f:
 
