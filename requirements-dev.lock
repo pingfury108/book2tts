@@ -30,6 +30,8 @@ asgiref==3.8.1
     # via django-htmx
 attrs==24.2.0
     # via aiohttp
+azure-cognitiveservices-speech==1.41.1
+    # via book2tts
 beautifulsoup4==4.12.3
     # via book2tts
     # via google

@@ -1,6 +1,4 @@
 import gradio as gr
-import edge_tts
-import asyncio
 import tempfile
 import shutil
 import os
@@ -12,6 +10,8 @@ from book2tts.pdf import (extract_text_by_page, extract_img_by_page, save_img,
 from book2tts.dify import (llm_parse_text, llm_parse_text_streaming,
                            file_upload, file_2_md, BASE_API,
                            llm_parse_text_workflow)
+from book2tts.tts import (azure_text_to_speech, edge_tts_volices,
+                          edge_text_to_speech)
 #from book2tts.llm import ocr_gemini
 from book2tts.ocr import ocr_volc
 
@@ -32,9 +32,13 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                 start_page = gr.Slider(0, 500, label="开始页数")
                 end_page = gr.Slider(0, 500, label="结束页数")
                 pass
-            voices = asyncio.run(edge_tts.list_voices())
-            voices = sorted(voices, key=lambda voice: voice["ShortName"])
-            tts_mode = gr.Dropdown([v.get("ShortName") for v in voices],
+            tts_provide = gr.Dropdown(["edge_tts", "azure"],
+                                      label="提供商",
+                                      value="edge_tts")
+            azure_key = gr.Textbox(label="azure api key")
+            azure_region = gr.Textbox(label="azure api region")
+
+            tts_mode = gr.Dropdown(edge_tts_volices(),
                                    label="选择声音模型",
                                    value="zh-CN-YunxiNeural")
             btn1 = gr.Button("生成语音")
@@ -93,16 +97,12 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
     replace_texts = default_replace_texts
 
     def parse_toc(file):
-        """
-        解析目录文件并返回目录和书名
-        :param file: 文件对象
-        :return: 目录下拉框和书名
-        """
         global book, book_toc, book_type, book_type_pdf_img
         if file is None:
             return None, None
         if file.endswith(".pdf"):
             book_type = "pdf"
+            #book = open_pdf_reader(file)
             if book_type_pdf_img:
                 if book_type_pdf_img_vector:
                     book_toc = extract_img_vector_by_page(file)
@@ -110,6 +110,7 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                     book_toc = extract_img_by_page(file)
             else:
                 book_toc = extract_text_by_page(file)
+                pass
             dropdown = gr.Dropdown(
                 choices=[f'page-{i}' for i, _ in enumerate(book_toc)],
                 multiselect=True)
@@ -122,6 +123,7 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
             dropdown = gr.Dropdown(choices=[t.get("title") for t in book_toc],
                                    multiselect=True)
             return dropdown, book.title
+        pass
 
     def ocr_content_llm(value, api_key, base_api, start_page: int,
                         end_page: int):
@@ -221,28 +223,29 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
         outfile = tmpfile.name
         return outfile
 
-    async def gen_tts(text_content, tts_content, tts_mode, outfile):
+    def gen_tts(text_content, tts_content, tts_provide, tts_mode, outfile,
+                azure_key, azure_region):
         content = text_content
         if tts_content.strip() != "":
             content = tts_content
+            pass
 
-        # Generate TTS audio
-        communicate = edge_tts.Communicate(content, tts_mode)
-        await communicate.save(outfile)
+        if tts_provide == "edge_text":
+            r = edge_text_to_speech(content, tts_mode, outfile)
+            print(f"edge tts: {r}")
+            pass
+        elif tts_provide == "azure":
+            r = azure_text_to_speech(
+                key=azure_key,
+                region=azure_region,
+                text=content,
+                output_file=outfile,
+                voice_name=tts_mode,
+            )
+            print(f"azure tts: {r}")
+            pass
 
-        # Generate subtitle file
-        subtitle_file = outfile.replace('.mp3', '.vtt')
-        with open(subtitle_file, 'w') as f:
-            f.write("WEBVTT\n\n")
-            lines = content.split('\n')
-            for i, line in enumerate(lines):
-                start_time = i * 2  # Assuming each line takes 2 seconds
-                end_time = start_time + 2
-                f.write(f"{i+1}\n")
-                f.write(f"00:{start_time//60:02}:{start_time%60:02}.000 --> 00:{end_time//60:02}:{end_time%60:02}.000\n")
-                f.write(f"{line}\n\n")
-
-        return outfile, subtitle_file
+        return outfile
 
     def clean_tmp_file():
         shutil.rmtree("/tmp/book2tts")
@@ -289,8 +292,11 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                     outputs=[text_content, outfile])
 
     btn1.click(gen_tts,
-               inputs=[text_content, tts_content, tts_mode, outfile],
-               outputs=[audio, gr.Textbox(label="字幕文件")])
+               inputs=[
+                   text_content, tts_content, tts_provide, tts_mode, outfile,
+                   azure_key, azure_region
+               ],
+               outputs=[audio])
     btn_clean.click(clean_tmp_file)
     btn_llm.click(llm_gen,
                   inputs=[
