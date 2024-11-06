@@ -73,6 +73,8 @@ edge-tts==6.1.15
     # via book2tts
 fastapi==0.115.0
     # via gradio
+ffmpeg-python==0.2.0
+    # via book2tts
 ffmpy==0.4.0
     # via gradio
 filelock==3.16.1
@@ -85,6 +87,8 @@ frozenlist==1.4.1
 fsspec==2024.9.0
     # via gradio-client
     # via huggingface-hub
+future==1.0.0
+    # via ffmpeg-python
 google==3.0.0
     # via volcengine
 google-ai-generativelanguage==0.6.10
@@ -218,6 +222,8 @@ pyparsing==3.1.4
 python-dateutil==2.9.0.post0
     # via matplotlib
     # via pandas
+python-dotenv==1.0.1
+    # via book2tts
 python-multipart==0.0.12
     # via gradio
 pytz==2020.5

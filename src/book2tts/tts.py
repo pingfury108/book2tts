@@ -2,6 +2,8 @@ import edge_tts
 import asyncio
 import azure.cognitiveservices.speech as speechsdk
 
+from book2tts.long_tts import LongTTS
+
 
 def azure_text_to_speech(key,
                          region,
@@ -28,6 +30,17 @@ def azure_text_to_speech(key,
         return result
     else:
         return result
+
+
+def azure_long_text_to_speech(key,
+                              region,
+                              text,
+                              output_file,
+                              voice_name="zh-CN-YunxiNeural"):
+    tts = LongTTS(key, region, voice_name)
+    ok = tts.synthesize_long_text(text=text, output_file=output_file)
+
+    return ok
 
 
 def edge_text_to_speech(content, tts_mode, output_file):

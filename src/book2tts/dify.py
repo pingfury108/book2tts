@@ -64,10 +64,13 @@ def llm_parse_text_workflow(text: str, api_key: str, base_api=BASE_API):
         user="book2tts",
     )
 
-    workflow_response.raise_for_status()
-    result = workflow_response.json()
-
-    return result.get('data', {}).get('outputs', {}).get('text')
+    try:
+        workflow_response.raise_for_status()
+        result = workflow_response.json()
+        return result.get('data', {}).get('outputs', {}).get('text')
+    except Exception as e:
+        print(workflow_response.text)
+        raise e
 
 
 def file_upload(api_key: str, files, base_api=BASE_API):

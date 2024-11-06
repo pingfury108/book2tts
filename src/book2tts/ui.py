@@ -4,6 +4,8 @@ import shutil
 import os
 import time
 
+from dotenv import load_dotenv
+
 from book2tts.ebook import get_content_with_href, open_ebook, ebook_toc
 from book2tts.pdf import (extract_text_by_page, extract_img_by_page, save_img,
                           extract_img_vector_by_page)
@@ -11,9 +13,11 @@ from book2tts.dify import (llm_parse_text, llm_parse_text_streaming,
                            file_upload, file_2_md, BASE_API,
                            llm_parse_text_workflow)
 from book2tts.tts import (azure_text_to_speech, edge_tts_volices,
-                          edge_text_to_speech)
+                          edge_text_to_speech, azure_long_text_to_speech)
 #from book2tts.llm import ocr_gemini
 from book2tts.ocr import ocr_volc
+
+load_dotenv()
 
 with gr.Blocks(title="Book 2 TTS") as book2tts:
     gr.Markdown("# Book 2 TTS")
@@ -23,50 +27,55 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                 pdf_img = gr.Checkbox(label="扫描版本PDF")
                 pdf_img_vector = gr.Checkbox(label="矢量图PDF")
                 pass
-            book_title = gr.Textbox(label="书名")
             file = gr.File(label="选择书")
             pass
         with gr.Column():
+            book_title = gr.Textbox(label="书名")
             dir_tree = gr.Dropdown([], label="选择章节", multiselect=True)
             with gr.Row():
                 start_page = gr.Slider(0, 500, label="开始页数")
                 end_page = gr.Slider(0, 500, label="结束页数")
                 pass
-            tts_provide = gr.Dropdown(["edge_tts", "azure"],
-                                      label="提供商",
-                                      value="edge_tts")
-            azure_key = gr.Textbox(label="azure api key")
-            azure_region = gr.Textbox(label="azure api region")
-
-            tts_mode = gr.Dropdown(edge_tts_volices(),
-                                   label="选择声音模型",
-                                   value="zh-CN-YunxiNeural")
-            btn1 = gr.Button("生成语音")
+            btn_get_text = gr.Button("提取PDF区间页文本")
             pass
         with gr.Column():
             dify_base_api = gr.Textbox(label="Dify BASE API", value=BASE_API)
-            dify_api_key = gr.Textbox(label="Dify API Token")
-            volc_ak = gr.Textbox(label="火山云AK")
-            volc_sk = gr.Textbox(label="火山云SK")
-
-            pass
-        with gr.Column():
-            btn_ocr = gr.Button("识别PDF图片(LLM)")
-            btn_ocr_volc = gr.Button("识别PDF图片(OCR)")
-            btn_get_text = gr.Button("提取PDF区间页文本")
-
+            dify_api_key = gr.Textbox(label="Dify API Token",
+                                      value=os.getenv("DIFY_APP_TOKEN", ))
             with gr.Row():
                 line_num_head = gr.Slider(label="掐头行数", )
                 line_num_tail = gr.Slider(label="去尾行数", )
                 pass
-            btn_llm = gr.Button("处理语言文本")
             btn_clean = gr.Button("清理")
             pass
 
     with gr.Row():
+        volc_ak = gr.Textbox(label="火山云AK", value=os.getenv("VOLC_AK", ))
+        volc_sk = gr.Textbox(label="火山云SK", value=os.getenv("VOLC_SK", ))
+        btn_ocr = gr.Button("识别PDF图片(LLM)")
+        btn_ocr_volc = gr.Button("识别PDF图片(OCR)")
 
         pass
+    with gr.Row():
+        btn_llm = gr.Button("处理语言文本")
         pass
+
+    with gr.Row():
+        tts_provide = gr.Dropdown(["edge_tts", "azure"],
+                                  label="提供商",
+                                  value="azure")
+        azure_key = gr.Textbox(label="azure api key",
+                               value=os.getenv("AZURE_KEY", ))
+        azure_region = gr.Textbox(label="azure api region",
+                                  value=os.getenv("AZURE_REGION", ))
+
+        tts_mode = gr.Dropdown(edge_tts_volices(),
+                               label="选择声音模型",
+                               value="zh-CN-YunxiNeural")
+        btn1 = gr.Button("生成语音")
+
+        pass
+
     with gr.Row():
         outfile = gr.Textbox(label="输出文件名称")
         pass
@@ -235,7 +244,16 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
             print(f"edge tts: {r}")
             pass
         elif tts_provide == "azure":
+            """
             r = azure_text_to_speech(
+                key=azure_key,
+                region=azure_region,
+                text=content,
+                output_file=outfile,
+                voice_name=tts_mode,
+            )
+            """
+            r = azure_long_text_to_speech(
                 key=azure_key,
                 region=azure_region,
                 text=content,
@@ -275,7 +293,11 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                 sub_text, line_num_head, line_num_tail),
                                              api_key,
                                              base_api=base_api)
-            results.append(result)
+            if result is not None:
+                results.append(result)
+            else:
+                print(f"llm gen result: {result}")
+                pass
             yield "".join(results)
         pass
 
