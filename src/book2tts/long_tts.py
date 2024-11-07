@@ -103,14 +103,15 @@ class LongTTS:
         :param output_file: 输出文件路径
         """
 
-        # 创建输入流
-        input_streams = [
-            ffmpeg.input(audio_file) for audio_file in input_files
-        ]
-
-        # 合并音频
-        ffmpeg.concat(*input_streams, v=0, a=1).output(output_file).run()
-
+        _, tmp_file = tempfile.mkstemp()
+        with open(tmp_file, 'w') as f:
+            f.write("\n".join(
+                [f"file '{audio_file}'" for audio_file in input_files]))
+        ffmpeg.input(tmp_file,
+                     format='concat', safe=0).output(output_file,
+                                                     format='wav',
+                                                     acodec='copy').run()
+        os.remove(tmp_file)
         return
 
     def synthesize_long_text(self,
@@ -136,7 +137,7 @@ class LongTTS:
             for i, segment in enumerate(
                     self._text_to_segments(text, segment_length), 1):
                 # 创建临时文件
-                temp_file = os.path.join(temp_dir, f'segment_{i}.mp3')
+                temp_file = os.path.join(temp_dir, f'segment_{i}.wav')
                 temp_files.append(temp_file)
 
                 print(f"正在处理第 {i}/{total_segments} 个段落...")

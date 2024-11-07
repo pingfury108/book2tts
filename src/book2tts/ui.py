@@ -1,8 +1,8 @@
-import gradio as gr
 import tempfile
 import shutil
 import os
 import time
+import gradio as gr
 
 from dotenv import load_dotenv
 
@@ -12,8 +12,8 @@ from book2tts.pdf import (extract_text_by_page, extract_img_by_page, save_img,
 from book2tts.dify import (llm_parse_text, llm_parse_text_streaming,
                            file_upload, file_2_md, BASE_API,
                            llm_parse_text_workflow)
-from book2tts.tts import (azure_text_to_speech, edge_tts_volices,
-                          edge_text_to_speech, azure_long_text_to_speech)
+from book2tts.tts import (edge_tts_volices, edge_text_to_speech,
+                          azure_long_text_to_speech)
 #from book2tts.llm import ocr_gemini
 from book2tts.ocr import ocr_volc
 
@@ -225,7 +225,7 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
     def gen_out_file(book_title, dir_tree):
         os.makedirs("/tmp/book2tts", exist_ok=True)
         tmpfile = tempfile.NamedTemporaryFile(
-            suffix=".mp3",
+            suffix=".wav",
             dir="/tmp/book2tts",
             prefix=f'{book_title}{outfile_prefix(dir_tree)}',
             delete=True)
