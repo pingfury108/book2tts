@@ -35,7 +35,7 @@ class LongTTS:
         current_length = 0
 
         # 按句号、感叹号、问号分割
-        sentences = re.split('([。！？])', text)
+        sentences = re.split('\n\n', text)
 
         for i in range(0, len(sentences), 2):
             if i + 1 < len(sentences):
@@ -117,7 +117,7 @@ class LongTTS:
     def synthesize_long_text(self,
                              text: str,
                              output_file: str,
-                             segment_length: int = 3000) -> bool:
+                             segment_length: int = 2000) -> bool:
         """
         合成长文本
         :param text: 输入文本
