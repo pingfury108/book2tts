@@ -1,4 +1,5 @@
-import azure.cognitiveservices.speech as speechsdk
+import edge_tts
+import asyncio
 import os
 import re
 import time
@@ -7,20 +8,11 @@ import ffmpeg
 from typing import Iterator
 
 
-class LongTTS:
+class EdgeTTS:
 
-    def __init__(self, subscription_key: str, region: str, voice_name: str):
-        """
-        初始化语音合成器
-        :param subscription_key: Azure 语音服务密钥
-        :param region: 服务区域
-        """
-        self.speech_config = speechsdk.SpeechConfig(
-            subscription=subscription_key, region=region)
-        # 设置中文音色
-        self.speech_config.speech_synthesis_voice_name = voice_name
-        #self.speech_config.set_speech_synthesis_output_format(
-        #    speechsdk.SpeechSynthesisOutputFormat.Raw16Khz16BitMonoPcm)
+    def __init__(self, voice_name: str):
+        self.voice_name = voice_name
+        return
 
     def _text_to_segments(self,
                           text: str,
@@ -67,26 +59,12 @@ class LongTTS:
         :param retry_count: 重试次数
         :return: 是否成功
         """
-        audio_config = speechsdk.audio.AudioOutputConfig(filename=output_file)
-        synthesizer = speechsdk.SpeechSynthesizer(
-            speech_config=self.speech_config, audio_config=audio_config)
 
         for attempt in range(retry_count):
             try:
-                # 使用 speak_text_async 替代 speak_ssml_async
-                result = synthesizer.speak_text_async(text).get()
-
-                if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
-                    return True
-
-                elif result.reason == speechsdk.ResultReason.Canceled:
-                    if attempt < retry_count - 1:
-                        print(f"合成失败，正在重试 ({attempt + 1}/{retry_count})")
-                        print(f"错误详情: {result}")
-                        time.sleep(1)
-                        continue
-                    return False
-
+                communicate = edge_tts.Communicate(text, self.voice_name)
+                asyncio.run(communicate.save(output_file))
+                return True
             except Exception as e:
                 if attempt < retry_count - 1:
                     print(f"错误: {str(e)}, 正在重试 ({attempt + 1}/{retry_count})")
@@ -107,6 +85,7 @@ class LongTTS:
         with open(tmp_file, 'w') as f:
             f.write("\n".join(
                 [f"file '{audio_file}'" for audio_file in input_files]))
+
         ffmpeg.input(tmp_file,
                      format='concat', safe=0).output(output_file,
                                                      format='wav',

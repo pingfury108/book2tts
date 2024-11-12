@@ -69,7 +69,7 @@ django-tailwind==3.8.0
     # via book2tts
 ebooklib==0.18
     # via book2tts
-edge-tts==6.1.15
+edge-tts==6.1.18
     # via book2tts
 fastapi==0.115.0
     # via gradio

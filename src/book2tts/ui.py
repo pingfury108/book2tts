@@ -239,7 +239,7 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
             content = tts_content
             pass
 
-        if tts_provide == "edge_text":
+        if tts_provide == "edge_tts":
             r = edge_text_to_speech(content, tts_mode, outfile)
             print(f"edge tts: {r}")
             pass

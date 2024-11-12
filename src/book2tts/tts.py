@@ -3,6 +3,7 @@ import asyncio
 import azure.cognitiveservices.speech as speechsdk
 
 from book2tts.long_tts import LongTTS
+from book2tts.edge_tts import EdgeTTS
 
 
 def azure_text_to_speech(key,
@@ -44,8 +45,8 @@ def azure_long_text_to_speech(key,
 
 
 def edge_text_to_speech(content, tts_mode, output_file):
-    communicate = edge_tts.Communicate(content, tts_mode)
-    asyncio.run(communicate.save(output_file))
+    tts = EdgeTTS(voice_name=tts_mode)
+    tts.synthesize_long_text(text=content, output_file=output_file)
     return
 
 
