@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="flex justify-center p-3">
+    <ul>
+        {% for book in books %}
+        <li>
+            <a class="link link-hover" href="{% url 'index' book_id=book.id %}">{{ book.file.name }}</a>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+
+{% endblock %}
