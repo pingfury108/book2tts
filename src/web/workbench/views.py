@@ -1,5 +1,6 @@
 from django.shortcuts import render
-from django.http import HttpResponse
+from django.urls import reverse
+from django.shortcuts import redirect
 
 # Create your views here.
 
@@ -9,7 +10,6 @@ from .models import Books
 
 def index(request, book_id):
     book = Books.objects.get(pk=book_id)
-    print(book.uid, book.file.name)
     return render(request, "index.html", {})
 
 
@@ -19,8 +19,9 @@ def upload(request):
         form = UploadFileForm(request.POST, request.FILES)
 
         if form.is_valid():
-            form.save()
-            return HttpResponse(b"ok")
+            instance = form.save()
+            print(instance)
+            return redirect(reverse('index', args=[instance.id]))
     else:
         form = UploadFileForm()
     return render(request, "upload.html", {"form": form})

@@ -4,7 +4,8 @@
 <div class="h-96 flex items-center justify-center p-3">
     <form method="post" enctype="multipart/form-data" class="form-control m-1 gap-1">
         {% csrf_token %}
-        <input type="file" class="file-input file-input-bordered file-input-primary w-full max-w-xs" />
+        <input type="file" class="file-input file-input-bordered file-input-primary w-full max-w-xs" accept=".pdf,.epub"
+            name="file" />
         <button type="submit" class="btn w-full btn-outline btn-primary">上传</button>
     </form>
 </div>
