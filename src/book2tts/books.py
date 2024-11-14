@@ -21,7 +21,7 @@ class TocEntry:
     page: Optional[str]
     index: int
     position: Optional[int]
-    children: List['TocEntry'] = field(default_factory=list)
+    children: List["TocEntry"] = field(default_factory=list)
     pass
 
 
@@ -54,20 +54,15 @@ class Book:
     content: List[Content]
 
     def find_content_by_page(self, page_name):
-        items = [(c.position, c.page) for c in self.content
-                 if c.page == page_name]
+        items = [(c.position, c.page) for c in self.content if c.page == page_name]
         if len(items) > 0:
             return items[0][0], items[0][-1]
         return None, None
 
     def save_json(self, file_path: str):
         """将书籍数据保存为JSON格式"""
-        with open(file_path, 'w', encoding='utf-8') as f:
-            json.dump(asdict(self),
-                      f,
-                      ensure_ascii=False,
-                      indent=2,
-                      default=str)
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(asdict(self), f, ensure_ascii=False, indent=2, default=str)
         pass
 
     def save(self, dir_path):
@@ -75,18 +70,15 @@ class Book:
 
         # save metadata
         self.metadata.created_at = self.metadata.created_at.isoformat()
-        with open(os.path.join(dir_path, "metadata.json"),
-                  'w',
-                  encoding='utf-8') as f:
+        with open(os.path.join(dir_path, "metadata.json"), "w", encoding="utf-8") as f:
             json.dump(asdict(self.metadata), f, ensure_ascii=False)
             pass
 
         # save toc
-        with open(os.path.join(dir_path, "toc.json"), 'w',
-                  encoding='utf-8') as f:
-            json.dump([asdict(toc) for toc in self.table_of_contents],
-                      f,
-                      ensure_ascii=False)
+        with open(os.path.join(dir_path, "toc.json"), "w", encoding="utf-8") as f:
+            json.dump(
+                [asdict(toc) for toc in self.table_of_contents], f, ensure_ascii=False
+            )
             pass
 
         # save content
@@ -97,11 +89,11 @@ class Book:
             page_name = c.page or ""
             page_name = page_name.replace("/", "")
 
-            with open(os.path.join(content_dir,
-                                   f"page_{c.position}_{page_name}.txt"),
-                      'w',
-                      encoding='utf-8') as f:
-
+            with open(
+                os.path.join(content_dir, f"page_{c.position}_{page_name}.txt"),
+                "w",
+                encoding="utf-8",
+            ) as f:
                 f.write(c.text)
                 pass
             pass

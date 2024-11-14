@@ -6,11 +6,9 @@ from book2tts.long_tts import LongTTS
 from book2tts.edge_tts import EdgeTTS
 
 
-def azure_text_to_speech(key,
-                         region,
-                         text,
-                         output_file,
-                         voice_name="zh-CN-YunxiNeural"):
+def azure_text_to_speech(
+    key, region, text, output_file, voice_name="zh-CN-YunxiNeural"
+):
     # 创建语音配置对象
     speech_config = speechsdk.SpeechConfig(subscription=key, region=region)
 
@@ -21,8 +19,9 @@ def azure_text_to_speech(key,
     audio_config = speechsdk.audio.AudioOutputConfig(filename=output_file)
 
     # 创建语音合成器对象
-    synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config,
-                                              audio_config=audio_config)
+    synthesizer = speechsdk.SpeechSynthesizer(
+        speech_config=speech_config, audio_config=audio_config
+    )
 
     # 合成文本并保存到文件
     result = synthesizer.speak_text_async(text).get()
@@ -33,11 +32,9 @@ def azure_text_to_speech(key,
         return result
 
 
-def azure_long_text_to_speech(key,
-                              region,
-                              text,
-                              output_file,
-                              voice_name="zh-CN-YunxiNeural"):
+def azure_long_text_to_speech(
+    key, region, text, output_file, voice_name="zh-CN-YunxiNeural"
+):
     tts = LongTTS(key, region, voice_name)
     ok = tts.synthesize_long_text(text=text, output_file=output_file)
 

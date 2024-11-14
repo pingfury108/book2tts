@@ -9,14 +9,11 @@ from typing import Iterator
 
 
 class EdgeTTS:
-
     def __init__(self, voice_name: str):
         self.voice_name = voice_name
         return
 
-    def _text_to_segments(self,
-                          text: str,
-                          max_length: int = 1000) -> Iterator[str]:
+    def _text_to_segments(self, text: str, max_length: int = 1000) -> Iterator[str]:
         """
         将文本转换为段落迭代器
         :param text: 输入文本
@@ -27,7 +24,7 @@ class EdgeTTS:
         current_length = 0
 
         # 按句号、感叹号、问号分割
-        sentences = re.split('\n', text)
+        sentences = re.split("\n", text)
 
         for i in range(0, len(sentences), 2):
             if i + 1 < len(sentences):
@@ -38,7 +35,7 @@ class EdgeTTS:
             sentence_length = len(sentence)
 
             if current_length + sentence_length > max_length and current_segment:
-                yield ''.join(current_segment)
+                yield "".join(current_segment)
                 current_segment = [sentence]
                 current_length = sentence_length
             else:
@@ -46,12 +43,11 @@ class EdgeTTS:
                 current_length += sentence_length
 
         if current_segment:
-            yield ''.join(current_segment)
+            yield "".join(current_segment)
 
-    def _synthesize_to_file(self,
-                            text: str,
-                            output_file: str,
-                            retry_count: int = 3) -> bool:
+    def _synthesize_to_file(
+        self, text: str, output_file: str, retry_count: int = 3
+    ) -> bool:
         """
         将文本合成为语音并直接写入文件
         :param text: 文本内容
@@ -82,21 +78,18 @@ class EdgeTTS:
         """
 
         _, tmp_file = tempfile.mkstemp()
-        with open(tmp_file, 'w') as f:
-            f.write("\n".join(
-                [f"file '{audio_file}'" for audio_file in input_files]))
+        with open(tmp_file, "w") as f:
+            f.write("\n".join([f"file '{audio_file}'" for audio_file in input_files]))
 
-        ffmpeg.input(tmp_file,
-                     format='concat', safe=0).output(output_file,
-                                                     format='wav',
-                                                     acodec='copy').run()
+        ffmpeg.input(tmp_file, format="concat", safe=0).output(
+            output_file, format="wav", acodec="copy"
+        ).run()
         os.remove(tmp_file)
         return
 
-    def synthesize_long_text(self,
-                             text: str,
-                             output_file: str,
-                             segment_length: int = 2000) -> bool:
+    def synthesize_long_text(
+        self, text: str, output_file: str, segment_length: int = 2000
+    ) -> bool:
         """
         合成长文本
         :param text: 输入文本
@@ -108,15 +101,17 @@ class EdgeTTS:
         try:
             # 创建临时文件夹
             temp_dir = tempfile.mkdtemp()
-            print(f'tmp_dir: {temp_dir}')
+            print(f"tmp_dir: {temp_dir}")
             total_segments = sum(
-                1 for _ in self._text_to_segments(text, segment_length))
+                1 for _ in self._text_to_segments(text, segment_length)
+            )
 
             # 处理每个文本段落
             for i, segment in enumerate(
-                    self._text_to_segments(text, segment_length), 1):
+                self._text_to_segments(text, segment_length), 1
+            ):
                 # 创建临时文件
-                temp_file = os.path.join(temp_dir, f'segment_{i}.wav')
+                temp_file = os.path.join(temp_dir, f"segment_{i}.wav")
                 temp_files.append(temp_file)
 
                 print(f"正在处理第 {i}/{total_segments} 个段落...")

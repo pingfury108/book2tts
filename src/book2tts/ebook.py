@@ -14,16 +14,17 @@ def traverse_toc(items, toc):
 
 
 def get_content_with_href(book, href: str):
-    h = href.split('#')[0]
+    h = href.split("#")[0]
     item = book.get_item_with_href(h)
 
     if item:
-        soup = BeautifulSoup(item.get_content(), 'html.parser')
-        texts = soup.get_text('\n', strip=True)
-        texts = '\n'.join(
+        soup = BeautifulSoup(item.get_content(), "html.parser")
+        texts = soup.get_text("\n", strip=True)
+        texts = "\n".join(
             list(
-                map(lambda s: s.replace(' ', '').replace('\xa0', ''),
-                    texts.split('\n'))))
+                map(lambda s: s.replace(" ", "").replace("\xa0", ""), texts.split("\n"))
+            )
+        )
         return texts
     else:
         return None

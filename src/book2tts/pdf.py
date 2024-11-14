@@ -15,7 +15,7 @@ def extract_text_by_page(pdf_path):
 
 
 def clean_text(text):
-    text = unicodedata.normalize('NFKC', text)
+    text = unicodedata.normalize("NFKC", text)
     return text
 
 
@@ -28,10 +28,10 @@ def extract_img_by_page(pdf_path):
 def save_img(image_data, img_type: str = ".jpeg"):
     os.makedirs("/tmp/book2tts/imgs", exist_ok=True)
     img = Image.open(BytesIO(image_data))
-    tmpfile = tempfile.NamedTemporaryFile(suffix=img_type,
-                                          dir="/tmp/book2tts/imgs",
-                                          delete=False)
-    img = img.convert('L')
+    tmpfile = tempfile.NamedTemporaryFile(
+        suffix=img_type, dir="/tmp/book2tts/imgs", delete=False
+    )
+    img = img.convert("L")
     img.save(tmpfile.name)
 
     return tmpfile.name

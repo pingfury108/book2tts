@@ -2,7 +2,7 @@ from ebooklib import epub
 from datetime import datetime
 from bs4 import BeautifulSoup
 
-from book2tts.books import (Book, Metadata, TocEntry, Content)
+from book2tts.books import Book, Metadata, TocEntry, Content
 
 
 def traverse_toc(book: Book, items, toc, level):
@@ -37,8 +37,8 @@ def traverse_toc(book: Book, items, toc, level):
 
 
 def html2texts(content):
-    soup = BeautifulSoup(content, 'xml')
-    texts = soup.get_text('\n', strip=True)
+    soup = BeautifulSoup(content, "xml")
+    texts = soup.get_text("\n", strip=True)
     """
         texts = '\n'.join(
         list(
@@ -65,10 +65,12 @@ def parse_epub(filename) -> Book:
     for i, it in enumerate(ebook.items):
         print(it.get_name())
         if it.get_type() == 9:
-            content = Content(page=it.get_name(),
-                              position=i,
-                              text=html2texts(it.get_content()),
-                              toc_index=None)
+            content = Content(
+                page=it.get_name(),
+                position=i,
+                text=html2texts(it.get_content()),
+                toc_index=None,
+            )
             book.content.append(content)
             pass
         pass

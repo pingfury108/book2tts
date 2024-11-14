@@ -8,7 +8,6 @@ from typing import Iterator
 
 
 class LongTTS:
-
     def __init__(self, subscription_key: str, region: str, voice_name: str):
         """
         初始化语音合成器
@@ -16,15 +15,14 @@ class LongTTS:
         :param region: 服务区域
         """
         self.speech_config = speechsdk.SpeechConfig(
-            subscription=subscription_key, region=region)
+            subscription=subscription_key, region=region
+        )
         # 设置中文音色
         self.speech_config.speech_synthesis_voice_name = voice_name
-        #self.speech_config.set_speech_synthesis_output_format(
+        # self.speech_config.set_speech_synthesis_output_format(
         #    speechsdk.SpeechSynthesisOutputFormat.Raw16Khz16BitMonoPcm)
 
-    def _text_to_segments(self,
-                          text: str,
-                          max_length: int = 1000) -> Iterator[str]:
+    def _text_to_segments(self, text: str, max_length: int = 1000) -> Iterator[str]:
         """
         将文本转换为段落迭代器
         :param text: 输入文本
@@ -35,7 +33,7 @@ class LongTTS:
         current_length = 0
 
         # 按句号、感叹号、问号分割
-        sentences = re.split('\n', text)
+        sentences = re.split("\n", text)
 
         for i in range(0, len(sentences), 2):
             if i + 1 < len(sentences):
@@ -46,7 +44,7 @@ class LongTTS:
             sentence_length = len(sentence)
 
             if current_length + sentence_length > max_length and current_segment:
-                yield ''.join(current_segment)
+                yield "".join(current_segment)
                 current_segment = [sentence]
                 current_length = sentence_length
             else:
@@ -54,12 +52,11 @@ class LongTTS:
                 current_length += sentence_length
 
         if current_segment:
-            yield ''.join(current_segment)
+            yield "".join(current_segment)
 
-    def _synthesize_to_file(self,
-                            text: str,
-                            output_file: str,
-                            retry_count: int = 3) -> bool:
+    def _synthesize_to_file(
+        self, text: str, output_file: str, retry_count: int = 3
+    ) -> bool:
         """
         将文本合成为语音并直接写入文件
         :param text: 文本内容
@@ -69,7 +66,8 @@ class LongTTS:
         """
         audio_config = speechsdk.audio.AudioOutputConfig(filename=output_file)
         synthesizer = speechsdk.SpeechSynthesizer(
-            speech_config=self.speech_config, audio_config=audio_config)
+            speech_config=self.speech_config, audio_config=audio_config
+        )
 
         for attempt in range(retry_count):
             try:
@@ -104,20 +102,17 @@ class LongTTS:
         """
 
         _, tmp_file = tempfile.mkstemp()
-        with open(tmp_file, 'w') as f:
-            f.write("\n".join(
-                [f"file '{audio_file}'" for audio_file in input_files]))
-        ffmpeg.input(tmp_file,
-                     format='concat', safe=0).output(output_file,
-                                                     format='wav',
-                                                     acodec='copy').run()
+        with open(tmp_file, "w") as f:
+            f.write("\n".join([f"file '{audio_file}'" for audio_file in input_files]))
+        ffmpeg.input(tmp_file, format="concat", safe=0).output(
+            output_file, format="wav", acodec="copy"
+        ).run()
         os.remove(tmp_file)
         return
 
-    def synthesize_long_text(self,
-                             text: str,
-                             output_file: str,
-                             segment_length: int = 2000) -> bool:
+    def synthesize_long_text(
+        self, text: str, output_file: str, segment_length: int = 2000
+    ) -> bool:
         """
         合成长文本
         :param text: 输入文本
@@ -129,15 +124,17 @@ class LongTTS:
         try:
             # 创建临时文件夹
             temp_dir = tempfile.mkdtemp()
-            print(f'tmp_dir: {temp_dir}')
+            print(f"tmp_dir: {temp_dir}")
             total_segments = sum(
-                1 for _ in self._text_to_segments(text, segment_length))
+                1 for _ in self._text_to_segments(text, segment_length)
+            )
 
             # 处理每个文本段落
             for i, segment in enumerate(
-                    self._text_to_segments(text, segment_length), 1):
+                self._text_to_segments(text, segment_length), 1
+            ):
                 # 创建临时文件
-                temp_file = os.path.join(temp_dir, f'segment_{i}.wav')
+                temp_file = os.path.join(temp_dir, f"segment_{i}.wav")
                 temp_files.append(temp_file)
 
                 print(f"正在处理第 {i}/{total_segments} 个段落...")
