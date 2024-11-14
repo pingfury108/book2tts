@@ -2,15 +2,24 @@
 
 
 {% block content %}
-<div class="flex p-2 h-full w-full">
+<div class="flex p-2 h-dvh w-full">
     <div class="grow h-full w-1/5">
         <div class="container text-center">
             <h3>目录</h3>
         </div>
         <div class="container pt-2">
-            <ul class="menu menu-sm bg-base-200 rounded-box">
-                <li><a>sm item 1</a></li>
-                <li><a>sm item 2</a></li>
+          <ul class="menu menu-sm bg-base-200 rounded-box">
+            {% for toc in tocs %}
+            <li>
+              <a class="link link-hover"
+                 hx-get="{% url 'text_by_toc' book_id=book_id name=toc.href %}"
+                 hx-target="#src-text"
+                 hx-trigger="click"
+              >
+            {{ toc.title }}
+          </a>
+        </li>
+        {% endfor %}
             </ul>
         </div>
     </div>
@@ -19,26 +28,23 @@
         <div class="container text-center">
             <h3>内容</h3>
         </div>
-        <div class="container pt-2">
-            <textarea placeholder="Bio" class="textarea textarea-bordered textarea-lg w-full"></textarea>
+        <div class="container pt-2" id="src-text">
         </div>
     </div>
     <div class="divider divider-horizontal"></div>
     <div class="grow h-full w-1/5">
         <div class="mt-4 border rounded-lg h-1/3">
             <div class="container text-center">
-                <h3>选择书籍</h3>
+                <h3>书籍信息</h3>
             </div>
             <div class="container">
-                <div class="flex flex-row p-3 self-center">
-                    <label class="label cursor-pointer w-1/2">
-                        <span class="label-text">PDF</span>
-                        <input type="radio" name="pdf" class="radio radio-accent" checked="checked" />
-                    </label>
-                    <label class="label cursor-pointer w-1/2">
-                        <span class="label-text">EPUB</span>
-                        <input type="radio" name="epub" class="radio radio-accent" checked="checked" />
-                    </label>
+              <div class="flex flex-row p-3 self-center">
+                <div>
+                  <label>书名:</label>
+                  <span>
+                    {{ title }}
+                    </span>
+                </div>
                 </div>
             </div>
         </div>

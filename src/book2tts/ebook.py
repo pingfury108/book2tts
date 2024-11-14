@@ -1,3 +1,4 @@
+from functools import lru_cache
 from ebooklib import epub
 from bs4 import BeautifulSoup
 
@@ -35,7 +36,7 @@ def ebook_toc(book):
     traverse_toc(book.toc, tocs)
     return tocs
 
-
+@lru_cache(maxsize=10)
 def open_ebook(filepath):
     book = epub.read_epub(filepath)
     return book
