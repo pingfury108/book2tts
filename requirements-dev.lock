@@ -28,6 +28,7 @@ asgiref==3.8.1
     # via django
     # via django-browser-reload
     # via django-htmx
+    # via django-stubs
 attrs==24.2.0
     # via aiohttp
 azure-cognitiveservices-speech==1.41.1
@@ -60,11 +61,16 @@ django==5.1.2
     # via book2tts
     # via django-browser-reload
     # via django-htmx
+    # via django-stubs
+    # via django-stubs-ext
     # via django-tailwind
 django-browser-reload==1.16.0
     # via django-tailwind
 django-htmx==1.21.0
     # via book2tts
+django-stubs==5.1.1
+django-stubs-ext==5.1.1
+    # via django-stubs
 django-tailwind==3.8.0
     # via book2tts
 ebooklib==0.18
@@ -269,7 +275,11 @@ tqdm==4.66.5
     # via huggingface-hub
 typer==0.12.5
     # via gradio
+types-pyyaml==6.0.12.20240917
+    # via django-stubs
 typing-extensions==4.12.2
+    # via django-stubs
+    # via django-stubs-ext
     # via fastapi
     # via google-generativeai
     # via gradio

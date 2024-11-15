@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.urls import reverse
-from django.shortcuts import redirect
+from django.shortcuts import redirect, get_object_or_404
 
 # Create your views here.
 
@@ -11,7 +11,8 @@ from book2tts.ebook import open_ebook, ebook_toc, get_content_with_href
 
 
 def index(request, book_id):
-    book = Books.objects.get(pk=book_id)
+    book = get_object_or_404(Books, pk=book_id)
+
     ebook = open_ebook(book.file.path)
 
     return render(
@@ -52,7 +53,8 @@ def my_upload_list(request):
 
 
 def text_by_toc(request, book_id, name):
-    book = Books.objects.get(pk=book_id)
+    book = get_object_or_404(Books, pk=book_id)
+
     ebook = open_ebook(book.file.path)
     texts = get_content_with_href(ebook, name)
 

@@ -35,7 +35,9 @@ build-backend = "hatchling.build"
 
 [tool.rye]
 managed = true
-dev-dependencies = []
+dev-dependencies = [
+    "django-stubs>=5.1.1",
+]
 
 
 [tool.hatch.metadata]
