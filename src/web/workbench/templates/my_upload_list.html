@@ -5,7 +5,7 @@
     <ul>
         {% for book in books %}
         <li>
-            <a class="link link-hover" href="{% url 'index' book_id=book.id %}">{{ book.file.name }}</a>
+            <a class="link link-hover" href="{% url 'index' book_id=book.id %}">{{ book.name }}</a>
         </li>
         {% endfor %}
     </ul>

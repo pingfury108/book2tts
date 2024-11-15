@@ -33,7 +33,7 @@
     </div>
     <div class="divider divider-horizontal"></div>
     <div class="grow h-full w-1/5">
-        <div class="mt-4 border rounded-lg h-1/3">
+        <div class="mt-4 border rounded-lg">
             <div class="container text-center">
                 <h3>书籍信息</h3>
             </div>
@@ -49,7 +49,7 @@
             </div>
         </div>
 
-        <div class="mt-4 border rounded-lg h-1/3">
+        <div class="mt-4 border rounded-lg">
             <div class="container text-center">
                 <h3>内容处理</h3>
             </div>
@@ -60,17 +60,37 @@
             </div>
         </div>
 
-        <div class="mt-4 border rounded-lg h-1/3">
+        <div class="mt-4 border rounded-lg">
             <div class="container text-center">
                 <h3>音频处理</h3>
             </div>
             <div class="container">
-                <div class="pt-3">
-                    <button class="btn w-full self-center">下载音频</button>
-                </div>
-                <div class="pt-3">
-                    <button class="btn w-full self-center">发布</button>
-                </div>
+              <div class="pt-3">
+                <select class="select w-full max-w-xs">
+                  <option disabled selected>TTS 供应商</option>
+                  <option>azure</option>
+                  <option>edge-tts</option>
+                </select>
+              </div>
+              <div class="pt-3">
+                <select class="select w-full max-w-xs">
+                  <option disabled selected>语音模型</option>
+                  <option>Homer</option>
+                  <option>Marge</option>
+                  <option>Bart</option>
+                  <option>Lisa</option>
+                  <option>Maggie</option>
+                </select>
+              </div>
+              <div class="pt-3">
+                <button class="btn w-full self-center">合成音频</button>
+              </div>
+              <div class="pt-3">
+                <button class="btn w-full self-center">下载音频</button>
+              </div>
+              <div class="pt-3">
+                <button class="btn w-full self-center">发布</button>
+              </div>
             </div>
         </div>
     </div>

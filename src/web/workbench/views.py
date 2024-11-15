@@ -17,17 +17,26 @@ def index(request, book_id):
     return render(
         request,
         "index.html",
-        {"book_id": book.id, "title": ebook.title, "tocs": ebook_toc(ebook)},
+        {
+            "book_id": book.id,
+            "title": ebook.title,
+            "tocs": [
+                {"title": toc.get("title"), "href": toc.get("href").split("#")[0]}
+                for toc in ebook_toc(ebook)
+            ],
+        },
     )
 
 
 def upload(request):
     if request.method == "POST":
-        print(request.POST.get("file"))
         form = UploadFileForm(request.POST, request.FILES)
 
         if form.is_valid():
-            instance = form.save()
+            instance = form.save(commit=False)
+            instance.setkw(request.session.get("uid", "admin"))
+            instance.save()
+
             return redirect(reverse("index", args=[instance.id]))
     else:
         form = UploadFileForm()
