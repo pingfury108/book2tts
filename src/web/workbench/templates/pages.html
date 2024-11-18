@@ -1,0 +1,13 @@
+<ul class="menu menu-sm  rounded-box">
+  {% for page in pages %}
+  <li>
+    <a class="link link-hover"
+       hx-get="{% url 'text_by_page' book_id=book_id name=page.title %}"
+       hx-target="#src-text"
+       hx-trigger="click"
+    >
+      {{ page.title }}
+    </a>
+  </li>
+  {% endfor %}
+</ul>

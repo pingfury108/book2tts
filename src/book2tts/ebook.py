@@ -20,11 +20,11 @@ def get_content_with_href(book, href: str):
 
     if item:
         soup = BeautifulSoup(item.get_content(), "html.parser")
-        #p_tags = soup.find_all('p')
-        for a in soup.find_all('a'):
+        # p_tags = soup.find_all('p')
+        for a in soup.find_all("a"):
             a.decompose()
         texts = soup.get_text("\n", strip=True)
-        #texts = "\n".join([p.text for p in p_tags])
+        # texts = "\n".join([p.text for p in p_tags])
         texts = "\n".join(
             list(
                 map(lambda s: s.replace(" ", "").replace("\xa0", ""), texts.split("\n"))
@@ -43,11 +43,20 @@ def ebook_toc(book):
     result = []
 
     for t in tocs:
-        if t['href'] not in seen:
-            seen.add(t['href'])
+        if t["href"] not in seen:
+            seen.add(t["href"])
             result.append(t)
     print(result)
-    return  result
+    return result
+
+
+def ebook_pages(book):
+    return [
+        {"title": item.get_name(), "href": item.get_name}
+        for item in book.items
+        if item.get_type() == 9
+    ]
+
 
 @lru_cache(maxsize=10)
 def open_ebook(filepath):

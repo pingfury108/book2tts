@@ -4,24 +4,41 @@
 {% block content %}
 <div class="flex p-2 w-full">
     <div class="grow h-full w-1/5">
-        <div class="container text-center">
-            <h3>目录</h3>
-        </div>
-        <div class="container pt-2">
-          <ul class="menu menu-sm bg-base-200 rounded-box">
-            {% for toc in tocs %}
-            <li>
-              <a class="link link-hover"
-                 hx-get="{% url 'text_by_toc' book_id=book_id name=toc.href %}"
-                 hx-target="#src-text"
-                 hx-trigger="click"
-              >
-            {{ toc.title }}
+      <div class="container text-center">
+        <div role="tablist" class="tabs tabs-bordered">
+          <a role="tab" class="tab tab-active" id="tab_toc"
+             hx-get="{% url 'toc' book_id=book_id %}"
+             hx-target="#toc"
+             hx-trigger="click"
+             hx-swap="innerHTML"
+          >
+            TOC
           </a>
-        </li>
-        {% endfor %}
-            </ul>
+          <a role="tab" class="tab" id="tab_page"
+             hx-get="{% url 'pages' book_id=book_id %}"
+             hx-target="#toc"
+             hx-trigger="click"
+             hx-swap="innerHTML"
+          >页面</a>
         </div>
+      </div>
+        <div class="container pt-2" >
+          <div id="toc">
+            <ul class="menu menu-sm  rounded-box">
+              {% for toc in tocs %}
+              <li>
+                <a class="link link-hover"
+                   hx-get="{% url 'text_by_toc' book_id=book_id name=toc.href %}"
+                   hx-target="#src-text"
+                   hx-trigger="click"
+                >
+                  {{ toc.title }}
+                </a>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+          </div>
     </div>
     <div class="divider divider-horizontal"></div>
     <div class="grow h-full w-3/5">
@@ -98,4 +115,21 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block script %}
+
+<script>
+ document.body.addEventListener('click', function(event) {
+   if (event.target.id === 'tab_toc') {
+     event.target.classList.add('tab-active');
+     document.getElementById("tab_page").classList.remove('tab-active');
+   };
+   if (event.target.id === 'tab_page') {
+     event.target.classList.add('tab-active');
+     document.getElementById("tab_toc").classList.remove('tab-active');
+   }
+ });
+</script>
+
 {% endblock %}
