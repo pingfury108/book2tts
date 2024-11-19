@@ -1,0 +1,14 @@
+<div class="container pt-2 h-1/2">
+  <textarea  placeholder="" class="textarea textarea-bordered h-96 w-full"
+             id="src-text" texts="src-text">{{ texts }}</textarea>
+</div>
+
+<div class="container pt-2 h-1/2">
+  <textarea  placeholder="" class="textarea textarea-bordered h-96 w-full"
+             id="reformat-text" texts="reformat-text"
+             hx-ext="sse"
+             sse-connect="{% url 'reformat_sse' id=id %}"
+             sse-swap="message"
+             hx-swap="beforeend"
+  ></textarea>
+</div>

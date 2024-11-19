@@ -29,7 +29,7 @@
               <li>
                 <a class="link link-hover"
                    hx-get="{% url 'text_by_toc' book_id=book_id name=toc.href %}"
-                   hx-target="#src-text"
+                   hx-target="#context"
                    hx-trigger="click"
                 >
                   {{ toc.title }}
@@ -45,8 +45,7 @@
         <div class="container text-center">
             <h3 class="text-lg font-sans font-medium">内容</h3>
         </div>
-        <div class="container pt-2" id="src-text">
-        </div>
+        <div class="container pt-2" id="context"></div>
     </div>
     <div class="divider divider-horizontal"></div>
     <div class="grow h-full w-1/5">
@@ -74,9 +73,18 @@
                 <h3>内容处理</h3>
             </div>
             <div class="container">
-                <div class="pt-3">
-                    <button class="btn w-full self-center">排版内容</button>
-                </div>
+              <div class="pt-3">
+                <form  class="form-control m-1 gap-1"
+                       hx-post="{% url 'reformat' %}"
+                       hx-target="#context"
+                       hx-include="#src-text"
+                >
+                  {% csrf_token %}
+                  <button type="submit" class="btn w-full self-center">
+                    排版内容
+                  </button>
+                </form>
+              </div>
             </div>
         </div>
 

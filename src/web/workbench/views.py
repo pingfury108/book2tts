@@ -1,6 +1,12 @@
+import time
+import hashlib
+
 from django.shortcuts import render
 from django.urls import reverse
 from django.shortcuts import redirect, get_object_or_404
+from django.http import StreamingHttpResponse
+from django.views.decorators.http import require_http_methods
+from django.core.cache import cache
 
 # Create your views here.
 
@@ -151,3 +157,25 @@ def text_by_page(request, book_id, name):
         texts = get_content_with_href(ebook, name)
 
     return render(request, "text_by_toc.html", {"texts": texts})
+
+
+@require_http_methods(["POST"])
+def reformat(request):
+    texts = request.POST["texts"]
+    id = hashlib.md5(texts.encode("utf-8")).hexdigest()
+    cache.set(id, texts)
+    print(texts)
+
+    return render(request, "reformat.html", {"texts": texts, "id": id})
+
+
+def event_stream():
+    i = 0
+    while True:
+        time.sleep(1)  # 每3秒发送一次数据
+        i = i + 1
+        yield f"data: The server time is: {i}\n\n"
+
+
+def reformat_sse(request, id):
+    return StreamingHttpResponse(event_stream(), content_type="text/event-stream")

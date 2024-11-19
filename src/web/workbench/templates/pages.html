@@ -3,7 +3,7 @@
   <li>
     <a class="link link-hover"
        hx-get="{% url 'text_by_page' book_id=book_id name=page.href %}"
-       hx-target="#src-text"
+       hx-target="#context"
        hx-trigger="click"
     >
       {{ page.title }}

@@ -16,4 +16,6 @@ urlpatterns = [
     ),
     path("book/<int:book_id>/toc", views.toc, name="toc"),
     path("book/<int:book_id>/page", views.pages, name="pages"),
+    path("book/reformat", views.reformat, name="reformat"),
+    path("book/reformat/<str:id>", views.reformat_sse, name="reformat_sse"),
 ]
