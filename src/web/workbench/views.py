@@ -20,7 +20,7 @@ def index(request, book_id):
             "index.html",
             {
                 "book_id": book.id,
-                "title": book.name,
+                "title": pbook.metadata.get("title") or book.name,
                 "tocs": [
                     {"title": f"{toc[1]}", "href": toc[2]} for toc in pbook.get_toc()
                 ],
