@@ -3,6 +3,7 @@ import tempfile
 import os
 import pymupdf
 
+from functools import lru_cache
 from PIL import Image
 from io import BytesIO
 
@@ -41,3 +42,13 @@ def extract_img_vector_by_page(pdf_path):
     doc = pymupdf.open(pdf_path)
     print("pdf vector img page")
     return [page.get_pixmap().tobytes() for page in doc]
+
+
+@lru_cache(maxsize=10)
+def open_pdf(pdf_path):
+    return pymupdf.open(pdf_path)
+
+
+@lru_cache(maxsize=10)
+def pdf_pages(pdf):
+    return list(pdf.pages())

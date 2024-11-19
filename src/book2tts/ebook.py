@@ -46,7 +46,6 @@ def ebook_toc(book):
         if t["href"] not in seen:
             seen.add(t["href"])
             result.append(t)
-    print(result)
     return result
 
 

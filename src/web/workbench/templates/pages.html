@@ -2,7 +2,7 @@
   {% for page in pages %}
   <li>
     <a class="link link-hover"
-       hx-get="{% url 'text_by_page' book_id=book_id name=page.title %}"
+       hx-get="{% url 'text_by_page' book_id=book_id name=page.href %}"
        hx-target="#src-text"
        hx-trigger="click"
     >
