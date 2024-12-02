@@ -7,10 +7,17 @@ def traverse_toc(items, toc):
     for item in items:
         if isinstance(item, tuple):
             section, children = item
-            toc.append({"title": section.title, "href": section.href.split("#")[0]})
+            toc.append(
+                {
+                    "title": section.title,
+                    "href": section.href.split("#")[0].replace("/", "_"),
+                }
+            )
             traverse_toc(children, toc)
         elif isinstance(item, epub.Link):
-            toc.append({"title": item.title, "href": item.href.split("#")[0]})
+            toc.append(
+                {"title": item.title, "href": item.href.split("#")[0].replace("/", "_")}
+            )
     return
 
 
@@ -27,7 +34,10 @@ def get_content_with_href(book, href: str):
         # texts = "\n".join([p.text for p in p_tags])
         texts = "\n".join(
             list(
-                map(lambda s: s.replace(" ", "").replace("\xa0", ""), texts.split("\n"))
+                map(
+                    lambda s: s.replace(" ", "").replace("\xa0", ""),
+                    texts.split("\n"),
+                )
             )
         )
         return texts
@@ -51,7 +61,7 @@ def ebook_toc(book):
 
 def ebook_pages(book):
     return [
-        {"title": item.get_name(), "href": item.get_name}
+        {"title": item.get_name(), "href": item.get_name().replace("/", "_")}
         for item in book.items
         if item.get_type() == 9
     ]

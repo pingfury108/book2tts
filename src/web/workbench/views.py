@@ -41,7 +41,10 @@ def index(request, book_id):
                 "book_id": book.id,
                 "title": ebook.title,
                 "tocs": [
-                    {"title": toc.get("title"), "href": toc.get("href").split("#")[0]}
+                    {
+                        "title": toc.get("title"),
+                        "href": toc.get("href").split("#")[0],
+                    }
                     for toc in ebook_toc(ebook)
                 ],
             },
@@ -96,7 +99,7 @@ def toc(request, book_id):
                 "book_id": book.id,
                 "title": ebook.title,
                 "tocs": [
-                    {"title": toc.get("title"), "href": toc.get("href").split("#")[0]}
+                    {"title": toc.get("title"), "href": toc.get("href")}
                     for toc in ebook_toc(ebook)
                 ],
             },
@@ -133,6 +136,7 @@ def pages(request, book_id):
 
 
 def text_by_toc(request, book_id, name):
+    name = name.replace("_", "/")
     book = get_object_or_404(Books, pk=book_id)
     texts = ""
     if book.file_type == ".pdf":
@@ -146,6 +150,7 @@ def text_by_toc(request, book_id, name):
 
 
 def text_by_page(request, book_id, name):
+    name = name.replace("_", "/")
     book = get_object_or_404(Books, pk=book_id)
     texts = ""
 
