@@ -3,7 +3,7 @@ import asyncio
 import azure.cognitiveservices.speech as speechsdk
 
 from book2tts.long_tts import LongTTS
-from book2tts.edge_tts import EdgeTTS
+from book2tts.edgetts import EdgeTTS
 
 
 def azure_text_to_speech(
