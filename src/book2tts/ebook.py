@@ -10,13 +10,18 @@ def traverse_toc(items, toc):
             toc.append(
                 {
                     "title": section.title,
-                    "href": section.href.split("#")[0].replace("/", "_"),
+                    "href": section.href.split("#")[0],
+                    # "href": section.href.split("#")[0].replace("/", "_"),
                 }
             )
             traverse_toc(children, toc)
         elif isinstance(item, epub.Link):
             toc.append(
-                {"title": item.title, "href": item.href.split("#")[0].replace("/", "_")}
+                {
+                    "title": item.title,
+                    "href": item.href.split("#")[0],
+                }
+                # {"title": item.title, "href": item.href.split("#")[0].replace("/", "_")}
             )
     return
 
@@ -61,7 +66,8 @@ def ebook_toc(book):
 
 def ebook_pages(book):
     return [
-        {"title": item.get_name(), "href": item.get_name().replace("/", "_")}
+        # {"title": item.get_name(), "href": item.get_name().replace("/", "_")}
+        {"title": item.get_name(), "href": item.get_name()}
         for item in book.items
         if item.get_type() == 9
     ]
