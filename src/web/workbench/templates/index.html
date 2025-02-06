@@ -3,8 +3,8 @@
 
 {% block content %}
 <div class="flex p-2 w-full h-screen">
-    <div class="grow h-full w-1/5 overflow-hidden">
-      <div class="container text-center">
+    <div class="grow h-full w-1/5 overflow-hidden rounded-lg">
+      <div class="container text-center p-2">
         <div role="tablist" class="tabs tabs-bordered">
           <a role="tab" class="tab tab-active" id="tab_toc"
              hx-get="{% url 'toc' book_id=book_id %}"
@@ -23,7 +23,7 @@
         </div>
       </div>
         <div class="container pt-2" >
-          <div id="toc">
+          <div id="toc" class="overflow-y-auto h-[calc(100vh-8rem)]">
             <ul class="menu menu-sm  rounded-box">
               {% for toc in tocs %}
               <li>
@@ -41,84 +41,65 @@
           </div>
     </div>
     <div class="divider divider-horizontal"></div>
-    <div class="grow h-full w-3/5 overflow-hidden">
+    <div class="grow h-full w-3/5 overflow-hidden rounded-lg">
         <div class="container text-center">
             <h3 class="text-lg font-sans font-medium">内容</h3>
         </div>
         <div class="container pt-2" id="context"></div>
     </div>
     <div class="divider divider-horizontal"></div>
-    <div class="grow h-full w-1/5 overflow-hidden">
-      <div class="container text-center">
+    <div class="grow h-full w-1/5 overflow-hidden rounded-lg">
+      <div class="container text-center p-2">
             <h3>面板</h3>
         </div>
-        <div class="mt-4 border rounded-lg">
-            <div class="container text-center">
-                <h3>书籍信息</h3>
-            </div>
-            <div class="container">
-              <div class="flex flex-row p-3 self-center">
-                <div>
-                  <label>书名:</label>
-                  <span>
-                    {{ title }}
-                    </span>
-                </div>
+        <div class="overflow-y-auto h-[calc(100vh-4rem)] space-y-2 p-2">
+            <div class="card bg-base-100/50 backdrop-blur-sm border">
+                <div class="card-body p-4">
+                    <h3 class="card-title text-lg">书籍信息</h3>
+                    <div class="flex flex-col gap-1">
+                        <div>
+                            <label class="font-bold">书名:</label>
+                            <span class="text-sm">{{ title }}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-
-        <div class="mt-4 border rounded-lg">
-            <div class="container text-center">
-                <h3>内容处理</h3>
+            <div class="card bg-base-100/50 backdrop-blur-sm border">
+                <div class="card-body p-4">
+                    <h3 class="card-title text-lg">内容处理</h3>
+                    <form class="form-control gap-2"
+                          hx-post="{% url 'reformat' %}"
+                          hx-target="#context"
+                          hx-include="#src-text">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary w-full">
+                            排版内容
+                        </button>
+                    </form>
+                </div>
             </div>
-            <div class="container">
-              <div class="pt-3">
-                <form  class="form-control m-1 gap-1"
-                       hx-post="{% url 'reformat' %}"
-                       hx-target="#context"
-                       hx-include="#src-text"
-                >
-                  {% csrf_token %}
-                  <button type="submit" class="btn w-full self-center">
-                    排版内容
-                  </button>
-                </form>
-              </div>
-            </div>
-        </div>
-
-        <div class="mt-4 border rounded-lg">
-            <div class="container text-center">
-                <h3>音频处理</h3>
-            </div>
-            <div class="container">
-              <div class="pt-3">
-                <select class="select w-full max-w-xs">
-                  <option disabled selected>TTS 供应商</option>
-                  <option>azure</option>
-                  <option>edge-tts</option>
-                </select>
-              </div>
-              <div class="pt-3">
-                <select class="select w-full max-w-xs">
-                  <option disabled selected>语音模型</option>
-                  <option>Homer</option>
-                  <option>Marge</option>
-                  <option>Bart</option>
-                  <option>Lisa</option>
-                  <option>Maggie</option>
-                </select>
-              </div>
-              <div class="pt-3">
-                <button class="btn w-full self-center">合成音频</button>
-              </div>
-              <div class="pt-3">
-                <button class="btn w-full self-center">下载音频</button>
-              </div>
-              <div class="pt-3">
-                <button class="btn w-full self-center">发布</button>
-              </div>
+            <div class="card bg-base-100/50 backdrop-blur-sm border">
+                <div class="card-body p-4">
+                    <h3 class="card-title text-lg">音频处理</h3>
+                    <div class="space-y-1">
+                        <select class="select select-bordered w-full">
+                            <option disabled selected>TTS 供应商</option>
+                            <option>azure</option>
+                            <option>edge-tts</option>
+                        </select>
+                        <select class="select select-bordered w-full">
+                            <option disabled selected>语音模型</option>
+                            <option>Homer</option>
+                            <option>Marge</option>
+                            <option>Bart</option>
+                            <option>Lisa</option>
+                            <option>Maggie</option>
+                        </select>
+                        <button class="btn btn-primary w-full">合成音频</button>
+                        <button class="btn btn-secondary w-full">下载音频</button>
+                        <button class="btn btn-accent w-full">发布</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
