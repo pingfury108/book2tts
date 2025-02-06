@@ -43,7 +43,7 @@ def index(request, book_id):
                 "tocs": [
                     {
                         "title": toc.get("title"),
-                        "href": toc.get("href").split("#")[0],
+                        "href": toc.get("href").split("#")[0].replace("/", "_"),
                     }
                     for toc in ebook_toc(ebook)
                 ],
