@@ -7,11 +7,13 @@ from django.shortcuts import redirect, get_object_or_404
 from django.http import StreamingHttpResponse
 from django.views.decorators.http import require_http_methods
 from django.core.cache import cache
+from django.views import View
+from collections import defaultdict
 
 # Create your views here.
 
 from .forms import UploadFileForm
-from .models import Books
+from .models import Books, AudioSegment
 
 from book2tts.ebook import open_ebook, ebook_toc, get_content_with_href, ebook_pages
 from book2tts.pdf import open_pdf
@@ -184,3 +186,26 @@ def event_stream():
 
 def reformat_sse(request, id):
     return StreamingHttpResponse(event_stream(), content_type="text/event-stream")
+
+
+def aggregated_audio_segments(request):
+    # 获取当前用户的音频片段
+    uid = request.session.get("uid", "admin")
+    audio_segments = AudioSegment.objects.filter(uid=uid)
+    
+    # 使用字典按book聚合
+    aggregated_data = defaultdict(list)
+    for segment in audio_segments:
+        book_data = {
+            'title': segment.title,
+            'text': segment.text,
+            'book_page': segment.book_page,
+            'file_url': segment.file.url
+        }
+        aggregated_data[segment.book.name].append(book_data)
+    
+    # 转换为标准字典并传递给模板
+    context = {
+        'aggregated_data': dict(aggregated_data)
+    }
+    return render(request, 'aggregated_audio_segments.html', context)

@@ -20,3 +20,15 @@ class Books(models.Model):
         self.name = file.stem
         self.file_type = file.suffix
         return
+
+
+class AudioSegment(models.Model):
+    book = models.ForeignKey(Books, on_delete=models.CASCADE, related_name='audio_segments')
+    uid = models.TextField(default="admin")
+    title = models.CharField(max_length=255)
+    text = models.TextField()
+    book_page = models.CharField(max_length=255)
+    file = models.FileField(upload_to='audio_segments/%Y/%m/%d/')
+
+    def __str__(self) -> str:
+        return f"{self.title} - {self.book.name}"

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% for book_name, segments in aggregated_data.items %}
+<h2>{{ book_name }}</h2>
+<ul>
+    {% for segment in segments %}
+    <li>
+        <h3>{{ segment.title }}</h3>
+        <p>{{ segment.text }}</p>
+        <p>Page: {{ segment.book_page }}</p>
+        <audio controls>
+            <source src="{{ segment.file_url }}" type="audio/mpeg">
+            Your browser does not support the audio element.
+        </audio>
+    </li>
+    {% endfor %}
+</ul>
+{% endfor %}
+
+{% endblock %}
