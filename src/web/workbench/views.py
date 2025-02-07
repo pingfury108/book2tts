@@ -1,5 +1,6 @@
 import time
 import hashlib
+import edge_tts
 
 from django.shortcuts import render
 from django.urls import reverse
@@ -10,8 +11,9 @@ from django.core.cache import cache
 from django.views import View
 from collections import defaultdict
 
-# Create your views here.
+from book2tts.tts import edge_tts_volices
 
+# Create your views here.
 from .forms import UploadFileForm
 from .models import Books, AudioSegment
 
@@ -192,20 +194,25 @@ def aggregated_audio_segments(request):
     # 获取当前用户的音频片段
     uid = request.session.get("uid", "admin")
     audio_segments = AudioSegment.objects.filter(uid=uid)
-    
+
     # 使用字典按book聚合
     aggregated_data = defaultdict(list)
     for segment in audio_segments:
         book_data = {
-            'title': segment.title,
-            'text': segment.text,
-            'book_page': segment.book_page,
-            'file_url': segment.file.url
+            "title": segment.title,
+            "text": segment.text,
+            "book_page": segment.book_page,
+            "file_url": segment.file.url,
         }
         aggregated_data[segment.book.name].append(book_data)
-    
+
     # 转换为标准字典并传递给模板
-    context = {
-        'aggregated_data': dict(aggregated_data)
-    }
-    return render(request, 'aggregated_audio_segments.html', context)
+    context = {"aggregated_data": dict(aggregated_data)}
+    return render(request, "aggregated_audio_segments.html", context)
+
+
+def get_voice_list(request):
+    """Get available voices from edge_tts"""
+    voices = edge_tts_volices()
+
+    return render(request, "voice_list.html", {"voices": voices})

@@ -1,0 +1,4 @@
+<option disabled selected>语音模型</option>
+{% for voice in voices %}
+<option value="{{ voice }}" {% if voice == "zh-CN-YunxiNeural" %}selected{% endif %}>{{ voice }}</option>
+{% endfor %}

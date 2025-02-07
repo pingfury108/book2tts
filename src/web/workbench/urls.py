@@ -1,7 +1,7 @@
 from django.urls import path
 
 from . import views
-from .views import aggregated_audio_segments
+from .views import aggregated_audio_segments, get_voice_list
 
 urlpatterns = [
     path("", views.upload, name="index"),
@@ -20,4 +20,5 @@ urlpatterns = [
     path("book/reformat", views.reformat, name="reformat"),
     path("book/reformat/<str:id>", views.reformat_sse, name="reformat_sse"),
     path("audio/books", aggregated_audio_segments, name="aggregated_audio_segments"),
+    path('voices/', get_voice_list, name='voice_list'),
 ]

@@ -86,16 +86,15 @@
                     <div class="space-y-1">
                         <select class="select select-bordered w-full">
                             <option disabled selected>TTS 供应商</option>
-                            <option>azure</option>
-                            <option>edge-tts</option>
+                            <option value="azure">azure</option>
+                            <option value="edge-tts" selected>edge-tts</option>
                         </select>
-                        <select class="select select-bordered w-full">
+                        <select class="select select-bordered w-full"
+                                hx-get="{% url 'voice_list' %}"
+                                hx-trigger="load"
+                                hx-target="this"
+                                hx-swap="innerHTML">
                             <option disabled selected>语音模型</option>
-                            <option>Homer</option>
-                            <option>Marge</option>
-                            <option>Bart</option>
-                            <option>Lisa</option>
-                            <option>Maggie</option>
                         </select>
                         <button class="btn btn-primary w-full">合成音频</button>
                         <button class="btn btn-secondary w-full">下载音频</button>

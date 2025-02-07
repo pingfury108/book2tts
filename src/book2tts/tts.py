@@ -1,6 +1,8 @@
 import edge_tts
 import asyncio
 import azure.cognitiveservices.speech as speechsdk
+from functools import lru_cache
+
 
 from book2tts.long_tts import LongTTS
 from book2tts.edgetts import EdgeTTS
@@ -47,6 +49,7 @@ def edge_text_to_speech(content, tts_mode, output_file):
     return
 
 
+@lru_cache(maxsize=10)
 def edge_tts_volices():
     voices = asyncio.run(edge_tts.list_voices())
     voices = sorted(voices, key=lambda voice: voice["ShortName"])
