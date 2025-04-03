@@ -215,7 +215,7 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
             pass
         return ""
 
-    def parse_content_range(value, start_page: int, end_page: int):
+    def parse_content_range(value, start_page: int, end_page: int, line_num_head: int = 0, line_num_tail: int = 0):
         if start_page > 0 and end_page > start_page:
             value = [f"page-{i}" for i in range(start_page, end_page)]
             pass
@@ -224,22 +224,33 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                 results = []
                 for i in [int(s.split("-")[-1]) for s in value]:
                     text = book_toc[i]
+                    # Apply line number trimming
+                    text_lines = text.split('\n')
+                    if len(text_lines) > 1:
+                        end_idx = len(text_lines) if line_num_tail == 0 else -line_num_tail
+                        text = '\n'.join(text_lines[line_num_head:end_idx])
                     results.append(text)
                     yield "\n\n\n".join(results)
                     pass
             pass
         return ""
 
-    def parse_content(value, book_title):
+    def parse_content(value, book_title, line_num_head: int = 0, line_num_tail: int = 0):
         if value is None or book_title is None:
             return None, None
         if book_type == "pdf":
             if book_type_pdf_img:
                 return "", gen_out_file(book_title, value)
             else:
-                texts = [
-                    str(book_toc[i]) for i in [int(s.split("-")[-1]) for s in value]
-                ]
+                texts = []
+                for i in [int(s.split("-")[-1]) for s in value]:
+                    text = str(book_toc[i])
+                    # Apply line number trimming
+                    text_lines = text.split('\n')
+                    if len(text_lines) > 1:
+                        end_idx = len(text_lines) if line_num_tail == 0 else -line_num_tail
+                        text = '\n'.join(text_lines[line_num_head:end_idx])
+                    texts.append(text)
                 return "\n\n\n".join(texts), gen_out_file(book_title, value)
 
         hrefs = [
@@ -357,7 +368,7 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
 
     file.change(parse_toc, inputs=file, outputs=[dir_tree, book_title])
     dir_tree.change(
-        parse_content, inputs=[dir_tree, book_title], outputs=[text_content, outfile]
+        parse_content, inputs=[dir_tree, book_title, line_num_head, line_num_tail], outputs=[text_content, outfile]
     )
 
     btn1.click(
@@ -400,7 +411,7 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
 
     btn_get_text.click(
         parse_content_range,
-        inputs=[dir_tree, start_page, end_page],
+        inputs=[dir_tree, start_page, end_page, line_num_head, line_num_tail],
         outputs=[text_content],
     )
     pass
