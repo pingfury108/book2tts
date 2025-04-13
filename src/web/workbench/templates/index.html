@@ -31,7 +31,7 @@
         <div class="container text-center pt-2 bg-primary text-primary-content rounded-t-lg">
             <h3 class="text-lg font-sans font-bold py-2">📄 内容</h3>
         </div>
-        <div class="container h-full pb-12 p-2" id="context">
+        <div class="container h-full pb-16 p-2" id="context">
             <textarea class="textarea textarea-bordered h-full w-full bg-base-100" id="src-text" name="texts" placeholder="选择左侧目录或页面以加载内容..."></textarea>
         </div>
     </div>
@@ -119,6 +119,10 @@
 {% block script %}
 
 <script>
+ // 为所有 HTMX 请求添加 CSRF 令牌
+ document.body.addEventListener('htmx:configRequest', function(evt) {
+   evt.detail.headers['X-CSRFToken'] = '{{ csrf_token }}';
+ });
  document.body.addEventListener('click', function(event) {
    if (event.target.id === 'tab_toc') {
      event.target.classList.add('tab-active');
