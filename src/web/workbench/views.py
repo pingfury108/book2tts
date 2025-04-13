@@ -1,17 +1,23 @@
 import time
 import hashlib
 import edge_tts
+import os
+import tempfile
+import json
 
 from django.shortcuts import render
 from django.urls import reverse
 from django.shortcuts import redirect, get_object_or_404
-from django.http import StreamingHttpResponse
+from django.http import StreamingHttpResponse, JsonResponse, HttpResponse
 from django.views.decorators.http import require_http_methods
 from django.core.cache import cache
 from django.views import View
+from django.core.files.base import ContentFile
+from django.conf import settings
 from collections import defaultdict
 
-from book2tts.tts import edge_tts_volices
+from book2tts.tts import edge_tts_volices, edge_text_to_speech
+from book2tts.edgetts import EdgeTTS
 
 # Create your views here.
 from .forms import UploadFileForm
@@ -216,3 +222,72 @@ def get_voice_list(request):
     voices = edge_tts_volices()
 
     return render(request, "voice_list.html", {"voices": voices})
+
+
+@require_http_methods(["POST"])
+def synthesize_audio(request):
+    """Synthesize audio using EdgeTTS and save to AudioSegment"""
+    # Get data from request
+    text = request.POST.get("text")
+    voice_name = request.POST.get("voice_name")
+    book_id = request.POST.get("book_id")
+    title = request.POST.get("title", "")
+    book_page = request.POST.get("book_page", "")
+    
+    if not text or not voice_name or not book_id:
+        return JsonResponse({"status": "error", "message": "Missing required parameters"}, status=400)
+    
+    # Get book
+    book = get_object_or_404(Books, pk=book_id)
+    
+    # Create a temporary file for the audio
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
+        temp_path = temp_file.name
+    
+    try:
+        # Use EdgeTTS to synthesize the audio
+        tts = EdgeTTS(voice_name=voice_name)
+        success = tts.synthesize_long_text(text=text, output_file=temp_path)
+        
+        if not success:
+            return JsonResponse({"status": "error", "message": "Failed to synthesize audio"}, status=500)
+        
+        # Create an AudioSegment instance
+        audio_segment = AudioSegment(
+            book=book,
+            uid=request.session.get("uid", "admin"),
+            title=title,
+            text=text,
+            book_page=book_page
+        )
+        
+        # Ensure media directory exists
+        media_root = settings.MEDIA_ROOT
+        upload_dir = os.path.join(media_root, 'audio_segments', time.strftime('%Y/%m/%d'))
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        # Generate a unique filename
+        filename = f"audio_{book_id}_{int(time.time())}.wav"
+        
+        # Save the audio file to the AudioSegment
+        with open(temp_path, "rb") as f:
+            audio_segment.file.save(filename, ContentFile(f.read()))
+        
+        # Save the AudioSegment
+        audio_segment.save()
+        
+        return JsonResponse({
+            "status": "success", 
+            "message": "Audio synthesized successfully",
+            "audio_url": audio_segment.file.url,
+            "audio_id": audio_segment.id
+        })
+    
+    except Exception as e:
+        print(f"Error in synthesize_audio: {str(e)}")
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)
+    
+    finally:
+        # Clean up the temporary file
+        if os.path.exists(temp_path):
+            os.remove(temp_path)

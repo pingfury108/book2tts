@@ -1,5 +1,39 @@
-
-<textarea  placeholder="" class="textarea textarea-bordered h-full w-full"
-           id="src-text" name="texts">
+<div class="h-full flex flex-col">
+    <div class="mb-2 p-2 bg-base-200 rounded-lg">
+        <div class="flex justify-between items-center">
+            <div class="badge badge-primary p-3 text-sm">章节内容</div>
+            <div class="flex gap-2">
+                <button class="btn btn-xs btn-outline" id="format-text-btn"
+                        hx-post="{% url 'reformat' %}"
+                        hx-include="#src-text"
+                        hx-target="#context"
+                        hx-swap="innerHTML">自动排版</button>
+                <button class="btn btn-xs btn-outline" id="increase-font-btn">放大字体</button>
+                <button class="btn btn-xs btn-outline" id="decrease-font-btn">缩小字体</button>
+            </div>
+        </div>
+    </div>
+    <textarea class="textarea textarea-bordered flex-1 w-full font-serif" 
+              id="src-text" name="texts" style="font-size: 16px; line-height: 1.6;">
 {{ texts }}
-</textarea>
+    </textarea>
+</div>
+
+<script>
+    // Font size adjustment only - formatting is now handled by HTMX
+    
+    // Font size adjustment
+    document.getElementById('increase-font-btn').addEventListener('click', function() {
+        const textarea = document.getElementById('src-text');
+        const currentSize = parseInt(window.getComputedStyle(textarea).fontSize);
+        textarea.style.fontSize = (currentSize + 2) + 'px';
+    });
+    
+    document.getElementById('decrease-font-btn').addEventListener('click', function() {
+        const textarea = document.getElementById('src-text');
+        const currentSize = parseInt(window.getComputedStyle(textarea).fontSize);
+        if (currentSize > 12) {
+            textarea.style.fontSize = (currentSize - 2) + 'px';
+        }
+    });
+</script>

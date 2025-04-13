@@ -83,7 +83,7 @@ class EdgeTTS:
 
         ffmpeg.input(tmp_file, format="concat", safe=0).output(
             output_file, format="wav", acodec="copy"
-        ).run()
+        ).run(overwrite_output=True)  # Add overwrite_output=True to force overwrite
         os.remove(tmp_file)
         return
 

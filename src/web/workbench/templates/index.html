@@ -2,9 +2,10 @@
 
 
 {% block content %}
-<div class="flex p-2 w-full h-screen">
+<div class="flex p-2 w-full h-screen bg-base-100">
     <div class="grow h-full w-1/5 overflow-hidden rounded-lg">
       <div class="container text-center p-2">
+        <h2 class="text-lg font-bold mb-2">📚 {{ title }}</h2>
         <div role="tablist" class="tabs tabs-bordered">
           <a role="tab" class="tab tab-active" id="tab_toc"
              hx-get="{% url 'toc' book_id=book_id %}"
@@ -41,23 +42,23 @@
           </div>
     </div>
     <div class="divider divider-horizontal"></div>
-    <div class="grow h-full w-3/5 overflow-hidden rounded-lg">
-        <div class="container text-center pt-2">
-            <h3 class="text-lg font-sans font-medium">内容</h3>
+    <div class="grow h-full w-3/5 overflow-hidden rounded-lg bg-base-100 shadow-lg">
+        <div class="container text-center pt-2 bg-primary text-primary-content rounded-t-lg">
+            <h3 class="text-lg font-sans font-bold py-2">📄 内容</h3>
         </div>
         <div class="container h-full pb-12 p-2" id="context">
-            <textarea class="textarea textarea-bordered h-full w-full" id="src-text" name="texts"></textarea>
+            <textarea class="textarea textarea-bordered h-full w-full bg-base-100" id="src-text" name="texts" placeholder="选择左侧目录或页面以加载内容..."></textarea>
         </div>
     </div>
     <div class="divider divider-horizontal"></div>
-    <div class="grow h-full w-1/5 overflow-hidden rounded-lg">
-      <div class="container text-center p-2">
-            <h3>面板</h3>
+    <div class="grow h-full w-1/5 overflow-hidden rounded-lg bg-base-200 shadow-lg">
+      <div class="container text-center p-2 bg-secondary text-secondary-content rounded-t-lg">
+            <h3 class="font-bold py-2">⚙️ 控制面板</h3>
         </div>
-        <div class="overflow-y-auto h-[calc(100vh-4rem)] space-y-2">
-            <div class="card bg-base-100/50 backdrop-blur-sm border">
+        <div class="overflow-y-auto h-[calc(100vh-4rem)] space-y-3 p-2">
+            <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow duration-200">
                 <div class="card-body p-4">
-                    <h3 class="card-title text-lg">书籍信息</h3>
+                    <h3 class="card-title text-lg font-bold">📚 书籍信息</h3>
                     <div class="flex flex-col gap-1">
                         <div>
                             <label class="font-bold">书名:</label>
@@ -66,9 +67,9 @@
                     </div>
                 </div>
             </div>
-            <div class="card bg-base-100/50 backdrop-blur-sm border">
+            <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow duration-200">
                 <div class="card-body p-4">
-                    <h3 class="card-title text-lg">内容处理</h3>
+                    <h3 class="card-title text-lg font-bold">📝 内容处理</h3>
                     <form class="form-control gap-2"
                           hx-post="{% url 'reformat' %}"
                           hx-target="#context"
@@ -80,25 +81,48 @@
                     </form>
                 </div>
             </div>
-            <div class="card bg-base-100/50 backdrop-blur-sm border">
+            <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow duration-200">
                 <div class="card-body p-4">
-                    <h3 class="card-title text-lg">音频处理</h3>
+                    <h3 class="card-title text-lg font-bold">🔊 音频处理</h3>
                     <div class="space-y-1">
-                        <select class="select select-bordered w-full">
+                        <select class="select select-bordered w-full" id="tts-provider">
                             <option disabled selected>TTS 供应商</option>
                             <option value="azure">azure</option>
                             <option value="edge-tts" selected>edge-tts</option>
                         </select>
-                        <select class="select select-bordered w-full"
+                        <select class="select select-bordered w-full" id="voice-model"
                                 hx-get="{% url 'voice_list' %}"
                                 hx-trigger="load"
                                 hx-target="this"
                                 hx-swap="innerHTML">
                             <option disabled selected>语音模型</option>
                         </select>
-                        <button class="btn btn-primary w-full">合成音频</button>
-                        <button class="btn btn-secondary w-full">下载音频</button>
-                        <button class="btn btn-accent w-full">发布</button>
+                        <button class="btn btn-primary w-full" id="synthesize-btn">合成音频</button>
+                        <div id="audio-player-container" class="hidden mt-2 p-3 bg-base-300 rounded-lg">
+                            <div class="text-center mb-2">
+                                <span class="badge badge-primary" id="audio-title"></span>
+                            </div>
+                            <audio id="audio-player" controls class="w-full"></audio>
+                            <div id="audio-status" class="text-sm mt-1 text-center font-medium text-success"></div>
+                        </div>
+                        <div class="flex gap-2 mt-2">
+                            <button class="btn btn-secondary flex-1" id="download-btn" disabled>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                                下载
+                            </button>
+                            <button class="btn btn-accent flex-1" id="publish-btn" disabled
+                                    hx-post="{% url 'aggregated_audio_segments' %}"
+                                    hx-trigger="click"
+                                    hx-target="body"
+                                    hx-push-url="true">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                                </svg>
+                                发布
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -118,6 +142,104 @@
    if (event.target.id === 'tab_page') {
      event.target.classList.add('tab-active');
      document.getElementById("tab_toc").classList.remove('tab-active');
+   }
+ });
+
+ // Audio synthesis functionality
+ document.getElementById('synthesize-btn').addEventListener('click', function() {
+   const text = document.getElementById('src-text').value;
+   const voiceModel = document.getElementById('voice-model').value;
+   const bookId = '{{ book_id }}';
+   const title = '{{ title }}';
+   
+   // Get the current page or TOC item
+   let bookPage = '';
+   const activeTocItem = document.querySelector('#toc a.bg-base-300');
+   if (activeTocItem) {
+     bookPage = activeTocItem.textContent.trim();
+   }
+   
+   if (!text) {
+     alert('请先选择或输入文本内容');
+     return;
+   }
+   
+   if (!voiceModel || voiceModel === '语音模型') {
+     alert('请选择语音模型');
+     return;
+   }
+   
+   // Show loading state
+   const synthesizeBtn = document.getElementById('synthesize-btn');
+   const originalBtnText = synthesizeBtn.textContent;
+   synthesizeBtn.textContent = '合成中...';
+   synthesizeBtn.disabled = true;
+   
+   // Prepare form data
+   const formData = new FormData();
+   formData.append('text', text);
+   formData.append('voice_name', voiceModel);
+   formData.append('book_id', bookId);
+   formData.append('title', title);
+   formData.append('book_page', bookPage);
+   formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+   
+   // Send request to synthesize audio
+   fetch('{% url "synthesize_audio" %}', {
+     method: 'POST',
+     body: formData,
+   })
+   .then(response => response.json())
+   .then(data => {
+     synthesizeBtn.textContent = originalBtnText;
+     synthesizeBtn.disabled = false;
+     
+     if (data.status === 'success') {
+       // Show audio player
+       const audioPlayerContainer = document.getElementById('audio-player-container');
+       audioPlayerContainer.classList.remove('hidden');
+       
+       // Set audio source
+       const audioPlayer = document.getElementById('audio-player');
+       audioPlayer.src = data.audio_url;
+       audioPlayer.dataset.audioId = data.audio_id;
+       
+       // Get current active TOC or page title
+       let currentTitle = '';
+       const activeTocItem = document.querySelector('#toc a.bg-base-300');
+       if (activeTocItem) {
+         currentTitle = activeTocItem.textContent.trim();
+       }
+       
+       // Update audio title and status
+       document.getElementById('audio-title').textContent = currentTitle || '当前内容';
+       document.getElementById('audio-status').textContent = '✅ 音频合成成功';
+       
+       // Enable download and publish buttons
+       document.getElementById('download-btn').disabled = false;
+       document.getElementById('publish-btn').disabled = false;
+     } else {
+       alert('音频合成失败: ' + data.message);
+     }
+   })
+   .catch(error => {
+     synthesizeBtn.textContent = originalBtnText;
+     synthesizeBtn.disabled = false;
+     alert('发生错误: ' + error);
+   });
+ });
+ 
+ // Download audio button
+ document.getElementById('download-btn').addEventListener('click', function() {
+   const audioPlayer = document.getElementById('audio-player');
+   if (audioPlayer.src) {
+     // Create a temporary link to download the audio
+     const link = document.createElement('a');
+     link.href = audioPlayer.src;
+     link.download = '音频_' + new Date().getTime() + '.wav';
+     document.body.appendChild(link);
+     link.click();
+     document.body.removeChild(link);
    }
  });
 </script>

@@ -1,13 +1,52 @@
-<ul class="menu menu-sm  rounded-box">
-  {% for page in pages %}
-  <li>
-    <a class="link link-hover"
-       hx-get="{% url 'text_by_page' book_id=book_id name=page.href %}"
-       hx-target="#context"
-       hx-trigger="click"
-    >
-      {{ page.title }}
-    </a>
-  </li>
-  {% endfor %}
-</ul>
+<div class="p-2">
+  <div class="flex justify-between items-center mb-2">
+    <h3 class="text-sm font-bold">📄 {{ title }} - 页面</h3>
+    <span class="badge badge-sm">{{ pages|length }} 页</span>
+  </div>
+  
+  <div class="divider my-1"></div>
+  
+  <div class="grid grid-cols-3 gap-1 mb-2">
+    <button class="btn btn-xs btn-outline" id="goto-first"
+            hx-get="{% url 'text_by_page' book_id=book_id name=pages.0.href %}"
+            hx-target="#context"
+            hx-swap="innerHTML">首页</button>
+    <button class="btn btn-xs btn-outline" id="goto-page">跳转</button>
+    <button class="btn btn-xs btn-outline" id="goto-last"
+            hx-get="{% url 'text_by_page' book_id=book_id name=pages|last|attr:'href' %}"
+            hx-target="#context"
+            hx-swap="innerHTML">末页</button>
+  </div>
+  
+  <ul class="menu menu-sm bg-base-100 rounded-box max-h-[calc(100vh-12rem)] overflow-y-auto">
+    {% for page in pages %}
+    <li>
+      <a class="link link-hover flex items-center py-1"
+         hx-get="{% url 'text_by_page' book_id=book_id name=page.href %}"
+         hx-target="#context"
+         hx-trigger="click"
+         data-page-number="{{ page.href }}"
+      >
+        <span class="badge badge-sm badge-primary mr-2">{{ page.href|add:"1" }}</span>
+        <span class="truncate">{{ page.title }}</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+
+<script>
+  // Page navigation functionality - first and last page buttons now use HTMX
+  
+  document.getElementById('goto-page').addEventListener('click', function() {
+    const totalPages = {{ pages|length }};
+    const pageNum = prompt(`请输入页码 (1-${totalPages})`);
+    if (pageNum && !isNaN(pageNum) && pageNum > 0 && pageNum <= totalPages) {
+      const pageIndex = parseInt(pageNum) - 1;
+      const pageLink = document.querySelector(`.menu li a[data-page-number="${pageIndex}"]`);
+      if (pageLink) {
+        pageLink.click();
+      }
+    }
+  });
+</script>
