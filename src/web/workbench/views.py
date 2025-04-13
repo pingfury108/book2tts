@@ -41,6 +41,10 @@ def index(request, book_id):
                 "tocs": [
                     {"title": f"{toc[1]}", "href": toc[2]} for toc in pbook.get_toc()
                 ],
+                "pages": [
+                    {"title": f"第{page.number+1}页", "href": page.number}
+                    for page in pbook.pages()
+                ],
             },
         )
     elif book.file_type == ".epub":
@@ -58,6 +62,7 @@ def index(request, book_id):
                     }
                     for toc in ebook_toc(ebook)
                 ],
+                "pages": ebook_pages(ebook),
             },
         )
 

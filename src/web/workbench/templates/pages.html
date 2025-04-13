@@ -1,13 +1,6 @@
 {% load custom_filters %}
 <!-- Pages navigation component - optimized for HTMX loading into #toc -->
 <div class="pages-container" data-pages-component="true">
-  <div class="flex justify-between items-center mb-2">
-    <h3 class="text-sm font-bold">📄 {{ title }} - 页面</h3>
-    <span class="badge badge-sm">{{ pages|length }} 页</span>
-  </div>
-  
-  <div class="divider my-1"></div>
-  
   <div class="grid grid-cols-3 gap-1 mb-2">
     <button class="btn btn-xs btn-outline" id="goto-first"
             hx-get="{% url 'text_by_page' book_id=book_id name=pages.0.href|stringformat:"s"|replace:"/,_" %}?page={{ pages.0.href }}"
@@ -44,26 +37,18 @@
     </button>
     {% endwith %}
   </div>
-  
-  <!-- Loading indicator -->
-  <div class="page-loading htmx-indicator">
-    <div class="flex justify-center my-2">
-      <span class="loading loading-spinner loading-sm text-primary"></span>
-    </div>
-  </div>
-  
   <div class="single-column-container" style="width:100%; max-width:100%; overflow-x:hidden;">
   <ul id="pages-list" class="menu menu-sm bg-base-100 rounded-box max-h-[calc(100vh-12rem)] overflow-y-auto overflow-x-hidden custom-scrollbar w-full flex flex-col single-column" style="column-count:1 !important; columns:1 !important; display:block !important;">
     {% for page in pages %}
     <li>
-      <a class="flex items-center py-1 w-full page-link{% if request.GET.page == page.href|stringformat:"s" %} active bg-primary text-primary-content{% endif %}"
+      <a class="flex items-center py-1.5 px-3 w-full page-link transition-all duration-300 ease-in-out hover:bg-opacity-20 hover:bg-base-300{% if request.GET.page == page.href|stringformat:"s" %} active{% endif %}"
          hx-get="{% url 'text_by_page' book_id=book_id name=page.href|stringformat:"s"|replace:"/,_" %}?page={{ page.href }}"
          hx-target="#context"
          hx-trigger="click"
          hx-indicator=".page-loading"
          data-page-number="{{ page.href }}"
       >
-        <span class="badge badge-sm bg-purple-700 text-white mr-2">{{ page.title }}</span>
+        <span class="truncate">{% if request.GET.page == page.href|stringformat:"s" %}<span class="indicator-dot mr-1">•</span>{% endif %}{{ page.title }}</span>
       </a>
     </li>
     {% endfor %}

@@ -13,32 +13,17 @@
              hx-trigger="click"
              hx-swap="innerHTML"
           >
-            TOC
+            TOC ({{ tocs|length }} 章)
           </a>
           <a role="tab" class="tab" id="tab_page"
              hx-get="{% url 'pages' book_id=book_id %}"
              hx-target="#toc"
              hx-trigger="click"
              hx-swap="innerHTML"
-          >页面</a>
+          >页面 ({{ pages|length }} 页)</a>
         </div>
       </div>
-        <div class="container pt-2" >
-          <div id="toc" class="overflow-y-auto h-[calc(100vh-8rem)]">
-            <ul class="menu menu-sm  rounded-box">
-              {% for toc in tocs %}
-              <li>
-                <a class="link link-hover"
-                   hx-get="{% url 'text_by_toc' book_id=book_id name=toc.href %}"
-                   hx-target="#context"
-                   hx-trigger="{% if forloop.first %}load, {% endif %}click"
-                >
-                  {{ toc.title }}
-                </a>
-              </li>
-              {% endfor %}
-            </ul>
-          </div>
+        <div class="container pt-2 h-full" id="toc" hx-get="/workbench/book/{{ book_id }}/toc" hx-trigger="load">
           </div>
     </div>
     <div class="divider divider-horizontal"></div>
@@ -236,7 +221,7 @@
      // Create a temporary link to download the audio
      const link = document.createElement('a');
      link.href = audioPlayer.src;
-     link.download = '音频_' + new Date().getTime() + '.wav';
+     link.download = `音频_${new Date().getTime()}.wav`;
      document.body.appendChild(link);
      link.click();
      document.body.removeChild(link);

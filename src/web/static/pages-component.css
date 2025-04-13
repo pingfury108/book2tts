@@ -23,6 +23,13 @@
 }
 
 /* Single column layout - 强制单列显示 */
+/* 
+  These styles can be replaced with Tailwind classes in HTML:
+  .single-column-container -> class="w-full max-w-full block"
+  .single-column -> class="flex flex-col w-full"
+  .single-column li -> class="w-full block max-w-full"
+  .single-column li a -> class="w-full max-w-full flex"
+*/
 .single-column-container {
   width: 100% !important;
   max-width: 100% !important;
@@ -53,17 +60,42 @@
   display: flex !important;
 }
 
-/* Active page styling */
+/* Active item styling - 统一页面和TOC的激活样式 */
 .page-link.active {
   position: relative;
+  background-color: rgba(14, 165, 233, 0.2) !important; /* 增强蓝色背景 */
+  color: #0369a1 !important; /* 深蓝色文本 */
+  font-weight: 500 !important;
+  border-left: none !important; /* 移除左侧边框 */
+  box-shadow: 0 2px 4px rgba(14, 165, 233, 0.1) !important;
+  border-radius: 0.25rem !important; /* 添加圆角 */
 }
 
-.page-link.active::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  height: 100%;
-  width: 4px;
-  background-color: var(--fallback-p, oklch(var(--p)));
+/* TOC激活样式覆盖 */
+.toc-link.active.bg-primary {
+  background-color: rgba(14, 165, 233, 0.2) !important; /* 增强蓝色背景 */
+  color: #0369a1 !important; /* 深蓝色文本 */
+  font-weight: 500 !important;
+  border-left: none !important; /* 移除左侧边框 */
+  box-shadow: 0 2px 4px rgba(14, 165, 233, 0.1) !important;
+  border-radius: 0.25rem !important; /* 添加圆角 */
+}
+
+/* 为TOC激活项添加小圆点 */
+.toc-link.active:before {
+  content: '\2022'; /* 小圆点符号 */
+  display: inline-block;
+  margin-right: 0.25rem;
+  color: #0369a1;
+  font-weight: bold;
+  font-size: 1.2em;
+}
+
+/* 添加小圆点指示器的样式 */
+.page-link.active .indicator-dot {
+  display: inline-block !important;
+  color: #0369a1 !important; /* 与文本颜色一致 */
+  opacity: 1 !important;
+  font-size: 1.2em !important;
+  font-weight: bold !important;
 }
