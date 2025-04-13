@@ -1,15 +1,25 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mx-auto p-4">
+<!-- Toast notification for success/error messages -->
+<div id="toast-container" class="toast toast-top toast-end z-50 hidden">
+    <div id="toast-message" class="alert alert-success">
+        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        <span id="toast-text">操作成功!</span>
+    </div>
+</div>
+<div id="main-content" class="container mx-auto p-4">
     <h1 class="text-2xl font-bold mb-6 text-center bg-primary text-primary-content p-3 rounded-lg shadow-lg">📚 我的音频库</h1>
     
     <!-- Initial Book List View -->
     <div id="book-list-view">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for book_name, segments in aggregated_data.items %}
-            <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer" 
-                 onclick="showBookDetails('{{ book_name|slugify }}')">
+            <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer"
+                 hx-get="/workbench/audio/book-details/{{ book_name|slugify|default:'unknown' }}/"
+                 hx-target="#main-content"
+                 hx-swap="innerHTML"
+                 hx-trigger="click">
                 <div class="card-body">
                     <h2 class="card-title text-xl font-bold">📚 {{ book_name }}</h2>
                     <div class="flex justify-between items-center mt-2">
@@ -33,119 +43,65 @@
         </div>
     </div>
     
-    <!-- Book Detail Views (Hidden Initially) -->
-    {% for book_name, segments in aggregated_data.items %}
-    <div id="book-{{ book_name|slugify }}-details" class="book-details hidden">
-        <div class="flex justify-between items-center mb-4">
-            <button class="btn btn-sm btn-outline" onclick="showBookList()">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                </svg>
-                返回书籍列表
-            </button>
-            <h2 class="text-xl font-bold bg-primary text-primary-content p-2 rounded-lg">📚 {{ book_name }}</h2>
-            <div class="badge badge-lg">{{ segments|length }} 个音频</div>
-        </div>
-        
-        <div class="divider"></div>
-        
-        <!-- Audio segments list -->
-        <div class="space-y-4">
-            {% for segment in segments %}
-            <div class="card bg-base-200 shadow-md hover:shadow-lg transition-all duration-200">
-                <!-- Title Section - Prominent at the top -->
-                <div class="card-title bg-primary text-primary-content p-3 rounded-t-lg">
-                    <h3 class="text-lg font-semibold">🔖 {{ segment.title }}</h3>
-                </div>
-                
-                <div class="card-body p-4">
-                    <!-- Metadata Section - Book and Page info -->
-                    <div class="bg-base-300 p-2 rounded-lg mb-3">
-                        <div class="flex justify-between items-center">
-                            <div class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                                </svg>
-                                <span class="font-medium">书籍:</span>
-                                <span class="ml-1">{{ book_name }}</span>
-                            </div>
-                            <div class="flex items-center">
-                                <span class="font-medium">页面:</span>
-                                <div class="ml-2 bg-secondary text-secondary-content rounded-full w-6 h-6 flex items-center justify-center">
-                                    {{ segment.book_page }}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Text Content Section - Collapsible -->
-                    <div class="bg-base-100 rounded-lg mb-3 border border-base-300">
-                        <div class="collapse collapse-plus" id="text-content-{{ forloop.counter }}">
-                            <input type="checkbox" id="text-checkbox-{{ forloop.counter }}" /> 
-                            <label for="text-checkbox-{{ forloop.counter }}" class="collapse-title font-medium flex items-center cursor-pointer">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
-                                文本内容
-                            </label>
-                            <div class="collapse-content max-h-40 overflow-y-auto text-sm">
-                                <p>{{ segment.text }}</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Audio Playback Section - Prominent at the bottom -->
-                    <div class="bg-secondary bg-opacity-10 p-3 rounded-lg">
-                        <div class="text-sm font-medium mb-1 flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15.536a5 5 0 001.414 1.414m2.828-9.9a9 9 0 012.728-2.728" />
-                            </svg>
-                            音频播放
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            <div class="flex-1">
-                                <audio controls class="w-full">
-                                    <source src="{{ segment.file_url }}" type="audio/mpeg">
-                                    Your browser does not support the audio element.
-                                </audio>
-                            </div>
-                            <a href="{{ segment.file_url }}" download class="btn btn-circle btn-sm btn-primary" title="下载音频">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                </svg>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endfor %}
+    <!-- 已移除旧的书籍详情部分，现在使用HTMX动态加载 -->
 </div>
 
 <script>
-    function showBookDetails(bookSlug) {
-        // Hide the book list view
-        document.getElementById('book-list-view').classList.add('hidden');
-        
-        // Hide all book detail sections
-        document.querySelectorAll('.book-details').forEach(section => {
-            section.classList.add('hidden');
-        });
-        
-        // Show the selected book details
-        document.getElementById('book-' + bookSlug + '-details').classList.remove('hidden');
-    }
+    // 已完全移除JavaScript函数，改为使用HTMX
     
-    function showBookList() {
-        // Show the book list view
-        document.getElementById('book-list-view').classList.remove('hidden');
+    // HTMX事件处理 - 在删除音频片段后显示成功提示
+    document.body.addEventListener('htmx:afterSwap', function(evt) {
+        if (evt.detail.target && evt.detail.target.hasAttribute('data-segment-id')) {
+            // 显示成功提示
+            showToast('音频片段已成功删除', 'success');
+            
+            // 如果需要更新计数，可以通过HTMX重新加载书籍列表
+            if (evt.detail.pathInfo && evt.detail.pathInfo.requestPath && evt.detail.pathInfo.requestPath.includes('/audio/delete/')) {
+                // 在删除操作后，如果当前页面没有音频片段了，返回书籍列表
+                if (document.querySelectorAll('.card').length === 0) {
+                    // 触发返回书籍列表的HTMX请求
+                    const backButton = document.querySelector('[hx-get="/workbench/audio/books"]');
+                    if (backButton) {
+                        backButton.click();
+                    }
+                }
+            }
+        }
+    });
+    
+    // HTMX事件处理 - 处理删除错误
+    document.body.addEventListener('htmx:responseError', function(evt) {
+        if (evt.detail.xhr && evt.detail.xhr.status) {
+            let errorMsg = '删除时发生错误，请稍后再试';
+            try {
+                const response = JSON.parse(evt.detail.xhr.responseText);
+                if (response.message) {
+                    errorMsg = `删除失败: ${response.message}`;
+                }
+            } catch (e) {}
+            
+            showToast(errorMsg, 'error');
+        }
+    });
+    
+    // 由于我们现在使用HTMX完全处理UI更新，这些函数不再需要
+    
+    function showToast(message, type = 'success') {
+        const toastContainer = document.getElementById('toast-container');
+        const toastMessage = document.getElementById('toast-message');
+        const toastText = document.getElementById('toast-text');
         
-        // Hide all book detail sections
-        document.querySelectorAll('.book-details').forEach(section => {
-            section.classList.add('hidden');
-        });
+        // Set the message and type
+        toastText.textContent = message;
+        toastMessage.className = `alert alert-${type}`;
+        
+        // Show the toast
+        toastContainer.classList.remove('hidden');
+        
+        // Hide after 3 seconds
+        setTimeout(() => {
+            toastContainer.classList.add('hidden');
+        }, 3000);
     }
 </script>
 {% endblock %}

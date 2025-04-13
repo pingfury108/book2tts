@@ -2,13 +2,125 @@
 {% block content %}
 
 <div class="flex justify-center p-3">
-    <ul>
-        {% for book in books %}
-        <li>
-            <a class="link link-hover" href="{% url 'index' book_id=book.id %}">{{ book.name }}</a>
-        </li>
-        {% endfor %}
-    </ul>
+    <div class="card bg-base-100 shadow-xl w-full max-w-2xl">
+        <div class="card-body">
+            <h2 class="card-title text-center">我的书籍列表</h2>
+            <div class="divider"></div>
+            
+            {% if books %}
+            <ul class="menu bg-base-200 rounded-box w-full">
+                {% for book in books %}
+                <li class="mb-2">
+                    <div class="flex flex-row justify-between items-center w-full p-2">
+                        <!-- 显示模式 -->
+                        <div id="view-mode-{{ book.id }}" class="flex flex-row justify-between items-center w-full">
+                            <a class="flex-grow" href="{% url 'index' book_id=book.id %}">
+                                <span class="book-name" id="book-name-{{ book.id }}">{{ book.name }}</span>
+                                <span class="badge badge-sm">{{ book.file_type }}</span>
+                            </a>
+                            <button class="btn btn-sm btn-ghost" 
+                                    hx-get="#"
+                                    hx-swap="outerHTML"
+                                    onclick="document.getElementById('view-mode-{{ book.id }}').style.display='none'; document.getElementById('edit-mode-{{ book.id }}').style.display='flex';">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <!-- 编辑模式 -->
+                        <div id="edit-mode-{{ book.id }}" class="flex flex-row justify-between items-center w-full" style="display: none;">
+                            <form id="book-form-{{ book.id }}" class="flex flex-row justify-between items-center w-full gap-2" onsubmit="updateBookName(event, {{ book.id }})">
+                                <input type="text" name="name" value="{{ book.name }}" 
+                                       class="input input-bordered input-sm flex-grow" 
+                                       placeholder="输入书名"/>
+                                <div class="flex flex-row gap-1">
+                                    <button type="submit" class="btn btn-sm btn-primary">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 htmx-indicator" style="display:none;">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                        </svg>
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 htmx-not-indicator">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                        </svg>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-ghost"
+                                            onclick="document.getElementById('edit-mode-{{ book.id }}').style.display='none'; document.getElementById('view-mode-{{ book.id }}').style.display='flex';">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div class="alert alert-info">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span>您还没有上传任何书籍。</span>
+            </div>
+            {% endif %}
+            
+            <div class="card-actions justify-end mt-4">
+                <a href="{% url 'index' %}" class="btn btn-primary">上传新书籍</a>
+            </div>
+        </div>
+    </div>
 </div>
 
 {% endblock %}
+
+<script>
+function updateBookName(event, bookId) {
+    event.preventDefault();
+    
+    // Show loading indicator
+    const form = document.getElementById(`book-form-${bookId}`);
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const loadingIcon = submitBtn.querySelector('.htmx-indicator');
+    const normalIcon = submitBtn.querySelector('.htmx-not-indicator');
+    
+    if (loadingIcon) loadingIcon.style.display = 'inline';
+    if (normalIcon) normalIcon.style.display = 'none';
+    
+    // Get form data
+    const formData = new FormData(form);
+    
+    // Send request
+    fetch(`/workbench/update_book_name/${bookId}/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Hide loading indicator
+        if (loadingIcon) loadingIcon.style.display = 'none';
+        if (normalIcon) normalIcon.style.display = 'inline';
+        
+        if (data.status === 'success') {
+            // Update the book name in the view mode
+            document.getElementById(`book-name-${bookId}`).textContent = data.name;
+            
+            // Hide edit mode and show view mode
+            document.getElementById(`edit-mode-${bookId}`).style.display = 'none';
+            document.getElementById(`view-mode-${bookId}`).style.display = 'flex';
+        } else {
+            alert('更新失败: ' + data.message);
+        }
+    })
+    .catch(error => {
+        // Hide loading indicator
+        if (loadingIcon) loadingIcon.style.display = 'none';
+        if (normalIcon) normalIcon.style.display = 'inline';
+        
+        alert('更新失败: ' + error);
+    });
+}
+</script>

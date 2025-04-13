@@ -1,0 +1,136 @@
+<!-- 书籍详情HTMX模板 -->
+<h1 class="text-2xl font-bold mb-6 text-center bg-primary text-primary-content p-3 rounded-lg shadow-lg">📚 我的音频库</h1>
+
+<div class="flex justify-between items-center mb-4">
+    <button class="btn btn-sm btn-outline" 
+            hx-get="/workbench/audio/books"
+            hx-target="#main-content"
+            hx-swap="innerHTML"
+            hx-trigger="click">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+        返回书籍列表
+    </button>
+    <h2 class="text-xl font-bold bg-primary text-primary-content p-2 rounded-lg">📚 {{ book_name }}</h2>
+    <div class="badge badge-lg">{{ segments|length }} 个音频</div>
+</div>
+
+<div class="divider"></div>
+
+<!-- Audio segments list -->
+<div class="space-y-4">
+    {% for segment in segments %}
+    <div class="card bg-base-200 shadow-md hover:shadow-lg transition-all duration-200" data-segment-id="{{ segment.id }}">
+        <!-- Title Section - Prominent at the top -->
+        <div class="card-title bg-primary text-primary-content p-3 rounded-t-lg">
+            <h3 class="text-lg font-semibold">🔖 {{ segment.title }}</h3>
+        </div>
+        
+        <div class="card-body p-4">
+            <!-- Metadata Section - Book and Page info -->
+            <div class="bg-base-300 p-2 rounded-lg mb-3">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                        <span class="font-medium">书籍:</span>
+                        <span class="ml-1">{{ book_name }}</span>
+                    </div>
+                    <div class="flex items-center">
+                        <span class="font-medium">页面:</span>
+                        <div class="ml-2 bg-secondary text-secondary-content rounded-full w-6 h-6 flex items-center justify-center">
+                            {{ segment.book_page }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Text Content Section - Collapsible -->
+            <div class="bg-base-100 rounded-lg mb-3 border border-base-300">
+                <div class="collapse collapse-plus" id="text-content-{{ forloop.counter }}">
+                    <input type="checkbox" id="text-checkbox-{{ forloop.counter }}" /> 
+                    <label for="text-checkbox-{{ forloop.counter }}" class="collapse-title font-medium flex items-center cursor-pointer">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        文本内容
+                    </label>
+                    <div class="collapse-content max-h-40 overflow-y-auto text-sm">
+                        <p>{{ segment.text }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Audio Playback Section - Prominent at the bottom -->
+            <div class="bg-secondary bg-opacity-10 p-3 rounded-lg">
+                <div class="text-sm font-medium mb-1 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15.536a5 5 0 001.414 1.414m2.828-9.9a9 9 0 012.728-2.728" />
+                    </svg>
+                    音频播放
+                </div>
+                <div class="flex items-center space-x-2">
+                    <div class="flex-1">
+                        <audio controls class="w-full">
+                            <source src="{{ segment.file_url }}" type="audio/mpeg">
+                            Your browser does not support the audio element.
+                        </audio>
+                    </div>
+                    <div class="flex space-x-2">
+                        <a href="{{ segment.file_url }}" download class="btn btn-circle btn-sm btn-primary" title="下载音频">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                        </a>
+                        <button 
+                            class="btn btn-circle btn-sm btn-error" 
+                            title="删除音频"
+                            hx-delete="/workbench/audio/delete/{{ segment.id }}/"
+                            hx-confirm="确定要删除音频片段 '{{ segment.title }}' 吗？此操作无法撤销。"
+                            hx-target="[data-segment-id='{{ segment.id }}']" 
+                            hx-swap="outerHTML"
+                            hx-trigger="click">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="alert alert-info shadow-lg">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>该书籍下没有任何音频片段。</span>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- 添加HTMX事件处理脚本 -->
+<script>
+    // 在删除后更新计数
+    document.addEventListener('htmx:afterSwap', function(evt) {
+        if (evt.detail.target && evt.detail.target.hasAttribute('data-segment-id')) {
+            // 更新当前书籍的音频计数
+            const segmentCount = document.querySelectorAll('.card').length;
+            const badge = document.querySelector('.badge');
+            if (badge) {
+                badge.textContent = `${segmentCount} 个音频`;
+            }
+            
+            // 显示成功提示
+            const event = new CustomEvent('showToast', {
+                detail: {
+                    message: '音频片段已成功删除',
+                    type: 'success'
+                }
+            });
+            document.dispatchEvent(event);
+        }
+    });
+</script>
