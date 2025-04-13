@@ -31,8 +31,22 @@
         <div class="container text-center pt-2 bg-primary text-primary-content rounded-t-lg">
             <h3 class="text-lg font-sans font-bold py-2">📄 内容</h3>
         </div>
-        <div class="container h-full pb-16 p-2" id="context">
-            <textarea class="textarea textarea-bordered h-full w-full bg-base-100" id="src-text" name="texts" placeholder="选择左侧目录或页面以加载内容..."></textarea>
+        <div class="container p-2 flex flex-col h-[calc(100%-3.5rem)]" id="context">
+            <div class="mb-2 p-2 bg-base-200 rounded-lg">
+                <div class="flex justify-between items-center">
+                    <div class="badge badge-primary p-3 text-sm">章节内容</div>
+                    <div class="flex gap-2">
+                        <button class="btn btn-xs btn-outline" id="format-text-btn"
+                                hx-post="{% url 'reformat' %}"
+                                hx-include="#src-text"
+                                hx-target="#src-text"
+                                hx-swap="innerHTML">自动排版</button>
+                        <button class="btn btn-xs btn-outline" id="increase-font-btn">放大字体</button>
+                        <button class="btn btn-xs btn-outline" id="decrease-font-btn">缩小字体</button>
+                    </div>
+                </div>
+            </div>
+            <textarea class="textarea textarea-bordered flex-grow w-full bg-base-100 font-serif" id="src-text" name="texts" placeholder="选择左侧目录或页面以加载内容..." style="font-size: 16px; line-height: 1.6; min-height: 0;"></textarea>
         </div>
     </div>
     <div class="divider divider-horizontal"></div>
@@ -123,6 +137,30 @@
  document.body.addEventListener('htmx:configRequest', function(evt) {
    evt.detail.headers['X-CSRFToken'] = '{{ csrf_token }}';
  });
+
+ // Font size adjustment with HTMX compatibility
+ function setupFontSizeButtons() {
+   // 使用可选链操作符，防止元素不存在时出错
+   document.getElementById('increase-font-btn')?.addEventListener('click', function() {
+     const textarea = document.getElementById('src-text');
+     const currentSize = parseInt(window.getComputedStyle(textarea).fontSize);
+     textarea.style.fontSize = (currentSize + 2) + 'px';
+   });
+   
+   document.getElementById('decrease-font-btn')?.addEventListener('click', function() {
+     const textarea = document.getElementById('src-text');
+     const currentSize = parseInt(window.getComputedStyle(textarea).fontSize);
+     if (currentSize > 12) {
+       textarea.style.fontSize = (currentSize - 2) + 'px';
+     }
+   });
+ }
+
+ // 初始设置
+ document.addEventListener('DOMContentLoaded', setupFontSizeButtons);
+ 
+ // HTMX内容更新后重新设置
+ document.body.addEventListener('htmx:afterSwap', setupFontSizeButtons);
  document.body.addEventListener('click', function(event) {
    if (event.target.id === 'tab_toc') {
      event.target.classList.add('tab-active');

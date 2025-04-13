@@ -4,7 +4,7 @@
   <div class="grid grid-cols-3 gap-1 mb-2">
     <button class="btn btn-xs btn-outline" id="goto-first"
             hx-get="{% url 'text_by_page' book_id=book_id name=pages.0.href|stringformat:"s"|replace:"/,_" %}?page={{ pages.0.href }}"
-            hx-target="#context"
+            hx-target="#src-text"
             hx-swap="innerHTML"
             hx-indicator=".page-loading">
       <span class="inline-flex items-center">
@@ -25,7 +25,7 @@
     {% with last_page=pages|last %}
     <button class="btn btn-xs btn-outline" id="goto-last"
             hx-get="{% url 'text_by_page' book_id=book_id name=last_page.href|stringformat:"s"|replace:"/,_" %}?page={{ last_page.href }}"
-            hx-target="#context"
+            hx-target="#src-text"
             hx-swap="innerHTML"
             hx-indicator=".page-loading">
       <span class="inline-flex items-center">
@@ -43,7 +43,7 @@
     <li>
       <a class="flex items-center py-1.5 px-3 w-full page-link transition-all duration-300 ease-in-out hover:bg-opacity-20 hover:bg-base-300{% if request.GET.page == page.href|stringformat:"s" %} active{% endif %}"
          hx-get="{% url 'text_by_page' book_id=book_id name=page.href|stringformat:"s"|replace:"/,_" %}?page={{ page.href }}"
-         hx-target="#context"
+         hx-target="#src-text"
          hx-trigger="click"
          hx-indicator=".page-loading"
          data-page-number="{{ page.href }}"

@@ -6,7 +6,7 @@
     <li>
       <a class="flex items-center py-1.5 px-3 w-full toc-link transition-all duration-300 ease-in-out hover:bg-opacity-20 hover:bg-base-300{% if request.GET.toc == toc.href %} active{% endif %}"
          hx-get="{% url 'text_by_toc' book_id=book_id name=toc.href|stringformat:"s"|replace:"/,_" %}?toc={{ toc.href|stringformat:"s" }}"
-         hx-target="#context"
+         hx-target="#src-text"
          hx-trigger="{% if forloop.first %}load, {% endif %}click"
          hx-indicator=".toc-loading"
          data-toc-href="{{ toc.href }}"

@@ -162,7 +162,11 @@ def text_by_toc(request, book_id, name):
         ebook = open_ebook(book.file.path)
         texts = get_content_with_href(ebook, name)
 
-    return render(request, "text_by_toc.html", {"texts": texts})
+    # Check if this is an HTMX request for just the text content
+    if request.headers.get('HX-Target') == 'src-text':
+        return render(request, "text_content.html", {"texts": texts})
+    else:
+        return render(request, "text_by_toc.html", {"texts": texts})
 
 
 def text_by_page(request, book_id, name):
@@ -177,30 +181,24 @@ def text_by_page(request, book_id, name):
         ebook = open_ebook(book.file.path)
         texts = get_content_with_href(ebook, name)
 
-    return render(request, "text_by_toc.html", {"texts": texts})
+    # Check if this is an HTMX request for just the text content
+    if request.headers.get('HX-Target') == 'src-text':
+        return render(request, "text_content.html", {"texts": texts})
+    else:
+        return render(request, "text_by_toc.html", {"texts": texts})
 
 
 @require_http_methods(["POST"])
 def reformat(request):
     texts = request.POST["texts"]
-    id = hashlib.md5(texts.encode("utf-8")).hexdigest()
-    cache.set(id, texts)
-    print(texts)
-
-    return render(request, "reformat.html", {"texts": texts, "id": id})
-
-
-def event_stream():
-    i = 0
-    while True:
-        time.sleep(1)  # 每3秒发送一次数据
-        i = i + 1
-        yield f"data: The server time is: {i}\n\n"
-
-
-def reformat_sse(request, id):
-    return StreamingHttpResponse(event_stream(), content_type="text/event-stream")
-
+    
+    # Process the text directly instead of using SSE
+    # Simple text reformatting: remove extra whitespace, normalize line breaks
+    lines = [line.strip() for line in texts.splitlines() if line.strip()]
+    reformatted_text = "\n".join(lines)  # Double line breaks between paragraphs
+    
+    # Always return just the text content using text_content.html
+    return render(request, "text_content.html", {"texts": reformatted_text})
 
 def aggregated_audio_segments(request):
     # 获取当前用户的音频片段

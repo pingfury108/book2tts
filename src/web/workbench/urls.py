@@ -18,7 +18,6 @@ urlpatterns = [
     path("book/<int:book_id>/toc", views.toc, name="toc"),
     path("book/<int:book_id>/page", views.pages, name="pages"),
     path("book/reformat", views.reformat, name="reformat"),
-    path("book/reformat/<str:id>", views.reformat_sse, name="reformat_sse"),
     path("audio/books", aggregated_audio_segments, name="aggregated_audio_segments"),
     path('audio/book-details/<str:book_slug>/', book_details_htmx, name='book_details_htmx'),
     path('voices/', get_voice_list, name='voice_list'),
