@@ -1,13 +1,95 @@
-<ul class="menu menu-sm  rounded-box">
-  {% for toc in tocs %}
-  <li>
-    <a class="link link-hover"
-       hx-get="{% url 'text_by_toc' book_id=book_id name=toc.href %}"
-       hx-target="#context"
-       hx-trigger="click"
-    >
-      {{ toc.title }}
-    </a>
-  </li>
-  {% endfor %}
-</ul>
+{% load custom_filters %}
+<!-- TOC navigation component - optimized for HTMX loading into #toc -->
+<div class="toc-container">
+  <div class="flex justify-between items-center mb-2">
+    <h3 class="text-sm font-bold">📚 {{ title }} - 目录</h3>
+    <span class="badge badge-sm">{{ tocs|length }} 章</span>
+  </div>
+  
+  <div class="divider my-1"></div>
+  
+  <!-- Loading indicator -->
+  <div class="toc-loading htmx-indicator">
+    <div class="flex justify-center my-2">
+      <span class="loading loading-spinner loading-sm text-primary"></span>
+    </div>
+  </div>
+  
+  <ul class="menu menu-sm bg-base-100 rounded-box max-h-[calc(100vh-12rem)] overflow-y-auto overflow-x-hidden custom-scrollbar w-full flex flex-col">
+    {% for toc in tocs %}
+    <li>
+      <a class="flex items-center py-1 w-full toc-link{% if forloop.first %} active bg-primary text-primary-content{% endif %}"
+         hx-get="{% url 'text_by_toc' book_id=book_id name=toc.href|stringformat:"s"|replace:"/,_" %}"
+         hx-target="#context"
+         hx-trigger="{% if forloop.first %}load, {% endif %}click"
+         hx-indicator=".toc-loading"
+         data-toc-href="{{ toc.href }}"
+      >
+        <span class="truncate">{{ toc.title }}</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+
+<style>
+  /* Custom scrollbar styling for DaisyUI theme compatibility */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: var(--fallback-b1, oklch(var(--b1)));
+    border-radius: 8px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--fallback-bc, oklch(var(--bc) / 0.3));
+    border-radius: 8px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--fallback-bc, oklch(var(--bc) / 0.5));
+  }
+  
+  /* Active TOC item styling */
+  .toc-link.active {
+    position: relative;
+  }
+  
+  .toc-link.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 4px;
+    background-color: var(--fallback-p, oklch(var(--p)));
+    border-radius: 0 4px 4px 0;
+  }
+</style>
+
+<script>
+  // TOC navigation functionality - optimized for HTMX integration
+  document.addEventListener('htmx:load', function() {
+    // Initialize TOC navigation after HTMX loads the component
+    setupTocLinkListeners();
+  });
+  
+  // Add event listener to highlight clicked TOC item
+  function setupTocLinkListeners() {
+    document.querySelectorAll('.toc-link').forEach(link => {
+      link.addEventListener('click', function() {
+        // Remove active class from all links
+        document.querySelectorAll('.toc-link').forEach(l => {
+          l.classList.remove('active', 'bg-primary', 'text-primary-content');
+        });
+        // Add active class to clicked link
+        this.classList.add('active', 'bg-primary', 'text-primary-content');
+      });
+    });
+  }
+  
+  // Setup listeners when the page loads
+  setupTocLinkListeners();
+</script>

@@ -1,0 +1,69 @@
+/* Custom scrollbar styling for DaisyUI theme compatibility */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: var(--fallback-b1, oklch(var(--b1)));
+  border-radius: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--fallback-bc, oklch(var(--bc) / 0.3));
+  border-radius: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--fallback-bc, oklch(var(--bc) / 0.5));
+}
+
+/* Smooth scrolling */
+#pages-list {
+  scroll-behavior: smooth;
+}
+
+/* Single column layout - 强制单列显示 */
+.single-column-container {
+  width: 100% !important;
+  max-width: 100% !important;
+  column-count: 1 !important;
+  columns: 1 !important;
+  display: block !important;
+}
+
+.single-column {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  column-count: 1 !important;
+  columns: 1 !important;
+}
+
+.single-column li {
+  width: 100% !important;
+  display: block !important;
+  break-inside: avoid !important;
+  column-span: all !important;
+  max-width: 100% !important;
+}
+
+.single-column li a {
+  width: 100% !important;
+  max-width: 100% !important;
+  display: flex !important;
+}
+
+/* Active page styling */
+.page-link.active {
+  position: relative;
+}
+
+.page-link.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 4px;
+  background-color: var(--fallback-p, oklch(var(--p)));
+}

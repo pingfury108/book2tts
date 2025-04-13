@@ -9,8 +9,10 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     {% tailwind_css %}
     {% load static %}
+    <link rel="stylesheet" href="{% static 'pages-component.css' %}">
     <script src="{% static 'htmx.min.js' %}" defer></script>
     <script src="{% static 'sse.js' %}" defer></script>
+    <script src="{% static 'pages-component.js' %}" defer></script>
 </head>
 
 <body class="flex flex-col min-h-screen">
