@@ -2,16 +2,12 @@
 <h1 class="text-2xl font-bold mb-6 text-center bg-primary text-primary-content p-3 rounded-lg shadow-lg">📚 我的音频库</h1>
 
 <div class="flex justify-between items-center mb-4">
-    <button class="btn btn-sm btn-outline" 
-            hx-get="/workbench/audio/books"
-            hx-target="#main-content"
-            hx-swap="innerHTML"
-            hx-trigger="click">
+    <a href="{% url 'aggregated_audio_segments' %}" class="btn btn-sm btn-outline">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
         </svg>
         返回书籍列表
-    </button>
+    </a>
     <h2 class="text-xl font-bold bg-primary text-primary-content p-2 rounded-lg">📚 {{ book_name }}</h2>
     <div class="badge badge-lg">{{ segments|length }} 个音频</div>
 </div>
@@ -110,27 +106,3 @@
     </div>
     {% endfor %}
 </div>
-
-<!-- 添加HTMX事件处理脚本 -->
-<script>
-    // 在删除后更新计数
-    document.addEventListener('htmx:afterSwap', function(evt) {
-        if (evt.detail.target && evt.detail.target.hasAttribute('data-segment-id')) {
-            // 更新当前书籍的音频计数
-            const segmentCount = document.querySelectorAll('.card').length;
-            const badge = document.querySelector('.badge');
-            if (badge) {
-                badge.textContent = `${segmentCount} 个音频`;
-            }
-            
-            // 显示成功提示
-            const event = new CustomEvent('showToast', {
-                detail: {
-                    message: '音频片段已成功删除',
-                    type: 'success'
-                }
-            });
-            document.dispatchEvent(event);
-        }
-    });
-</script>
