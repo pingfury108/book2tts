@@ -68,20 +68,6 @@
             </div>
             <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow duration-200">
                 <div class="card-body p-4">
-                    <h3 class="card-title text-lg font-bold">📝 内容处理</h3>
-                    <form class="form-control gap-2"
-                          hx-post="{% url 'reformat' %}"
-                          hx-target="#context"
-                          hx-include="#src-text">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-primary w-full">
-                            排版内容
-                        </button>
-                    </form>
-                </div>
-            </div>
-            <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow duration-200">
-                <div class="card-body p-4">
                     <h3 class="card-title text-lg font-bold">🔊 音频处理</h3>
                     <div class="space-y-1">
                         <select class="select select-bordered w-full" id="tts-provider">
@@ -113,16 +99,17 @@
                                 下载
                             </button>
                             <button class="btn btn-accent flex-1" id="publish-btn" disabled
-                                    hx-post="{% url 'aggregated_audio_segments' %}"
+                                    hx-post="/workbench/audio/publish/0/"
                                     hx-trigger="click"
-                                    hx-target="body"
-                                    hx-push-url="true">
+                                    hx-target="#publish-status"
+                                    hx-swap="innerHTML">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                                 </svg>
                                 发布
                             </button>
                         </div>
+                        <div id="publish-status" class="text-sm mt-1 text-center font-medium"></div>
                     </div>
                 </div>
             </div>
@@ -269,96 +256,77 @@
    }
  });
 
- // Audio synthesis functionality
- document.getElementById('synthesize-btn').addEventListener('click', function() {
-   const text = document.getElementById('src-text').value;
+ let currentAudioSegmentId = 0;
+
+ // 音频合成和管理
+ document.getElementById('synthesize-btn')?.addEventListener('click', async function() {
+   const textContent = document.getElementById('src-text').value;
    const voiceModel = document.getElementById('voice-model').value;
-   const bookId = '{{ book_id }}';
-   const title = '{{ title }}';
-   const audioTitle = document.getElementById('audio-title-input').value;
+   const audioTitle = document.getElementById('audio-title-input').value || currentPageName;
    
-   // Use the page ID for book_page field, but store the display name as well
-   const bookPage = currentPageId;
-   const pageDisplayName = currentPageName;
-   
-   if (!text) {
-     alert('请先选择或输入文本内容');
+   if (!textContent || !voiceModel) {
+     alert('请先选择语音模型并输入文本');
      return;
    }
    
-   if (!voiceModel || voiceModel === '语音模型') {
-     alert('请选择语音模型');
-     return;
-   }
+   // 显示加载状态
+   this.innerHTML = '<span class="loading loading-spinner loading-xs"></span> 合成中...';
+   this.disabled = true;
    
-   // Show loading state
-   const synthesizeBtn = document.getElementById('synthesize-btn');
-   const originalBtnText = synthesizeBtn.textContent;
-   synthesizeBtn.textContent = '合成中...';
-   synthesizeBtn.disabled = true;
-   
-   // Prepare form data
-   const formData = new FormData();
-   formData.append('text', text);
-   formData.append('voice_name', voiceModel);
-   formData.append('book_id', bookId);
-   formData.append('title', title);
-   formData.append('book_page', bookPage);
-   formData.append('page_display_name', pageDisplayName);
-   formData.append('audio_title', audioTitle);
-   formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-   
-   // Send request to synthesize audio
-   fetch('{% url "synthesize_audio" %}', {
-     method: 'POST',
-     body: formData,
-   })
-   .then(response => response.json())
-   .then(data => {
-     synthesizeBtn.textContent = originalBtnText;
-     synthesizeBtn.disabled = false;
+   try {
+     const response = await fetch('{% url 'synthesize_audio' %}', {
+       method: 'POST',
+       headers: {
+         'Content-Type': 'application/x-www-form-urlencoded',
+         'X-CSRFToken': '{{ csrf_token }}'
+       },
+       body: new URLSearchParams({
+         text: textContent,
+         voice_name: voiceModel,
+         book_id: '{{ book_id }}',
+         title: audioTitle || '未命名音频',
+         book_page: currentPageId || '',
+         page_display_name: currentPageName || '',
+         audio_title: audioTitle || ''
+       })
+     });
+     
+     const data = await response.json();
      
      if (data.status === 'success') {
-       // Show audio player
-       const audioPlayerContainer = document.getElementById('audio-player-container');
-       audioPlayerContainer.classList.remove('hidden');
-       
-       // Set audio source
+       // 显示音频播放器
+       document.getElementById('audio-player-container').classList.remove('hidden');
        const audioPlayer = document.getElementById('audio-player');
        audioPlayer.src = data.audio_url;
-       audioPlayer.dataset.audioId = data.audio_id;
+       document.getElementById('audio-title').textContent = audioTitle || '未命名音频';
+       document.getElementById('audio-status').textContent = '合成成功！';
        
-       // Update audio title display with the page name
-       const titleText = audioTitle || currentPageName || '当前内容';
-       document.getElementById('audio-title').textContent = titleText;
-       document.getElementById('audio-status').textContent = '✅ 音频合成成功';
+       // 启用下载和发布按钮
+       const downloadBtn = document.getElementById('download-btn');
+       downloadBtn.disabled = false;
+       downloadBtn.onclick = function() {
+         const a = document.createElement('a');
+         a.href = data.audio_url;
+         a.download = (audioTitle || '音频') + '.wav';
+         document.body.appendChild(a);
+         a.click();
+         document.body.removeChild(a);
+       };
        
-       // Enable download and publish buttons
-       document.getElementById('download-btn').disabled = false;
-       document.getElementById('publish-btn').disabled = false;
+       const publishBtn = document.getElementById('publish-btn');
+       publishBtn.disabled = false;
+       currentAudioSegmentId = data.audio_id;
+       publishBtn.setAttribute('hx-post', `/workbench/audio/publish/${currentAudioSegmentId}/`);
      } else {
-       alert('音频合成失败: ' + data.message);
+       document.getElementById('audio-status').textContent = '合成失败：' + data.message;
      }
-   })
-   .catch(error => {
-     synthesizeBtn.textContent = originalBtnText;
-     synthesizeBtn.disabled = false;
-     alert('发生错误: ' + error);
-   });
- });
- 
- // Download audio button
- document.getElementById('download-btn').addEventListener('click', function() {
-   const audioPlayer = document.getElementById('audio-player');
-   const audioTitle = document.getElementById('audio-title').textContent;
-   if (audioPlayer.src) {
-     // Create a temporary link to download the audio
-     const link = document.createElement('a');
-     link.href = audioPlayer.src;
-     link.download = `${audioTitle || '音频'}_${new Date().getTime()}.wav`;
-     document.body.appendChild(link);
-     link.click();
-     document.body.removeChild(link);
+   } catch (error) {
+     console.error('音频合成错误:', error);
+     document.getElementById('audio-status').textContent = '合成失败：' + error.message;
+   } finally {
+     // 恢复按钮状态
+     this.innerHTML = '合成音频';
+     this.disabled = false;
    }
  });
 </script>

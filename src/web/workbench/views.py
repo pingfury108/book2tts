@@ -216,6 +216,7 @@ def aggregated_audio_segments(request):
             "text": segment.text,
             "book_page": segment.book_page,
             "file_url": segment.file.url,
+            "published": segment.published
         }
         aggregated_data[segment.book.name].append(book_data)
         book_ids[segment.book.name] = segment.book.id  # Store book ID
@@ -255,7 +256,7 @@ def book_details_htmx(request, book_id):
     book_segments = AudioSegment.objects.filter(
         uid=uid,
         book=target_book
-    ).values('id', 'title', 'text', 'book_page', 'file')
+    ).values('id', 'title', 'text', 'book_page', 'file', 'published')
     
     # Convert file IDs to URLs
     segments = []
@@ -319,7 +320,8 @@ def synthesize_audio(request):
             uid=request.session.get("uid", "admin"),
             title=segment_title,
             text=text,
-            book_page=book_page
+            book_page=book_page,
+            published=False
         )
         
         # Ensure media directory exists
@@ -448,4 +450,66 @@ def delete_audio_segment(request, segment_id):
             return HttpResponse(f"删除失败: {str(e)}", status=500)
         else:
             # 对于非HTMX请求，返回JSON响应
+            return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def toggle_publish_audio_segment(request, segment_id):
+    """Toggle the published state of an audio segment"""
+    # Get the audio segment or return 404 if not found
+    segment = get_object_or_404(AudioSegment, pk=segment_id)
+    
+    # Check if the user owns this audio segment
+    if segment.uid != request.session.get("uid", "admin"):
+        return JsonResponse({"status": "error", "message": "You don't have permission to modify this audio segment"}, status=403)
+    
+    try:
+        # Toggle the published state
+        segment.published = not segment.published
+        segment.save()
+        
+        # Check if this is an HTMX request
+        if request.headers.get('HX-Request') == 'true':
+            # Return the updated button based on the new state
+            if segment.published:
+                button_html = '''
+                <button class="btn btn-circle btn-sm btn-warning" 
+                        title="取消发布"
+                        hx-post="/workbench/audio/publish/{{ segment.id }}/"
+                        hx-target="this" 
+                        hx-swap="outerHTML">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                    </svg>
+                </button>
+                '''.replace('{{ segment.id }}', str(segment_id))
+            else:
+                button_html = '''
+                <button class="btn btn-circle btn-sm btn-success" 
+                        title="发布"
+                        hx-post="/workbench/audio/publish/{{ segment.id }}/"
+                        hx-target="this" 
+                        hx-swap="outerHTML">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </button>
+                '''.replace('{{ segment.id }}', str(segment_id))
+            
+            return HttpResponse(button_html)
+        else:
+            # For non-HTMX requests, return JSON
+            return JsonResponse({
+                "status": "success", 
+                "message": f"Audio segment {'published' if segment.published else 'unpublished'} successfully",
+                "published": segment.published
+            })
+    
+    except Exception as e:
+        print(f"Error in toggle_publish_audio_segment: {str(e)}")
+        if request.headers.get('HX-Request') == 'true':
+            # For HTMX requests, return error message
+            return HttpResponse(f"操作失败: {str(e)}", status=500)
+        else:
+            # For non-HTMX requests, return JSON
             return JsonResponse({"status": "error", "message": str(e)}, status=500)

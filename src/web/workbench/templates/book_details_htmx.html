@@ -119,6 +119,29 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                             </svg>
                         </a>
+                        {% if segment.published %}
+                        <button 
+                            class="btn btn-circle btn-sm btn-warning" 
+                            title="取消发布"
+                            hx-post="{% url 'toggle_publish_audio_segment' segment_id=segment.id %}"
+                            hx-target="this" 
+                            hx-swap="outerHTML">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                            </svg>
+                        </button>
+                        {% else %}
+                        <button 
+                            class="btn btn-circle btn-sm btn-success" 
+                            title="发布"
+                            hx-post="{% url 'toggle_publish_audio_segment' segment_id=segment.id %}"
+                            hx-target="this" 
+                            hx-swap="outerHTML">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </button>
+                        {% endif %}
                         <button 
                             class="btn btn-circle btn-sm btn-error" 
                             title="删除音频"

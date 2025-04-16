@@ -1,7 +1,7 @@
 from django.urls import path
 
 from . import views
-from .views import aggregated_audio_segments, get_voice_list, synthesize_audio, delete_audio_segment, book_details_htmx, update_book_name
+from .views import aggregated_audio_segments, get_voice_list, synthesize_audio, delete_audio_segment, book_details_htmx, update_book_name, toggle_publish_audio_segment
 
 urlpatterns = [
     path("", views.upload, name="index"),
@@ -23,5 +23,6 @@ urlpatterns = [
     path('voices/', get_voice_list, name='voice_list'),
     path('synthesize-audio/', synthesize_audio, name='synthesize_audio'),
     path('audio/delete/<int:segment_id>/', delete_audio_segment, name='delete_audio_segment'),
+    path('audio/publish/<int:segment_id>/', toggle_publish_audio_segment, name='toggle_publish_audio_segment'),
     path('book/<int:book_id>/update-name/', update_book_name, name='update_book_name'),
 ]
