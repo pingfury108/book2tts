@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- 添加禁止缓存的Meta标签 -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
+<div class="flex flex-col items-center justify-center mt-10">
+  <div class="card w-96 bg-base-100 shadow-xl">
+    <div class="card-body text-center">
+      <h2 class="card-title justify-center">您已成功登出</h2>
+      <p class="my-4">感谢您使用我们的服务！</p>
+      <div class="card-actions justify-center">
+        <a href="{% url 'login' %}" class="btn btn-primary">重新登录</a>
+        <a href="/" class="btn btn-ghost">返回首页</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 添加强制刷新的JavaScript -->
+<script>
+  // 确保完全刷新页面缓存
+  window.onload = function() {
+    // 清除本地存储和会话存储
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // 禁用浏览器回退按钮到之前的页面缓存
+    window.history.pushState(null, "", window.location.href);
+    window.onpopstate = function() {
+      window.history.pushState(null, "", window.location.href);
+    };
+  }
+</script>
+{% endblock %} 

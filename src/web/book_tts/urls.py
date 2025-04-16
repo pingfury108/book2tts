@@ -16,6 +16,7 @@ from django.contrib.auth import views as auth_views
 from django.contrib.auth.forms import UserCreationForm
 from django.views.generic.edit import CreateView
 from django.shortcuts import render, redirect
+from django.contrib.auth import logout
 
 # Custom registration view
 def register(request):
@@ -28,6 +29,15 @@ def register(request):
         form = UserCreationForm()
     return render(request, 'registration/register.html', {'form': form})
 
+# Custom logout view to ensure proper session cleanup
+def logout_view(request):
+    # Completely log out the user
+    logout(request)
+    # Clear any session data
+    request.session.flush()
+    # Render the logged_out template
+    return render(request, 'registration/logged_out.html')
+
 urlpatterns = [
     path("", include("home.urls")),
     path("workbench/", include("workbench.urls")),
@@ -36,7 +46,7 @@ urlpatterns = [
     
     # Authentication URLs
     path('login/', auth_views.LoginView.as_view(), name='login'),
-    path('logout/', auth_views.LogoutView.as_view(http_method_names=['get', 'post']), name='logout'),
+    path('logout/', logout_view, name='logout'),
     path('register/', register, name='register'),
 ]
 

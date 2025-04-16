@@ -1,6 +1,7 @@
 from django.shortcuts import redirect
 from django.urls import resolve, reverse
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 
 
 class WorkbenchAuthenticationMiddleware:
@@ -18,8 +19,10 @@ class WorkbenchAuthenticationMiddleware:
         
         # Check if the path belongs to workbench app
         if path.startswith('/workbench/'):
-            # If user is not authenticated, redirect to login page
-            if not request.user.is_authenticated:
+            # 强制验证认证状态
+            if request.user is None or isinstance(request.user, AnonymousUser) or not request.user.is_authenticated:
+                # Force logout to ensure session is clean
+                request.session.flush()
                 # Get the login URL with the current path as the next parameter
                 login_url = f"{reverse('login')}?next={path}"
                 return redirect(login_url)
