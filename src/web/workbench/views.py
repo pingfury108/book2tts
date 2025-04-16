@@ -201,59 +201,14 @@ def reformat(request):
     return render(request, "text_content.html", {"texts": reformatted_text})
 
 def aggregated_audio_segments(request):
-    # 获取当前用户的音频片段
+    # Get the current user's audio segments
     uid = request.session.get("uid", "admin")
     audio_segments = AudioSegment.objects.filter(uid=uid)
 
-    # 使用字典按book聚合
+    # Aggregate by book
     aggregated_data = defaultdict(list)
-    for segment in audio_segments:
-        book_data = {
-            "id": segment.id,  # 添加ID字段
-            "title": segment.title,
-            "text": segment.text,
-            "book_page": segment.book_page,
-            "file_url": segment.file.url,
-        }
-        aggregated_data[segment.book.name].append(book_data)
-
-    # 转换为标准字典并传递给模板
-    context = {"aggregated_data": dict(aggregated_data)}
-    return render(request, "aggregated_audio_segments.html", context)
-
-
-def book_details_htmx(request, book_slug):
-    """HTMX端点：返回特定书籍的详情视图"""
-    print(f"DEBUG: book_details_htmx called with book_slug={book_slug}")
+    book_ids = {}  # Track book IDs for each book name
     
-    # 处理特殊情况
-    if not book_slug or book_slug == 'unknown':
-        print("DEBUG: Invalid book slug, returning to book list")
-        # 如果slug无效，返回书籍列表
-        uid = request.session.get("uid", "admin")
-        audio_segments = AudioSegment.objects.filter(uid=uid)
-        aggregated_data = defaultdict(list)
-        for segment in audio_segments:
-            book_data = {
-                "id": segment.id,
-                "title": segment.title,
-                "text": segment.text,
-                "book_page": segment.book_page,
-                "file_url": segment.file.url,
-            }
-            aggregated_data[segment.book.name].append(book_data)
-        return render(request, "aggregated_audio_segments.html", {"aggregated_data": dict(aggregated_data)})
-    
-    # 获取当前用户的音频片段
-    uid = request.session.get("uid", "admin")
-    audio_segments = AudioSegment.objects.filter(uid=uid)
-    
-    # 先尝试直接通过书籍名称找到书籍
-    book_segments = []
-    book_name = None
-    
-    # 使用字典按book聚合
-    aggregated_data = defaultdict(list)
     for segment in audio_segments:
         book_data = {
             "id": segment.id,
@@ -263,37 +218,56 @@ def book_details_htmx(request, book_slug):
             "file_url": segment.file.url,
         }
         aggregated_data[segment.book.name].append(book_data)
+        book_ids[segment.book.name] = segment.book.id  # Store book ID
         
-        # 根据slug匹配书籍
-        from django.utils.text import slugify
-        if slugify(segment.book.name) == book_slug:
-            book_name = segment.book.name
-            book_segments.append(book_data)
-    
-    # 如果上面的方法没找到，尝试其他方法
-    if not book_name:
-        print(f"DEBUG: Trying alternative slug matching for '{book_slug}'")
-        for name in aggregated_data.keys():
-            # 使用Django的slugify函数
-            from django.utils.text import slugify
-            name_slug = slugify(name)
-            print(f"DEBUG: Comparing '{name_slug}' with '{book_slug}'")
-            if name_slug == book_slug:
-                book_name = name
-                book_segments = aggregated_data[name]
-                break
-    
-    if not book_name:
-        print(f"DEBUG: Book not found for slug '{book_slug}'")
-        # 如果找不到书籍，返回所有书籍列表
-        return render(request, "aggregated_audio_segments.html", {"aggregated_data": dict(aggregated_data)})
-    
-    print(f"DEBUG: Found book '{book_name}' with {len(book_segments)} segments")
-    
-    # 只返回特定书籍的详情部分HTML
+    # Prepare data structure with book IDs
+    books_with_ids = {}
+    for book_name, segments in aggregated_data.items():
+        books_with_ids[book_name] = {
+            "segments": segments,
+            "book_id": book_ids[book_name]  # Use book ID instead of slug
+        }
+
+    # Convert to standard dictionary and pass to template
     context = {
-        "book_name": book_name,
-        "segments": book_segments,
+        "books_with_ids": books_with_ids,
+        "aggregated_data": dict(aggregated_data)
+    }
+    return render(request, "aggregated_audio_segments.html", context)
+
+
+def book_details_htmx(request, book_id):
+    """HTMX endpoint: returns details view for a specific book"""
+    # Handle invalid book_id
+    if not book_id or book_id == '0':
+        return redirect('aggregated_audio_segments')
+    
+    # Get current user's audio segments
+    uid = request.session.get("uid", "admin")
+    
+    try:
+        # Get the book by ID
+        target_book = Books.objects.get(id=book_id)
+    except Books.DoesNotExist:
+        return redirect('aggregated_audio_segments')
+    
+    # Get segments for this specific book
+    book_segments = AudioSegment.objects.filter(
+        uid=uid,
+        book=target_book
+    ).values('id', 'title', 'text', 'book_page', 'file')
+    
+    # Convert file IDs to URLs
+    segments = []
+    for segment in book_segments:
+        segment_data = dict(segment)
+        segment_data['file_url'] = AudioSegment.objects.get(id=segment['id']).file.url
+        segments.append(segment_data)
+    
+    # Return only the specific book's details
+    context = {
+        "book_name": target_book.name,
+        "segments": segments,
         "is_htmx": True
     }
     return render(request, "book_details_htmx.html", context)
