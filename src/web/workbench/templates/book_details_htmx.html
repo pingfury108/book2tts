@@ -1,3 +1,4 @@
+{% load custom_filters %}
 <!-- 书籍详情HTMX模板 -->
 <h1 class="text-2xl font-bold mb-6 text-center bg-primary text-primary-content p-3 rounded-lg shadow-lg">📚 我的音频库</h1>
 
@@ -36,11 +37,49 @@
                     </div>
                     <div class="flex items-center">
                         <span class="font-medium">页面:</span>
-                        <div class="ml-2 bg-secondary text-secondary-content rounded-full w-6 h-6 flex items-center justify-center">
-                            {{ segment.book_page }}
+                        {% if segment.book_page %}
+                        <button 
+                            class="ml-2 bg-secondary text-secondary-content rounded-full w-6 h-6 flex items-center justify-center hover:bg-secondary-focus cursor-pointer transition-colors"
+                            hx-get="{% url 'text_by_page' book_id=book_id|default:1 name=segment.book_page|stringformat:'s'|replace:'/,_' %}?page={{ segment.book_page|stringformat:'s' }}"
+                            hx-target="#modal-content-{{ segment.id }}"
+                            hx-trigger="click"
+                            onclick="document.getElementById('modal-{{ segment.id }}').showModal()"
+                            title="点击查看页面内容">
+                            {{ forloop.counter }}
+                        </button>
+                        {% else %}
+                        <div class="ml-2 bg-base-300 text-base-content rounded-full w-6 h-6 flex items-center justify-center">
+                            -
                         </div>
+                        {% endif %}
                     </div>
                 </div>
+                
+                <!-- 模态弹窗 -->
+                <dialog id="modal-{{ segment.id }}" class="modal">
+                    <div class="modal-box bg-base-100">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                </svg>
+                                <h3 class="font-medium">页面内容</h3>
+                            </div>
+                            <form method="dialog">
+                                <button class="btn btn-sm btn-circle">✕</button>
+                            </form>
+                        </div>
+                        <div id="modal-content-{{ segment.id }}" class="max-h-96 overflow-y-auto whitespace-pre-wrap font-mono bg-base-200 p-4 rounded-lg text-sm">
+                            <div class="htmx-indicator flex justify-center py-4">
+                                <div class="loading loading-spinner loading-md"></div>
+                            </div>
+                            <!-- 内容将在这里动态加载 -->
+                        </div>
+                    </div>
+                    <form method="dialog" class="modal-backdrop">
+                        <button>关闭</button>
+                    </form>
+                </dialog>
             </div>
             
             <!-- Text Content Section - Collapsible -->
@@ -54,7 +93,7 @@
                         文本内容
                     </label>
                     <div class="collapse-content max-h-40 overflow-y-auto text-sm">
-                        <p>{{ segment.text }}</p>
+                        <p class="whitespace-pre-wrap">{{ segment.text }}</p>
                     </div>
                 </div>
             </div>
