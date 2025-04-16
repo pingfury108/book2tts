@@ -96,6 +96,7 @@
                                 hx-swap="innerHTML">
                             <option disabled selected>语音模型</option>
                         </select>
+                        <input type="text" id="audio-title-input" class="input input-bordered w-full" placeholder="音频标题（选填）" />
                         <button class="btn btn-primary w-full" id="synthesize-btn">合成音频</button>
                         <div id="audio-player-container" class="hidden mt-2 p-3 bg-base-300 rounded-lg">
                             <div class="text-center mb-2">
@@ -178,6 +179,7 @@
    const voiceModel = document.getElementById('voice-model').value;
    const bookId = '{{ book_id }}';
    const title = '{{ title }}';
+   const audioTitle = document.getElementById('audio-title-input').value;
    
    // Get the current page or TOC item
    let bookPage = '';
@@ -209,6 +211,7 @@
    formData.append('book_id', bookId);
    formData.append('title', title);
    formData.append('book_page', bookPage);
+   formData.append('audio_title', audioTitle);
    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
    
    // Send request to synthesize audio
@@ -239,7 +242,7 @@
        }
        
        // Update audio title and status
-       document.getElementById('audio-title').textContent = currentTitle || '当前内容';
+       document.getElementById('audio-title').textContent = audioTitle || currentTitle || '当前内容';
        document.getElementById('audio-status').textContent = '✅ 音频合成成功';
        
        // Enable download and publish buttons
@@ -259,11 +262,12 @@
  // Download audio button
  document.getElementById('download-btn').addEventListener('click', function() {
    const audioPlayer = document.getElementById('audio-player');
+   const audioTitle = document.getElementById('audio-title').textContent;
    if (audioPlayer.src) {
      // Create a temporary link to download the audio
      const link = document.createElement('a');
      link.href = audioPlayer.src;
-     link.download = `音频_${new Date().getTime()}.wav`;
+     link.download = `${audioTitle || '音频'}_${new Date().getTime()}.wav`;
      document.body.appendChild(link);
      link.click();
      document.body.removeChild(link);
