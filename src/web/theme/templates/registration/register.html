@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="flex justify-center items-center h-full mt-10">
+  <div class="card w-96 bg-base-100 shadow-xl">
+    <div class="card-body">
+      <h2 class="card-title justify-center mb-4">注册</h2>
+      
+      <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-control w-full mb-4">
+          <label class="label">
+            <span class="label-text">用户名</span>
+          </label>
+          <input type="text" name="username" class="input input-bordered w-full" placeholder="输入用户名" required />
+          {% if form.username.errors %}
+          <label class="label">
+            <span class="label-text-alt text-error">{{ form.username.errors }}</span>
+          </label>
+          {% endif %}
+        </div>
+        
+        <div class="form-control w-full mb-4">
+          <label class="label">
+            <span class="label-text">邮箱</span>
+          </label>
+          <input type="email" name="email" class="input input-bordered w-full" placeholder="输入邮箱" required />
+          {% if form.email.errors %}
+          <label class="label">
+            <span class="label-text-alt text-error">{{ form.email.errors }}</span>
+          </label>
+          {% endif %}
+        </div>
+        
+        <div class="form-control w-full mb-4">
+          <label class="label">
+            <span class="label-text">密码</span>
+          </label>
+          <input type="password" name="password1" class="input input-bordered w-full" placeholder="输入密码" required />
+          {% if form.password1.errors %}
+          <label class="label">
+            <span class="label-text-alt text-error">{{ form.password1.errors }}</span>
+          </label>
+          {% endif %}
+        </div>
+        
+        <div class="form-control w-full mb-6">
+          <label class="label">
+            <span class="label-text">确认密码</span>
+          </label>
+          <input type="password" name="password2" class="input input-bordered w-full" placeholder="再次输入密码" required />
+          {% if form.password2.errors %}
+          <label class="label">
+            <span class="label-text-alt text-error">{{ form.password2.errors }}</span>
+          </label>
+          {% endif %}
+        </div>
+        
+        {% if form.non_field_errors %}
+        <div class="alert alert-error mb-4">
+          <div>{{ form.non_field_errors }}</div>
+        </div>
+        {% endif %}
+        
+        <div class="card-actions justify-center">
+          <button type="submit" class="btn btn-primary w-full">注册</button>
+        </div>
+      </form>
+      
+      <div class="divider">OR</div>
+      
+      <div class="text-center">
+        <a href="{% url 'login' %}" class="btn btn-ghost btn-sm">已有账号？去登录</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="flex justify-center items-center h-full mt-10">
+  <div class="card w-96 bg-base-100 shadow-xl">
+    <div class="card-body">
+      <h2 class="card-title justify-center mb-4">登录</h2>
+      
+      <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-control w-full mb-4">
+          <label class="label">
+            <span class="label-text">用户名</span>
+          </label>
+          <input type="text" name="username" class="input input-bordered w-full" placeholder="输入用户名" required />
+        </div>
+        
+        <div class="form-control w-full mb-6">
+          <label class="label">
+            <span class="label-text">密码</span>
+          </label>
+          <input type="password" name="password" class="input input-bordered w-full" placeholder="输入密码" required />
+        </div>
+        
+        {% if form.errors %}
+        <div class="alert alert-error mb-4">
+          <div>登录失败，请检查用户名和密码</div>
+        </div>
+        {% endif %}
+        
+        <div class="card-actions justify-center">
+          <button type="submit" class="btn btn-primary w-full">登录</button>
+        </div>
+      </form>
+      
+      <div class="divider">OR</div>
+      
+      <div class="text-center">
+        <a href="{% url 'register' %}" class="btn btn-ghost btn-sm">没有账号？去注册</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} 
