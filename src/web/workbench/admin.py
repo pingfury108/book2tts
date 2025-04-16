@@ -5,18 +5,18 @@ from .models import Books, AudioSegment
 
 
 class BooksAdmin(admin.ModelAdmin):
-    list_display = ('name', 'uid', 'file_type')
-    list_filter = ('file_type', 'uid')
-    search_fields = ('name', 'uid')
+    list_display = ('name', 'user', 'file_type')
+    list_filter = ('file_type', 'user')
+    search_fields = ('name',)
     readonly_fields = ('file_type',)
 
 
 class AudioSegmentAdmin(admin.ModelAdmin):
-    list_display = ('title', 'book', 'uid', 'book_page')
-    list_filter = ('book', 'uid')
-    search_fields = ('title', 'text', 'uid')
+    list_display = ('title', 'book', 'user', 'book_page')
+    list_filter = ('book', 'user')
+    search_fields = ('title', 'text')
     readonly_fields = ('book_page',)
-    raw_id_fields = ('book',)
+    raw_id_fields = ('book', 'user')
 
 
 # 注册 Books 模型

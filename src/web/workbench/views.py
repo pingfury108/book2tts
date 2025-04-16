@@ -16,6 +16,7 @@ from django.core.files.base import ContentFile
 from django.conf import settings
 from collections import defaultdict
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
 
 from book2tts.tts import edge_tts_volices, edge_text_to_speech
 from book2tts.edgetts import EdgeTTS
@@ -28,6 +29,7 @@ from book2tts.ebook import open_ebook, ebook_toc, get_content_with_href, ebook_p
 from book2tts.pdf import open_pdf
 
 
+@login_required
 def index(request, book_id):
     book = get_object_or_404(Books, pk=book_id)
     if book.file_type == ".pdf":
@@ -67,13 +69,14 @@ def index(request, book_id):
         )
 
 
+@login_required
 def upload(request):
     if request.method == "POST":
         form = UploadFileForm(request.POST, request.FILES)
 
         if form.is_valid():
             instance = form.save(commit=False)
-            instance.setkw(request.session.get("uid", "admin"))
+            instance.setkw(request.user)
             instance.save()
 
             return redirect(reverse("index", args=[instance.id]))
@@ -82,14 +85,15 @@ def upload(request):
     return render(request, "upload.html", {"form": form})
 
 
+@login_required
 def my_upload_list(request):
-    uid = request.session.get("uid", "admin")
-    books = Books.objects.filter(uid=uid).all()
+    books = Books.objects.filter(user=request.user).all()
     books = [b for b in books]
 
     return render(request, "my_upload_list.html", {"books": books})
 
 
+@login_required
 def toc(request, book_id):
     book = get_object_or_404(Books, pk=book_id)
 
@@ -122,6 +126,7 @@ def toc(request, book_id):
         )
 
 
+@login_required
 def pages(request, book_id):
     book = get_object_or_404(Books, pk=book_id)
     if book.file_type == ".pdf":
@@ -151,6 +156,7 @@ def pages(request, book_id):
         )
 
 
+@login_required
 def text_by_toc(request, book_id, name):
     name = name.replace("_", "/")
     book = get_object_or_404(Books, pk=book_id)
@@ -169,6 +175,7 @@ def text_by_toc(request, book_id, name):
         return render(request, "text_by_toc.html", {"texts": texts})
 
 
+@login_required
 def text_by_page(request, book_id, name):
     name = name.replace("_", "/")
     book = get_object_or_404(Books, pk=book_id)
@@ -188,6 +195,7 @@ def text_by_page(request, book_id, name):
         return render(request, "text_by_toc.html", {"texts": texts})
 
 
+@login_required
 @require_http_methods(["POST"])
 def reformat(request):
     texts = request.POST["texts"]
@@ -200,10 +208,10 @@ def reformat(request):
     # Always return just the text content using text_content.html
     return render(request, "text_content.html", {"texts": reformatted_text})
 
+@login_required
 def aggregated_audio_segments(request):
     # Get the current user's audio segments
-    uid = request.session.get("uid", "admin")
-    audio_segments = AudioSegment.objects.filter(uid=uid)
+    audio_segments = AudioSegment.objects.filter(user=request.user)
 
     # Aggregate by book
     aggregated_data = defaultdict(list)
@@ -237,14 +245,12 @@ def aggregated_audio_segments(request):
     return render(request, "aggregated_audio_segments.html", context)
 
 
+@login_required
 def book_details_htmx(request, book_id):
     """HTMX endpoint: returns details view for a specific book"""
     # Handle invalid book_id
     if not book_id or book_id == '0':
         return redirect('aggregated_audio_segments')
-    
-    # Get current user's audio segments
-    uid = request.session.get("uid", "admin")
     
     try:
         # Get the book by ID
@@ -254,7 +260,7 @@ def book_details_htmx(request, book_id):
     
     # Get segments for this specific book
     book_segments = AudioSegment.objects.filter(
-        uid=uid,
+        user=request.user,
         book=target_book
     ).values('id', 'title', 'text', 'book_page', 'file', 'published')
     
@@ -274,6 +280,7 @@ def book_details_htmx(request, book_id):
     return render(request, "book_details_htmx.html", context)
 
 
+@login_required
 def get_voice_list(request):
     """Get available voices from edge_tts"""
     voices = edge_tts_volices()
@@ -281,6 +288,7 @@ def get_voice_list(request):
     return render(request, "voice_list.html", {"voices": voices})
 
 
+@login_required
 @require_http_methods(["POST"])
 def synthesize_audio(request):
     """Synthesize audio using EdgeTTS and save to AudioSegment"""
@@ -317,7 +325,7 @@ def synthesize_audio(request):
         # Create an AudioSegment instance
         audio_segment = AudioSegment(
             book=book,
-            uid=request.session.get("uid", "admin"),
+            user=request.user,
             title=segment_title,
             text=text,
             book_page=book_page,
@@ -356,6 +364,7 @@ def synthesize_audio(request):
             os.remove(temp_path)
 
 
+@login_required
 @csrf_exempt
 @require_http_methods(["POST"])
 def update_book_name(request, book_id):
@@ -364,7 +373,7 @@ def update_book_name(request, book_id):
     book = get_object_or_404(Books, pk=book_id)
     
     # Check if the user owns this book
-    if book.uid != request.session.get("uid", "admin"):
+    if book.user != request.user:
         return JsonResponse({"status": "error", "message": "You don't have permission to update this book"}, status=403)
     
     try:
@@ -397,6 +406,7 @@ def update_book_name(request, book_id):
             # For non-HTMX requests, return JSON
             return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
+@login_required
 @csrf_exempt
 @require_http_methods(["DELETE"])
 def delete_audio_segment(request, segment_id):
@@ -405,7 +415,7 @@ def delete_audio_segment(request, segment_id):
     segment = get_object_or_404(AudioSegment, pk=segment_id)
     
     # Check if the user owns this audio segment
-    if segment.uid != request.session.get("uid", "admin"):
+    if segment.user != request.user:
         return JsonResponse({"status": "error", "message": "You don't have permission to delete this audio segment"}, status=403)
     
     try:
@@ -423,7 +433,7 @@ def delete_audio_segment(request, segment_id):
         if request.headers.get('HX-Request') == 'true':
             # 检查是否是该书籍的最后一个音频片段
             book = segment.book
-            remaining_segments = AudioSegment.objects.filter(book=book, uid=request.session.get("uid", "admin")).count()
+            remaining_segments = AudioSegment.objects.filter(book=book, user=request.user).count()
             
             if remaining_segments == 0:
                 # 如果是最后一个片段，返回空状态HTML
@@ -452,6 +462,7 @@ def delete_audio_segment(request, segment_id):
             # 对于非HTMX请求，返回JSON响应
             return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
+@login_required
 @csrf_exempt
 @require_http_methods(["POST"])
 def toggle_publish_audio_segment(request, segment_id):
@@ -460,7 +471,7 @@ def toggle_publish_audio_segment(request, segment_id):
     segment = get_object_or_404(AudioSegment, pk=segment_id)
     
     # Check if the user owns this audio segment
-    if segment.uid != request.session.get("uid", "admin"):
+    if segment.user != request.user:
         return JsonResponse({"status": "error", "message": "You don't have permission to modify this audio segment"}, status=403)
     
     try:
