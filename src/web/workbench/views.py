@@ -289,6 +289,7 @@ def synthesize_audio(request):
     book_id = request.POST.get("book_id")
     title = request.POST.get("title", "")
     book_page = request.POST.get("book_page", "")
+    page_display_name = request.POST.get("page_display_name", "")
     audio_title = request.POST.get("audio_title", "")
     
     if not text or not voice_name or not book_id:
@@ -309,8 +310,8 @@ def synthesize_audio(request):
         if not success:
             return JsonResponse({"status": "error", "message": "Failed to synthesize audio"}, status=500)
         
-        # Use custom audio title if provided, otherwise use book page or default title
-        segment_title = audio_title if audio_title else (book_page if book_page else title)
+        # Use custom audio title if provided, otherwise use page display name or default title
+        segment_title = audio_title if audio_title else (page_display_name if page_display_name else title)
         
         # Create an AudioSegment instance
         audio_segment = AudioSegment(

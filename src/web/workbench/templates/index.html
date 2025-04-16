@@ -162,14 +162,110 @@
  
  // HTMX内容更新后重新设置
  document.body.addEventListener('htmx:afterSwap', setupFontSizeButtons);
+ 
+ // Track page/TOC changes when content is loaded via HTMX
+ document.body.addEventListener('htmx:afterRequest', function(evt) {
+   // If this was a tab switch (target is #toc)
+   if (evt.detail.target && evt.detail.target.id === 'toc') {
+     // Reset current page name when switching tabs
+     currentPageName = '';
+     currentPageId = '';
+     
+     // Update placeholder
+     const titleInput = document.getElementById('audio-title-input');
+     if (titleInput) {
+       titleInput.placeholder = '音频标题（选填）';
+     }
+   }
+   
+   // If this was a text content load from TOC or page
+   if (evt.detail.target && evt.detail.target.id === 'src-text') {
+     // Find which item is currently highlighted
+     const activeItem = document.querySelector('#toc a.bg-base-300');
+     if (activeItem) {
+       currentPageName = activeItem.textContent.trim();
+       
+       // Get the actual page ID
+       if (activeTab === 'tab_toc' && activeItem.hasAttribute('data-toc-href')) {
+         currentPageId = activeItem.getAttribute('data-toc-href');
+       } else if (activeTab === 'tab_page' && activeItem.hasAttribute('data-page-number')) {
+         currentPageId = activeItem.getAttribute('data-page-number');
+       } else {
+         // Try to extract from hx-get URL
+         const hxGetAttr = activeItem.getAttribute('hx-get');
+         if (hxGetAttr) {
+           // Extract page/toc parameter from URL query string
+           const urlParams = new URLSearchParams(hxGetAttr.split('?')[1] || '');
+           const pageParam = urlParams.get('page');
+           const tocParam = urlParams.get('toc');
+           currentPageId = pageParam || tocParam || '';
+         }
+       }
+       
+       // Update the audio title input placeholder
+       const titleInput = document.getElementById('audio-title-input');
+       if (titleInput) {
+         titleInput.placeholder = `音频标题 (默认: ${currentPageName})`;
+       }
+     }
+   }
+ });
+ 
+ // 页面/目录项点击处理
+ let currentPageName = ''; // Display name
+ let currentPageId = ''; // Actual page ID
+ let activeTab = 'tab_toc'; // Track which tab is currently active
+ 
  document.body.addEventListener('click', function(event) {
+   // Handle tab switching
    if (event.target.id === 'tab_toc') {
      event.target.classList.add('tab-active');
      document.getElementById("tab_page").classList.remove('tab-active');
+     activeTab = 'tab_toc';
    };
    if (event.target.id === 'tab_page') {
      event.target.classList.add('tab-active');
      document.getElementById("tab_toc").classList.remove('tab-active');
+     activeTab = 'tab_page';
+   }
+   
+   // Track clicked TOC or page item - works for both tabs since content is loaded into #toc
+   if (event.target.closest('#toc a')) {
+     const clickedItem = event.target.closest('#toc a');
+     
+     // Remove highlight from all items
+     document.querySelectorAll('#toc a').forEach(item => {
+       item.classList.remove('bg-base-300');
+     });
+     
+     // Add highlight to clicked item
+     clickedItem.classList.add('bg-base-300');
+     
+     // Store the page/TOC name
+     currentPageName = clickedItem.textContent.trim();
+     
+     // Get the actual page ID
+     if (activeTab === 'tab_toc' && clickedItem.hasAttribute('data-toc-href')) {
+       currentPageId = clickedItem.getAttribute('data-toc-href');
+     } else if (activeTab === 'tab_page' && clickedItem.hasAttribute('data-page-number')) {
+       currentPageId = clickedItem.getAttribute('data-page-number');
+     } else {
+       // Try to extract from hx-get URL
+       const hxGetAttr = clickedItem.getAttribute('hx-get');
+       if (hxGetAttr) {
+         // Extract page/toc parameter from URL query string
+         const urlParams = new URLSearchParams(hxGetAttr.split('?')[1] || '');
+         const pageParam = urlParams.get('page');
+         const tocParam = urlParams.get('toc');
+         currentPageId = pageParam || tocParam || '';
+       }
+     }
+     
+     // Update the audio title input placeholder
+     const titleInput = document.getElementById('audio-title-input');
+     if (titleInput) {
+       titleInput.placeholder = `音频标题 (默认: ${currentPageName})`;
+     }
    }
  });
 
@@ -181,12 +277,9 @@
    const title = '{{ title }}';
    const audioTitle = document.getElementById('audio-title-input').value;
    
-   // Get the current page or TOC item
-   let bookPage = '';
-   const activeTocItem = document.querySelector('#toc a.bg-base-300');
-   if (activeTocItem) {
-     bookPage = activeTocItem.textContent.trim();
-   }
+   // Use the page ID for book_page field, but store the display name as well
+   const bookPage = currentPageId;
+   const pageDisplayName = currentPageName;
    
    if (!text) {
      alert('请先选择或输入文本内容');
@@ -211,6 +304,7 @@
    formData.append('book_id', bookId);
    formData.append('title', title);
    formData.append('book_page', bookPage);
+   formData.append('page_display_name', pageDisplayName);
    formData.append('audio_title', audioTitle);
    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
    
@@ -234,15 +328,9 @@
        audioPlayer.src = data.audio_url;
        audioPlayer.dataset.audioId = data.audio_id;
        
-       // Get current active TOC or page title
-       let currentTitle = '';
-       const activeTocItem = document.querySelector('#toc a.bg-base-300');
-       if (activeTocItem) {
-         currentTitle = activeTocItem.textContent.trim();
-       }
-       
-       // Update audio title and status
-       document.getElementById('audio-title').textContent = audioTitle || currentTitle || '当前内容';
+       // Update audio title display with the page name
+       const titleText = audioTitle || currentPageName || '当前内容';
+       document.getElementById('audio-title').textContent = titleText;
        document.getElementById('audio-status').textContent = '✅ 音频合成成功';
        
        // Enable download and publish buttons
