@@ -60,8 +60,15 @@
       <div class="dropdown dropdown-end">
         <div tabindex="0" role="button" class="btn btn-ghost btn-circle avatar">
           <div class="w-10 rounded-full">
-            <img alt="Tailwind CSS Navbar component"
-                 src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp" />
+            {% if user.is_authenticated %}
+            <div class="bg-primary text-primary-content flex items-center justify-center h-full w-full">
+              <span class="text-lg font-bold">{{ user.username|slice:":2"|upper }}</span>
+            </div>
+            {% else %}
+            <div class="bg-gray-300 text-gray-600 flex items-center justify-center h-full w-full">
+              <span class="text-lg font-bold">?</span>
+            </div>
+            {% endif %}
           </div>
         </div>
         <ul tabindex="0"
