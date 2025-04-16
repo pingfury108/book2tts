@@ -1,93 +1,203 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="flex justify-center p-3">
-    <div class="card bg-base-100 shadow-xl w-full max-w-2xl">
-        <div class="card-body">
-            <h2 class="card-title text-center">我的书籍列表</h2>
-            <div class="divider"></div>
-            
-            {% if books %}
-            <ul class="menu bg-base-200 rounded-box w-full">
-                {% for book in books %}
-                <li class="mb-2">
-                    <div class="flex flex-row justify-between items-center w-full p-2">
-                        <!-- 显示模式 -->
-                        <div id="view-mode-{{ book.id }}" class="flex flex-row justify-between items-center w-full">
-                            <a class="flex-grow" href="{% url 'index' book_id=book.id %}">
-                                <span class="book-name" id="book-name-{{ book.id }}">{{ book.name }}</span>
-                                <span class="badge badge-sm">{{ book.file_type }}</span>
-                            </a>
-                            <button class="btn btn-sm btn-ghost" 
-                                    hx-get="#"
-                                    hx-swap="outerHTML"
-                                    onclick="document.getElementById('view-mode-{{ book.id }}').style.display='none'; document.getElementById('edit-mode-{{ book.id }}').style.display='flex';">
+<div class="container mx-auto p-4 max-w-3xl">
+    {% if books %}
+    <ul class="w-full">
+        {% for book in books %}
+        <li class="mb-3 p-3 border-b hover:bg-base-200 transition-colors duration-200 rounded-md">
+            <div class="flex flex-row justify-between items-center w-full">
+                <!-- 显示模式 -->
+                <div id="view-mode-{{ book.id }}" class="flex flex-row justify-between items-center w-full">
+                    <a class="flex-grow flex items-center gap-2" href="{% url 'index' book_id=book.id %}">
+                        <span class="book-name font-medium text-base-content" id="book-name-{{ book.id }}">{{ book.name }}</span>
+                        <span class="badge badge-accent text-accent-content badge-sm">{{ book.file_type }}</span>
+                    </a>
+                    <button class="btn btn-sm btn-ghost btn-circle hover:bg-base-300" 
+                            onclick="startEditBookName('{{ book.id }}', '{{ book.name }}')">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                        </svg>
+                    </button>
+                </div>
+                
+                <!-- 编辑模式 -->
+                <div id="edit-mode-{{ book.id }}" class="flex flex-row justify-between items-center w-full" style="display: none;">
+                    <form id="book-form-{{ book.id }}" class="flex flex-row justify-between items-center w-full gap-2" 
+                          onsubmit="updateBookName(event, '{{ book.id }}'); return false;">
+                        <input type="text" name="name" id="book-input-{{ book.id }}" value="{{ book.name }}" 
+                               class="input input-bordered input-sm flex-grow focus:outline-none focus:ring-2 focus:ring-primary" 
+                               placeholder="输入书名"/>
+                        <div class="flex flex-row gap-2">
+                            <button type="submit" class="btn btn-sm btn-primary btn-square">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 loading-icon" style="display:none;">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                </svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 save-icon">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                </svg>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-ghost btn-square"
+                                    onclick="cancelEditBookName('{{ book.id }}')">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
                         </div>
-                        
-                        <!-- 编辑模式 -->
-                        <div id="edit-mode-{{ book.id }}" class="flex flex-row justify-between items-center w-full" style="display: none;">
-                            <form id="book-form-{{ book.id }}" class="flex flex-row justify-between items-center w-full gap-2" onsubmit="updateBookName(event, {{ book.id }})">
-                                <input type="text" name="name" value="{{ book.name }}" 
-                                       class="input input-bordered input-sm flex-grow" 
-                                       placeholder="输入书名"/>
-                                <div class="flex flex-row gap-1">
-                                    <button type="submit" class="btn btn-sm btn-primary">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 htmx-indicator" style="display:none;">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                                        </svg>
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 htmx-not-indicator">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                                        </svg>
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-ghost"
-                                            onclick="document.getElementById('edit-mode-{{ book.id }}').style.display='none'; document.getElementById('view-mode-{{ book.id }}').style.display='flex';">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                        </svg>
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            <div class="alert alert-info">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <span>您还没有上传任何书籍。</span>
+                    </form>
+                </div>
             </div>
-            {% endif %}
-            
-            <div class="card-actions justify-end mt-4">
-                <a href="{% url 'index' %}" class="btn btn-primary">上传新书籍</a>
-            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <div class="alert alert-info shadow-lg mb-8">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <div>
+            <span class="font-medium">提示：</span>
+            <span>您还没有上传任何书籍。</span>
         </div>
+    </div>
+    {% endif %}
+    
+    <div class="flex justify-center sm:justify-end mt-6">
+        <a href="{% url 'index' %}" class="btn btn-primary btn-md gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            上传新书籍
+        </a>
     </div>
 </div>
 
 {% endblock %}
 
+{% block script %}
 <script>
+// Current editing book data
+let editingBook = {
+    id: null,
+    originalName: null
+};
+
+// Start editing a book name
+function startEditBookName(bookId, bookName) {
+    // If another book is being edited, cancel that edit first
+    if (editingBook.id && editingBook.id !== bookId) {
+        cancelEditBookName(editingBook.id);
+    }
+    
+    // Set the current editing book
+    editingBook.id = bookId;
+    editingBook.originalName = bookName;
+    
+    // Hide view mode and show edit mode
+    const viewMode = document.getElementById(`view-mode-${bookId}`);
+    const editMode = document.getElementById(`edit-mode-${bookId}`);
+    
+    if (viewMode) viewMode.style.display = 'none';
+    if (editMode) editMode.style.display = 'flex';
+    
+    // Focus the input field
+    const input = document.getElementById(`book-input-${bookId}`);
+    if (input) {
+        input.focus();
+        input.select();
+    }
+    
+    // Add event listener for escape key to cancel
+    document.addEventListener('keydown', handleEscapeKey);
+    
+    // Add event listener for click outside to save
+    setTimeout(() => {
+        document.addEventListener('click', handleOutsideClick);
+    }, 100);
+}
+
+// Handle escape key press to cancel editing
+function handleEscapeKey(event) {
+    if (event.key === 'Escape' && editingBook.id) {
+        cancelEditBookName(editingBook.id);
+    }
+}
+
+// Handle click outside the editing area to save changes
+function handleOutsideClick(event) {
+    if (!editingBook.id) return;
+    
+    const editForm = document.getElementById(`book-form-${editingBook.id}`);
+    if (editForm && !editForm.contains(event.target)) {
+        // If clicked outside the form, save changes
+        const form = document.getElementById(`book-form-${editingBook.id}`);
+        if (form) {
+            const input = form.querySelector('input[name="name"]');
+            // Only save if the name has changed
+            if (input && input.value !== editingBook.originalName) {
+                form.dispatchEvent(new Event('submit'));
+            } else {
+                cancelEditBookName(editingBook.id);
+            }
+        }
+    }
+}
+
+// Cancel editing book name
+function cancelEditBookName(bookId) {
+    // Reset form value to original
+    const form = document.getElementById(`book-form-${bookId}`);
+    if (form && editingBook.originalName) {
+        const input = form.querySelector('input[name="name"]');
+        if (input) input.value = editingBook.originalName;
+    }
+    
+    // Hide edit mode and show view mode
+    const editMode = document.getElementById(`edit-mode-${bookId}`);
+    const viewMode = document.getElementById(`view-mode-${bookId}`);
+    
+    if (editMode) editMode.style.display = 'none';
+    if (viewMode) viewMode.style.display = 'flex';
+    
+    // Reset editing book
+    if (editingBook.id === bookId) {
+        editingBook.id = null;
+        editingBook.originalName = null;
+        
+        // Remove event listeners
+        document.removeEventListener('keydown', handleEscapeKey);
+        document.removeEventListener('click', handleOutsideClick);
+    }
+}
+
+// Update book name
 function updateBookName(event, bookId) {
     event.preventDefault();
     
-    // Show loading indicator
+    // Get form and its elements
     const form = document.getElementById(`book-form-${bookId}`);
-    const submitBtn = form.querySelector('button[type="submit"]');
-    const loadingIcon = submitBtn.querySelector('.htmx-indicator');
-    const normalIcon = submitBtn.querySelector('.htmx-not-indicator');
+    const input = form.querySelector('input[name="name"]');
+    const saveIcon = form.querySelector('.save-icon');
+    const loadingIcon = form.querySelector('.loading-icon');
     
+    // Validation: don't allow empty names
+    if (!input.value.trim()) {
+        showToast('书名不能为空', 'error');
+        input.focus();
+        return;
+    }
+    
+    // If name hasn't changed, just cancel editing
+    if (input.value === editingBook.originalName) {
+        cancelEditBookName(bookId);
+        return;
+    }
+    
+    // Show loading state
+    if (saveIcon) saveIcon.style.display = 'none';
     if (loadingIcon) loadingIcon.style.display = 'inline';
-    if (normalIcon) normalIcon.style.display = 'none';
     
-    // Get form data
+    // Create form data
     const formData = new FormData(form);
     
     // Send request
@@ -100,27 +210,126 @@ function updateBookName(event, bookId) {
     })
     .then(response => response.json())
     .then(data => {
-        // Hide loading indicator
+        // Reset loading state
+        if (saveIcon) saveIcon.style.display = 'inline';
         if (loadingIcon) loadingIcon.style.display = 'none';
-        if (normalIcon) normalIcon.style.display = 'inline';
         
         if (data.status === 'success') {
-            // Update the book name in the view mode
-            document.getElementById(`book-name-${bookId}`).textContent = data.name;
+            // Update the displayed book name
+            const bookNameEl = document.getElementById(`book-name-${bookId}`);
+            if (bookNameEl) bookNameEl.textContent = data.name;
+            
+            // Update the original name in case we edit again
+            editingBook.originalName = data.name;
             
             // Hide edit mode and show view mode
-            document.getElementById(`edit-mode-${bookId}`).style.display = 'none';
-            document.getElementById(`view-mode-${bookId}`).style.display = 'flex';
+            const editMode = document.getElementById(`edit-mode-${bookId}`);
+            const viewMode = document.getElementById(`view-mode-${bookId}`);
+            
+            if (editMode) editMode.style.display = 'none';
+            if (viewMode) {
+                viewMode.style.display = 'flex';
+                viewMode.classList.add('highlight-update');
+                
+                // Remove highlight after animation
+                setTimeout(() => {
+                    viewMode.classList.remove('highlight-update');
+                }, 1500);
+            }
+            
+            // Show success message
+            showToast('书名已更新', 'success');
+            
+            // Reset editing book data
+            editingBook.id = null;
+            editingBook.originalName = null;
+            
+            // Remove event listeners
+            document.removeEventListener('keydown', handleEscapeKey);
+            document.removeEventListener('click', handleOutsideClick);
         } else {
-            alert('更新失败: ' + data.message);
+            // Show error message
+            showToast('更新失败: ' + data.message, 'error');
         }
     })
     .catch(error => {
-        // Hide loading indicator
+        // Reset loading state
+        if (saveIcon) saveIcon.style.display = 'inline';
         if (loadingIcon) loadingIcon.style.display = 'none';
-        if (normalIcon) normalIcon.style.display = 'inline';
         
-        alert('更新失败: ' + error);
+        // Show error message
+        showToast('更新失败: ' + error, 'error');
     });
 }
+
+// Show toast notification
+function showToast(message, type = 'info') {
+    // Create toast container if it doesn't exist
+    let toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        toastContainer.className = 'fixed bottom-4 right-4 z-50 flex flex-col gap-2';
+        document.body.appendChild(toastContainer);
+    }
+    
+    // Create toast element
+    const toast = document.createElement('div');
+    const alertClass = type === 'error' ? 'alert-error' : 
+                       type === 'success' ? 'alert-success' : 'alert-info';
+    toast.className = `alert ${alertClass} shadow-lg max-w-xs opacity-0 transition-opacity duration-300`;
+    toast.innerHTML = `
+        <div>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    // Add to container
+    toastContainer.appendChild(toast);
+    
+    // Show with animation
+    setTimeout(() => {
+        toast.classList.remove('opacity-0');
+        toast.classList.add('opacity-100');
+    }, 10);
+    
+    // Remove after timeout
+    setTimeout(() => {
+        toast.classList.remove('opacity-100');
+        toast.classList.add('opacity-0');
+        setTimeout(() => {
+            toastContainer.removeChild(toast);
+        }, 300);
+    }, 3000);
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    // Add listener for Enter key in book name input fields
+    document.querySelectorAll('input[id^="book-input-"]').forEach(input => {
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const form = this.closest('form');
+                if (form) form.dispatchEvent(new Event('submit'));
+            }
+        });
+    });
+});
 </script>
+
+<style>
+@keyframes highlight {
+    0% { background-color: transparent; }
+    30% { background-color: rgba(var(--p, 0 149 246), 0.1); }
+    100% { background-color: transparent; }
+}
+
+.highlight-update {
+    animation: highlight 1.5s ease-in-out;
+}
+</style>
+{% endblock %}

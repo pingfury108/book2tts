@@ -4,29 +4,33 @@
 <!-- Toast notification for success/error messages -->
 <div id="toast-container" class="toast toast-top toast-end z-50 hidden">
     <div id="toast-message" class="alert alert-success">
-        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
         <span id="toast-text">操作成功!</span>
     </div>
 </div>
 <div id="main-content" class="container mx-auto p-4">
-    <h1 class="text-2xl font-bold mb-6 text-center bg-primary text-primary-content p-3 rounded-lg shadow-lg">📚 我的音频库</h1>
-    
+    <h1 class="text-2xl font-bold mb-6 text-center bg-primary text-primary-content p-3 rounded-lg shadow-lg">📚 我的音频库
+    </h1>
+
     <!-- Initial Book List View -->
     <div id="book-list-view">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for book_name, segments in aggregated_data.items %}
             <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer"
-                 hx-get="/workbench/audio/book-details/{{ book_name|slugify|default:'unknown' }}/"
-                 hx-target="#main-content"
-                 hx-swap="innerHTML"
-                 hx-trigger="click">
+                hx-get="/workbench/audio/book-details/{{ segments.id}}/" hx-target="#main-content" hx-swap="innerHTML"
+                hx-trigger="click">
                 <div class="card-body">
                     <h2 class="card-title text-xl font-bold">📚 {{ book_name }}</h2>
                     <div class="flex justify-between items-center mt-2">
                         <div class="badge badge-primary badge-lg">{{ segments|length }} 个音频</div>
                         <button class="btn btn-sm btn-circle btn-primary">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 5l7 7-7 7" />
                             </svg>
                         </button>
                     </div>
@@ -34,27 +38,29 @@
             </div>
             {% empty %}
             <div class="col-span-full alert alert-info shadow-lg">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                    class="stroke-current shrink-0 w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
                 <span>您还没有任何音频片段。请先从书籍中创建音频。</span>
             </div>
             {% endfor %}
         </div>
     </div>
-    
+
     <!-- 已移除旧的书籍详情部分，现在使用HTMX动态加载 -->
 </div>
 
 <script>
     // 已完全移除JavaScript函数，改为使用HTMX
-    
+
     // HTMX事件处理 - 在删除音频片段后显示成功提示
-    document.body.addEventListener('htmx:afterSwap', function(evt) {
+    document.body.addEventListener('htmx:afterSwap', function (evt) {
         if (evt.detail.target && evt.detail.target.hasAttribute('data-segment-id')) {
             // 显示成功提示
             showToast('音频片段已成功删除', 'success');
-            
+
             // 如果需要更新计数，可以通过HTMX重新加载书籍列表
             if (evt.detail.pathInfo && evt.detail.pathInfo.requestPath && evt.detail.pathInfo.requestPath.includes('/audio/delete/')) {
                 // 在删除操作后，如果当前页面没有音频片段了，返回书籍列表
@@ -68,9 +74,9 @@
             }
         }
     });
-    
+
     // HTMX事件处理 - 处理删除错误
-    document.body.addEventListener('htmx:responseError', function(evt) {
+    document.body.addEventListener('htmx:responseError', function (evt) {
         if (evt.detail.xhr && evt.detail.xhr.status) {
             let errorMsg = '删除时发生错误，请稍后再试';
             try {
@@ -79,25 +85,25 @@
                     errorMsg = `删除失败: ${response.message}`;
                 }
             } catch (e) {}
-            
+
             showToast(errorMsg, 'error');
         }
     });
-    
+
     // 由于我们现在使用HTMX完全处理UI更新，这些函数不再需要
-    
+
     function showToast(message, type = 'success') {
         const toastContainer = document.getElementById('toast-container');
         const toastMessage = document.getElementById('toast-message');
         const toastText = document.getElementById('toast-text');
-        
+
         // Set the message and type
         toastText.textContent = message;
         toastMessage.className = `alert alert-${type}`;
-        
+
         // Show the toast
         toastContainer.classList.remove('hidden');
-        
+
         // Hide after 3 seconds
         setTimeout(() => {
             toastContainer.classList.add('hidden');
