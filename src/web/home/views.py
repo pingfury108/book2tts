@@ -158,7 +158,64 @@ def audio_rss_feed_by_username(request, username):
     return audio_rss_feed(request, user_id=user.id)
 
 
-def audio_rss_feed_by_token(request, token):
+def audio_rss_feed_by_book(request, token, book_id):
+    """Generate an RSS feed for a specific book based on user's RSS token and book ID."""
+    from workbench.models import UserProfile, Books
+    
+    try:
+        # Get the user profile by token
+        profile = get_object_or_404(UserProfile, rss_token=token)
+        user = profile.user
+        
+        # Get the book, ensuring it belongs to the user
+        book = get_object_or_404(Books, id=book_id, user=user)
+        
+        # Set feed title and description
+        title = f"《{book.name}》的Book2TTS音频"
+        description = f"《{book.name}》在Book2TTS上发布的音频。"
+        
+        # Filter segments for this specific book
+        segments = AudioSegment.objects.filter(
+            published=True, 
+            book=book
+        ).order_by('-updated_at')[:50]  # Limit to 50 items
+        
+    except Exception as e:
+        # Return 404 if any error occurs
+        from django.http import Http404
+        raise Http404("找不到该RSS订阅源")
+
+    link = request.build_absolute_uri(reverse('home'))  # Link to homepage
+
+    feed = Rss201rev2Feed(
+        title=title,
+        link=link,
+        description=description,
+        language="zh-cn",
+    )
+
+    for segment in segments:
+        item_link = request.build_absolute_uri(reverse('audio_detail', args=[segment.id]))
+        
+        # Ensure audio file URL is complete
+        audio_url = request.build_absolute_uri(segment.file.url) if segment.file else None
+
+        feed.add_item(
+            title=f"{segment.book.name} - {segment.title}",
+            link=item_link, 
+            description=escape(segment.text or ''),
+            pubdate=segment.updated_at,
+            unique_id=str(segment.id),
+            enclosure={"url": audio_url, "length": str(segment.file.size), "mime_type": "audio/mpeg"} if audio_url else None,
+            author_name=user.username
+        )
+
+    # Return RSS feed as XML response
+    response = HttpResponse(feed.writeString('utf-8'), content_type='application/rss+xml; charset=utf-8')
+    return response
+
+
+def audio_rss_feed_by_token(request, token, book_id=None):
     """Generate an RSS feed for a specific user based on their RSS token."""
     from workbench.models import UserProfile
     from django.contrib.auth.models import User
@@ -169,20 +226,29 @@ def audio_rss_feed_by_token(request, token):
         user = profile.user
         
         # 设置feed标题和描述
-        title = f"{user.username}的Book2TTS音频"
-        description = f"来自{user.username}在Book2TTS上发布的最新音频。"
-        
-        # 筛选该用户的已发布音频片段
-        segments = AudioSegment.objects.filter(
-            published=True, 
-            book__user=user
-        ).order_by('-updated_at')[:50]  # 限制为50条
+        if book_id:
+            book = get_object_or_404(Books, id=book_id, user=user)
+            title = f"{user.username}的Book2TTS音频 - {book.name}"
+            description = f"来自{user.username}在Book2TTS上发布的{book.name}的最新音频。"
+            # 筛选该用户特定书籍的已发布音频片段
+            segments = AudioSegment.objects.filter(
+                published=True, 
+                book__user=user,
+                book_id=book_id
+            ).order_by('-updated_at')[:50]  # 限制为50条
+        else:
+            title = f"{user.username}的Book2TTS音频"
+            description = f"来自{user.username}在Book2TTS上发布的最新音频。"
+            # 筛选该用户的已发布音频片段
+            segments = AudioSegment.objects.filter(
+                published=True, 
+                book__user=user
+            ).order_by('-updated_at')[:50]  # 限制为50条
         
         # 如果找不到音频片段，仍然返回空的feed
         if not segments.exists():
             segments = []
     except Exception as e:
-        # 如果发生任何错误（如无效的token），返回404
         from django.http import Http404
         raise Http404("找不到该RSS订阅源")
 
@@ -198,7 +264,6 @@ def audio_rss_feed_by_token(request, token):
     for segment in segments:
         item_link = request.build_absolute_uri(reverse('audio_detail', args=[segment.id]))
         
-        # 确保音频文件URL是完整的
         audio_url = request.build_absolute_uri(segment.file.url) if segment.file else None
 
         feed.add_item(
@@ -211,6 +276,5 @@ def audio_rss_feed_by_token(request, token):
             author_name=user.username
         )
 
-    # 返回RSS feed作为XML响应
     response = HttpResponse(feed.writeString('utf-8'), content_type='application/rss+xml; charset=utf-8')
     return response

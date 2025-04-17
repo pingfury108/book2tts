@@ -8,11 +8,21 @@
       <div class="flex items-center gap-2">
         <h2 class="text-2xl font-bold">{% if display_title %}{{ display_title }}{% else %}我的已发布音频{% endif %}</h2>
         {% if user.is_authenticated and user.profile.rss_token %}
-        <a href="{% url 'token_audio_rss_feed' user.profile.rss_token %}" class="btn btn-ghost btn-sm btn-circle" title="个人 RSS 订阅">
+        <a href="{% url 'token_audio_rss_feed' token=user.profile.rss_token|stringformat:'s' %}" class="flex items-center gap-1 text-sm" title="个人 RSS 订阅">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
             <path d="M5 3a1 1 0 000 2c5.523 0 10 4.477 10 10a1 1 0 102 0C17 7.373 11.627 2 5 2a1 1 0 00-1 1z" />
             <path d="M4 9a1 1 0 011-1 7 7 0 017 7 1 1 0 11-2 0 5 5 0 00-5-5 1 1 0 01-1-1zM3 15a2 2 0 114 0 2 2 0 01-4 0z" />
           </svg>
+          全部RSS
+        </a>
+        {% endif %}
+        {% if book and user.profile.rss_token %}
+        <a href="{% url 'token_book_audio_rss_feed' token=user.profile.rss_token|stringformat:'s' book_id=book.id %}" class="flex items-center gap-1 text-sm" title="此书的 RSS 订阅">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M5 3a1 1 0 000 2c5.523 0 10 4.477 10 10a1 1 0 102 0C17 7.373 11.627 2 5 2a1 1 0 00-1 1z" />
+            <path d="M4 9a1 1 0 011-1 7 7 0 017 7 1 1 0 11-2 0 5 5 0 00-5-5 1 1 0 01-1-1zM3 15a2 2 0 114 0 2 2 0 01-4 0z" />
+          </svg>
+          此书RSS
         </a>
         {% endif %}
       </div>
@@ -39,7 +49,9 @@
             <div class="flex-grow mx-4">
               <!-- 标题行：分开显示书籍名称和标题，更加突出 -->
               <div class="mb-1">
-                <a href="{% url 'book_audio_list' segment.book.id %}" class="inline-block px-2 py-1 bg-purple-600 text-white text-sm rounded-md hover:bg-purple-700 transition-colors duration-300">{{ segment.book.name }}</a>
+                <div class="flex items-center gap-2">
+                  <a href="{% url 'book_audio_list' segment.book.id %}" class="inline-block px-2 py-1 bg-purple-600 text-white text-sm rounded-md hover:bg-purple-700 transition-colors duration-300">{{ segment.book.name }}</a>
+                </div>
                 <h3 class="text-xl font-bold text-gray-900 mt-1">{{ segment.title }}</h3>
               </div>
               

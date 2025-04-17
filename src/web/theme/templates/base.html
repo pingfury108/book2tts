@@ -16,7 +16,7 @@
     
     <!-- RSS 订阅链接 -->
     {% if user.is_authenticated and user.profile.rss_token %}
-    <link rel="alternate" type="application/rss+xml" title="{{ user.username }}的Book2TTS音频" href="{% url 'token_audio_rss_feed' user.profile.rss_token %}" />
+    <link rel="alternate" type="application/rss+xml" title="{{ user.username }}的Book2TTS音频" href="{% url 'token_audio_rss_feed' token=user.profile.rss_token|stringformat:'s' %}" />
     {% endif %}
 </head>
 
