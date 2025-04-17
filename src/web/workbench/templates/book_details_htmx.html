@@ -55,6 +55,15 @@
                     </div>
                 </div>
                 
+                <!-- 新增: 更新时间 -->
+                <div class="flex items-center mt-2 text-sm text-base-content opacity-70">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span class="font-medium">更新时间:</span>
+                    <span class="ml-1">{{ segment.updated_at|date:"Y-m-d H:i" }}</span>
+                </div>
+                
                 <!-- 模态弹窗 -->
                 <dialog id="modal-{{ segment.id }}" class="modal">
                     <div class="modal-box bg-base-100">
