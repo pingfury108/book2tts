@@ -224,7 +224,8 @@ def aggregated_audio_segments(request):
             "text": segment.text,
             "book_page": segment.book_page,
             "file_url": segment.file.url,
-            "published": segment.published
+            "published": segment.published,
+            "created_at": segment.created_at
         }
         aggregated_data[segment.book.name].append(book_data)
         book_ids[segment.book.name] = segment.book.id  # Store book ID
@@ -262,7 +263,7 @@ def book_details_htmx(request, book_id):
     book_segments = AudioSegment.objects.filter(
         user=request.user,
         book=target_book
-    ).values('id', 'title', 'text', 'book_page', 'file', 'published')
+    ).values('id', 'title', 'text', 'book_page', 'file', 'published', 'created_at', 'updated_at')
     
     # Convert file IDs to URLs
     segments = []
