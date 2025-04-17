@@ -57,8 +57,8 @@ def clean_xml_output(xml_string):
     """
     清理XML输出，修复常见的XML错误
     """
-    # 记录原始XML用于调试
-    debug_xml_file(xml_string, "debug_original_before_clean.xml")
+    # 不再生成调试文件
+    # debug_xml_file(xml_string, "debug_original_before_clean.xml")
     
     # 确保XML声明正确
     if xml_string.startswith('<?xml'):
@@ -151,22 +151,10 @@ def clean_xml_output(xml_string):
                 # 如果找不到channel关闭标签，在rss关闭前添加
                 xml_string = xml_string.replace('</rss>', '</item>\n</channel>\n</rss>')
     
-    # 记录修复后的XML用于调试
-    debug_xml_file(xml_string, "debug_final_after_clean.xml")
+    # 不再生成调试文件
+    # debug_xml_file(xml_string, "debug_final_after_clean.xml")
     
     return xml_string
-
-# 添加调试函数
-def debug_xml_file(xml_string, filename="debug_feed.xml"):
-    """
-    将XML保存到文件以便调试
-    """
-    try:
-        with open(filename, 'w', encoding='utf-8') as f:
-            f.write(xml_string)
-        return True
-    except:
-        return False
 
 # 使用feedgen库生成podcast feed
 def create_podcast_feed(title, link, description, language, author_name, image_url, author_email="example@example.com"):
@@ -441,15 +429,11 @@ def audio_rss_feed(request, user_id=None):
     # 生成XML
     xml_string = feed.rss_str(pretty=True).decode('utf-8')
     
-    # 保存调试信息
-    debug_xml_file(xml_string, "original_feed.xml")
-    
     # 后处理添加自定义标签
     xml_string = postprocess_rss(xml_string)
     
     # 应用清理
     cleaned_xml = clean_xml_output(xml_string)
-    debug_xml_file(cleaned_xml, "cleaned_feed.xml")
     
     response = HttpResponse(cleaned_xml, content_type='application/xml')
     return response
@@ -550,12 +534,8 @@ def audio_rss_feed_by_book(request, token, book_id):
     # 后处理添加自定义标签
     xml_string = postprocess_rss(xml_string)
     
-    # 保存调试信息
-    debug_xml_file(xml_string, f"book_{book_id}_original_feed.xml")
-    
     # 应用清理
     cleaned_xml = clean_xml_output(xml_string)
-    debug_xml_file(cleaned_xml, f"book_{book_id}_cleaned_feed.xml")
     
     response = HttpResponse(cleaned_xml, content_type='application/xml')
     return response
@@ -665,16 +645,8 @@ def audio_rss_feed_by_token(request, token, book_id=None):
     # 后处理添加自定义标签
     xml_string = postprocess_rss(xml_string)
     
-    # 保存调试信息
-    file_prefix = f"user_token_{str(token)[:8]}"
-    if book_id:
-        file_prefix += f"_book_{book_id}"
-    
-    debug_xml_file(xml_string, f"{file_prefix}_original_feed.xml")
-    
     # 应用清理
     cleaned_xml = clean_xml_output(xml_string)
-    debug_xml_file(cleaned_xml, f"{file_prefix}_cleaned_feed.xml")
     
     response = HttpResponse(cleaned_xml, content_type='application/xml')
     return response
@@ -831,16 +803,8 @@ def public_rss_feed_by_token(request, token, book_id=None):
     # 后处理添加自定义标签
     xml_string = postprocess_rss(xml_string)
     
-    # 保存调试信息
-    file_prefix = f"public_token_{str(token)[:8]}"
-    if book_id:
-        file_prefix += f"_book_{book_id}"
-    
-    debug_xml_file(xml_string, f"{file_prefix}_original_feed.xml")
-    
     # 应用清理
     cleaned_xml = clean_xml_output(xml_string)
-    debug_xml_file(cleaned_xml, f"{file_prefix}_cleaned_feed.xml")
     
     response = HttpResponse(cleaned_xml, content_type='application/xml')
     return response
