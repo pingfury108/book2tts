@@ -13,6 +13,11 @@
     <script src="{% static 'htmx.min.js' %}" defer></script>
     <script src="{% static 'sse.js' %}" defer></script>
     <script src="{% static 'pages-component.js' %}" defer></script>
+    
+    <!-- RSS 订阅链接 -->
+    {% if user.is_authenticated and user.profile.rss_token %}
+    <link rel="alternate" type="application/rss+xml" title="{{ user.username }}的Book2TTS音频" href="{% url 'token_audio_rss_feed' user.profile.rss_token %}" />
+    {% endif %}
 </head>
 
 <body class="flex flex-col min-h-screen">

@@ -2,12 +2,15 @@ from pathlib import Path
 from django.utils import timezone
 from django.db import models
 from django.conf import settings
+import uuid
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 # Create your models here.
 
 
 class Books(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='books')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='books', null=True, blank=True)
     name = models.TextField(default="")
     file_type = models.TextField(default="")
     file = models.FileField(upload_to='books/%Y/%m/%d/')
@@ -33,7 +36,6 @@ class Books(models.Model):
 
 class AudioSegment(models.Model):
     book = models.ForeignKey(Books, on_delete=models.CASCADE, related_name='audio_segments')
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='audio_segments')
     title = models.CharField(max_length=255)
     text = models.TextField()
     book_page = models.CharField(max_length=255)
@@ -50,3 +52,19 @@ class AudioSegment(models.Model):
             self.created_at = timezone.now()
         self.updated_at = timezone.now()
         return super().save(*args, **kwargs)
+
+
+# Add UserProfile model
+class UserProfile(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
+    rss_token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+
+    def __str__(self):
+        return f'{self.user.username} Profile'
+
+# Signal to create/update UserProfile whenever a User object is saved
+@receiver(post_save, sender=settings.AUTH_USER_MODEL)
+def create_or_update_user_profile(sender, instance, created, **kwargs):
+    if created:
+        UserProfile.objects.create(user=instance)
+    instance.profile.save()

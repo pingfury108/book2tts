@@ -12,11 +12,11 @@ class BooksAdmin(admin.ModelAdmin):
 
 
 class AudioSegmentAdmin(admin.ModelAdmin):
-    list_display = ('title', 'book', 'user', 'book_page', 'created_at')
-    list_filter = ('book', 'user')
+    list_display = ('title', 'book', 'book_page', 'created_at')
+    list_filter = ('book',)
     search_fields = ('title', 'text')
     readonly_fields = ('book_page', 'created_at', 'updated_at')
-    raw_id_fields = ('book', 'user')
+    raw_id_fields = ('book',)
 
 
 # 注册 Books 模型

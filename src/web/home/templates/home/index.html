@@ -5,7 +5,17 @@
 <div class="container mx-auto px-4 py-6">
   {% if user.is_authenticated %}
     <div class="flex justify-between items-center mb-6">
-      <h2 class="text-2xl font-bold">{% if display_title %}{{ display_title }}{% else %}我的已发布音频{% endif %}</h2>
+      <div class="flex items-center gap-2">
+        <h2 class="text-2xl font-bold">{% if display_title %}{{ display_title }}{% else %}我的已发布音频{% endif %}</h2>
+        {% if user.is_authenticated and user.profile.rss_token %}
+        <a href="{% url 'token_audio_rss_feed' user.profile.rss_token %}" class="btn btn-ghost btn-sm btn-circle" title="个人 RSS 订阅">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M5 3a1 1 0 000 2c5.523 0 10 4.477 10 10a1 1 0 102 0C17 7.373 11.627 2 5 2a1 1 0 00-1 1z" />
+            <path d="M4 9a1 1 0 011-1 7 7 0 017 7 1 1 0 11-2 0 5 5 0 00-5-5 1 1 0 01-1-1zM3 15a2 2 0 114 0 2 2 0 01-4 0z" />
+          </svg>
+        </a>
+        {% endif %}
+      </div>
       {% if display_title %}
         <a href="{% url 'home' %}" class="btn btn-sm btn-outline">返回全部</a>
       {% endif %}
