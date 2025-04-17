@@ -25,6 +25,7 @@ dependencies = [
     "azure-cognitiveservices-speech>=1.41.1",
     "ffmpeg-python>=0.2.0",
     "python-dotenv>=1.0.1",
+    "feedgen>=1.0.0",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"

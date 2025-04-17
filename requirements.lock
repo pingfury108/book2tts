@@ -73,6 +73,8 @@ edge-tts==7.0.0
     # via book2tts
 fastapi==0.115.0
     # via gradio
+feedgen==1.0.0
+    # via book2tts
 ffmpeg-python==0.2.0
     # via book2tts
 ffmpy==0.4.0
@@ -149,6 +151,7 @@ kiwisolver==1.4.7
 lxml==5.3.0
     # via book2tts
     # via ebooklib
+    # via feedgen
 markdown-it-py==3.0.0
     # via rich
 markupsafe==2.1.5
@@ -220,6 +223,7 @@ pyparsing==3.1.4
     # via httplib2
     # via matplotlib
 python-dateutil==2.9.0.post0
+    # via feedgen
     # via matplotlib
     # via pandas
 python-dotenv==1.0.1
