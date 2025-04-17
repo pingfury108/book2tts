@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse
 from workbench.models import AudioSegment
 
@@ -18,3 +18,19 @@ def index(request):
         context['audio_segments'] = published_audio_segments
     
     return render(request, "home/index.html", context)
+
+
+def audio_detail(request, segment_id):
+    # 获取音频片段对象，确保它存在且已发布
+    segment = get_object_or_404(AudioSegment, id=segment_id, published=True)
+    
+    # 确保用户只能访问自己的音频片段
+    if request.user != segment.user:
+        from django.http import Http404
+        raise Http404("您没有权限访问此页面")
+    
+    context = {
+        'segment': segment
+    }
+    
+    return render(request, "home/audio_detail.html", context)
