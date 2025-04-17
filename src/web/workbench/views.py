@@ -485,26 +485,28 @@ def toggle_publish_audio_segment(request, segment_id):
             # Return the updated button based on the new state
             if segment.published:
                 button_html = '''
-                <button class="btn btn-circle btn-sm btn-warning" 
+                <button class="btn btn-warning flex-1" 
                         title="取消发布"
                         hx-post="/workbench/audio/publish/{{ segment.id }}/"
                         hx-target="this" 
                         hx-swap="outerHTML">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                     </svg>
+                    取消发布
                 </button>
                 '''.replace('{{ segment.id }}', str(segment_id))
             else:
                 button_html = '''
-                <button class="btn btn-circle btn-sm btn-success" 
+                <button class="btn btn-success flex-1" 
                         title="发布"
                         hx-post="/workbench/audio/publish/{{ segment.id }}/"
                         hx-target="this" 
                         hx-swap="outerHTML">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
+                    发布
                 </button>
                 '''.replace('{{ segment.id }}', str(segment_id))
             

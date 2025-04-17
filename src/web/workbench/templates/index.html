@@ -99,10 +99,8 @@
                                 下载
                             </button>
                             <button class="btn btn-accent flex-1" id="publish-btn" disabled
-                                    hx-post="/workbench/audio/publish/0/"
-                                    hx-trigger="click"
-                                    hx-target="#publish-status"
-                                    hx-swap="innerHTML">
+                                    hx-target="this"
+                                    hx-swap="outerHTML">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                                 </svg>
@@ -155,8 +153,8 @@
    // If this was a tab switch (target is #toc)
    if (evt.detail.target && evt.detail.target.id === 'toc') {
      // Reset current page name when switching tabs
-     currentPageName = '';
-     currentPageId = '';
+     window.currentPageName = '';
+     window.currentPageId = '';
      
      // Update placeholder
      const titleInput = document.getElementById('audio-title-input');
@@ -170,13 +168,13 @@
      // Find which item is currently highlighted
      const activeItem = document.querySelector('#toc a.bg-base-300');
      if (activeItem) {
-       currentPageName = activeItem.textContent.trim();
+       window.currentPageName = activeItem.textContent.trim();
        
        // Get the actual page ID
-       if (activeTab === 'tab_toc' && activeItem.hasAttribute('data-toc-href')) {
-         currentPageId = activeItem.getAttribute('data-toc-href');
-       } else if (activeTab === 'tab_page' && activeItem.hasAttribute('data-page-number')) {
-         currentPageId = activeItem.getAttribute('data-page-number');
+       if (window.activeTab === 'tab_toc' && activeItem.hasAttribute('data-toc-href')) {
+         window.currentPageId = activeItem.getAttribute('data-toc-href');
+       } else if (window.activeTab === 'tab_page' && activeItem.hasAttribute('data-page-number')) {
+         window.currentPageId = activeItem.getAttribute('data-page-number');
        } else {
          // Try to extract from hx-get URL
          const hxGetAttr = activeItem.getAttribute('hx-get');
@@ -185,35 +183,36 @@
            const urlParams = new URLSearchParams(hxGetAttr.split('?')[1] || '');
            const pageParam = urlParams.get('page');
            const tocParam = urlParams.get('toc');
-           currentPageId = pageParam || tocParam || '';
+           window.currentPageId = pageParam || tocParam || '';
          }
        }
        
        // Update the audio title input placeholder
        const titleInput = document.getElementById('audio-title-input');
        if (titleInput) {
-         titleInput.placeholder = `音频标题 (默认: ${currentPageName})`;
+         titleInput.placeholder = `音频标题 (默认: ${window.currentPageName})`;
        }
      }
    }
  });
  
  // 页面/目录项点击处理
- let currentPageName = ''; // Display name
- let currentPageId = ''; // Actual page ID
- let activeTab = 'tab_toc'; // Track which tab is currently active
+ // Use window object to avoid redeclaration issues with HTMX
+ window.currentPageName = window.currentPageName || ''; // Display name
+ window.currentPageId = window.currentPageId || ''; // Actual page ID
+ window.activeTab = window.activeTab || 'tab_toc'; // Track which tab is currently active
  
  document.body.addEventListener('click', function(event) {
    // Handle tab switching
    if (event.target.id === 'tab_toc') {
      event.target.classList.add('tab-active');
      document.getElementById("tab_page").classList.remove('tab-active');
-     activeTab = 'tab_toc';
+     window.activeTab = 'tab_toc';
    };
    if (event.target.id === 'tab_page') {
      event.target.classList.add('tab-active');
      document.getElementById("tab_toc").classList.remove('tab-active');
-     activeTab = 'tab_page';
+     window.activeTab = 'tab_page';
    }
    
    // Track clicked TOC or page item - works for both tabs since content is loaded into #toc
@@ -229,13 +228,13 @@
      clickedItem.classList.add('bg-base-300');
      
      // Store the page/TOC name
-     currentPageName = clickedItem.textContent.trim();
+     window.currentPageName = clickedItem.textContent.trim();
      
      // Get the actual page ID
-     if (activeTab === 'tab_toc' && clickedItem.hasAttribute('data-toc-href')) {
-       currentPageId = clickedItem.getAttribute('data-toc-href');
-     } else if (activeTab === 'tab_page' && clickedItem.hasAttribute('data-page-number')) {
-       currentPageId = clickedItem.getAttribute('data-page-number');
+     if (window.activeTab === 'tab_toc' && clickedItem.hasAttribute('data-toc-href')) {
+       window.currentPageId = clickedItem.getAttribute('data-toc-href');
+     } else if (window.activeTab === 'tab_page' && clickedItem.hasAttribute('data-page-number')) {
+       window.currentPageId = clickedItem.getAttribute('data-page-number');
      } else {
        // Try to extract from hx-get URL
        const hxGetAttr = clickedItem.getAttribute('hx-get');
@@ -244,25 +243,25 @@
          const urlParams = new URLSearchParams(hxGetAttr.split('?')[1] || '');
          const pageParam = urlParams.get('page');
          const tocParam = urlParams.get('toc');
-         currentPageId = pageParam || tocParam || '';
+         window.currentPageId = pageParam || tocParam || '';
        }
      }
      
      // Update the audio title input placeholder
      const titleInput = document.getElementById('audio-title-input');
      if (titleInput) {
-       titleInput.placeholder = `音频标题 (默认: ${currentPageName})`;
+       titleInput.placeholder = `音频标题 (默认: ${window.currentPageName})`;
      }
    }
  });
 
- let currentAudioSegmentId = 0;
+ window.currentAudioSegmentId = window.currentAudioSegmentId || 0;
 
  // 音频合成和管理
  document.getElementById('synthesize-btn')?.addEventListener('click', async function() {
    const textContent = document.getElementById('src-text').value;
    const voiceModel = document.getElementById('voice-model').value;
-   const audioTitle = document.getElementById('audio-title-input').value || currentPageName;
+   const audioTitle = document.getElementById('audio-title-input').value || window.currentPageName;
    
    if (!textContent || !voiceModel) {
      alert('请先选择语音模型并输入文本');
@@ -274,7 +273,7 @@
    this.disabled = true;
    
    try {
-     const response = await fetch('{% url 'synthesize_audio' %}', {
+     const response = await fetch(`{% url 'synthesize_audio' %}`, {
        method: 'POST',
        headers: {
          'Content-Type': 'application/x-www-form-urlencoded',
@@ -285,8 +284,8 @@
          voice_name: voiceModel,
          book_id: '{{ book_id }}',
          title: audioTitle || '未命名音频',
-         book_page: currentPageId || '',
-         page_display_name: currentPageName || '',
+         book_page: window.currentPageId || '',
+         page_display_name: window.currentPageName || '',
          audio_title: audioTitle || ''
        })
      });
@@ -315,8 +314,18 @@
        
        const publishBtn = document.getElementById('publish-btn');
        publishBtn.disabled = false;
-       currentAudioSegmentId = data.audio_id;
-       publishBtn.setAttribute('hx-post', `/workbench/audio/publish/${currentAudioSegmentId}/`);
+       window.currentAudioSegmentId = data.audio_id;
+       console.log("Setting audio segment ID:", window.currentAudioSegmentId);
+       
+       // Update hx-post attribute and explicitly tell HTMX to process the element
+       const publishUrl = `/workbench/audio/publish/${window.currentAudioSegmentId}/`;
+       console.log("Setting publish URL to:", publishUrl);
+       publishBtn.setAttribute('hx-post', publishUrl);
+       
+       // Ensure HTMX processes the updated attributes so its click handler works
+       if (typeof htmx !== 'undefined') {
+         htmx.process(publishBtn);
+       }
      } else {
        document.getElementById('audio-status').textContent = '合成失败：' + data.message;
      }
