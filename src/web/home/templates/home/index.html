@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+  {% if user.is_authenticated %}
+    <h2 class="text-2xl font-bold mb-6">我的已发布音频</h2>
+    
+    {% if audio_segments %}
+      <div class="flex flex-col gap-4">
+        {% for segment in audio_segments %}
+          <div class="flex items-start bg-base-100 p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300">
+            <!-- 左侧封面图 - 优雅的音频图标 -->
+            <div class="w-24 h-24 bg-purple-600 rounded-full flex-shrink-0 flex items-center justify-center relative">
+              <!-- 使用简化的音符图标并完全居中 -->
+              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" class="absolute" style="fill:none; stroke:white; stroke-width:1.5; top:50%; left:50%; transform:translate(-50%, -50%);">
+                <path d="M9 18V5l12-2v13"></path>
+                <circle cx="6" cy="18" r="3"></circle>
+                <circle cx="18" cy="16" r="3"></circle>
+              </svg>
+            </div>
+            
+            <!-- 中间内容区 -->
+            <div class="flex-grow mx-4">
+              <!-- 标题行：分开显示书籍名称和标题，更加突出 -->
+              <div class="mb-1">
+                <span class="font-medium text-base text-gray-600">{{ segment.book.name }}</span>
+                <h3 class="text-xl font-bold text-gray-900">{{ segment.title }}</h3>
+              </div>
+              
+              <!-- 第二行：小字体显示信息 -->
+              <div class="flex items-center gap-3 text-sm text-opacity-70 text-base-content my-1">
+                <div class="flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  {{ segment.file.name|slice:"16:26" }}
+                </div>
+              </div>
+              
+              <!-- 第三行：音频文本内容第一行 -->
+              <p class="text-sm text-base-content opacity-80 mt-1 line-clamp-1">
+                {{ segment.text|truncatechars:100 }}
+              </p>
+            </div>
+            
+            <!-- 右侧播放按钮 -->
+            <button 
+              class="btn btn-circle btn-primary btn-lg play-audio-btn hover:scale-105 transition-transform" 
+              data-audio-url="{{ segment.file.url }}"
+              data-audio-title="{{ segment.title }}"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </button>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="alert alert-info shadow-lg">
+        <div>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current flex-shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <span>您还没有发布任何音频片段。</span>
+        </div>
+      </div>
+    {% endif %}
+  {% else %}
+    <div class="hero min-h-[50vh] bg-base-200 rounded-box">
+      <div class="hero-content text-center">
+        <div class="max-w-md">
+          <h1 class="text-5xl font-bold">Book2TTS</h1>
+          <p class="py-6">将您喜爱的书籍转换为有声读物。上传、转换并聆听您的个人有声书库。</p>
+          <a href="{% url 'login' %}" class="btn btn-primary">登录</a>
+          <a href="{% url 'register' %}" class="btn btn-outline btn-primary">注册</a>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+<!-- 音频播放器 -->
+<div id="audio-player-container" class="fixed bottom-0 left-0 right-0 bg-base-200 shadow-lg transform transition-transform duration-300 translate-y-full">
+  <div class="container mx-auto flex flex-col md:flex-row items-center justify-between p-4">
+    <div class="flex items-center mb-2 md:mb-0">
+      <div class="avatar mr-3">
+        <div class="w-12 h-12 rounded-full bg-purple-600 text-white flex items-center justify-center relative">
+          <!-- 使用简化的音符图标并完全居中 -->
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" class="absolute" style="fill:none; stroke:white; stroke-width:1.5; top:50%; left:50%; transform:translate(-50%, -50%);">
+            <path d="M9 18V5l12-2v13"></path>
+            <circle cx="6" cy="18" r="3"></circle>
+            <circle cx="18" cy="16" r="3"></circle>
+          </svg>
+        </div>
+      </div>
+      <h3 id="audio-title" class="font-bold"></h3>
+    </div>
+    <div class="flex-grow mx-4 w-full md:w-auto">
+      <audio id="audio-player" controls class="w-full">
+        您的浏览器不支持音频元素。
+      </audio>
+    </div>
+    <button id="close-player" class="btn btn-circle btn-sm btn-ghost">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    </button>
+  </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const playerContainer = document.getElementById('audio-player-container');
+    const audioPlayer = document.getElementById('audio-player');
+    const audioTitle = document.getElementById('audio-title');
+    const closePlayer = document.getElementById('close-player');
+    const playButtons = document.querySelectorAll('.play-audio-btn');
+    
+    // 添加播放按钮事件监听
+    playButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        const audioUrl = this.getAttribute('data-audio-url');
+        const title = this.getAttribute('data-audio-title');
+        
+        // 设置音频源和标题
+        audioPlayer.src = audioUrl;
+        audioTitle.textContent = title;
+        
+        // 显示播放器 - 使用平滑动画
+        playerContainer.classList.remove('translate-y-full');
+        
+        // 播放音频
+        audioPlayer.play();
+      });
+    });
+    
+    // 关闭播放器
+    closePlayer.addEventListener('click', function() {
+      audioPlayer.pause();
+      playerContainer.classList.add('translate-y-full');
+    });
+    
+    // 音频播放结束时自动关闭播放器
+    audioPlayer.addEventListener('ended', function() {
+      playerContainer.classList.add('translate-y-full');
+    });
+  });
+</script>
+{% endblock %} 
