@@ -301,8 +301,8 @@ def audio_rss_feed_by_token(request, token, book_id=None):
         # 设置feed标题和描述
         if book_id:
             book = get_object_or_404(Books, id=book_id, user=user)
-            title = f"{user.username}的Book2TTS音频 - {book.name}"
-            description = f"来自{user.username}在Book2TTS上发布的{book.name}的最新音频。"
+            title = f"{user.username} - 《{book.name}》有声书"
+            description = f"{book.name}的有声书内容，由{user.username}朗读制作。"
             # 尝试获取书籍的封面图片
             if hasattr(book, 'cover_image') and book.cover_image:
                 image_url = request.build_absolute_uri(book.cover_image.url)
@@ -316,8 +316,8 @@ def audio_rss_feed_by_token(request, token, book_id=None):
                 book_id=book_id
             ).order_by('-updated_at')[:50]  # 限制为50条
         else:
-            title = f"{user.username}的Book2TTS音频"
-            description = f"来自{user.username}在Book2TTS上发布的最新音频。"
+            title = f"{user.username}的有声书合集"
+            description = f"{user.username}的有声书作品集"
             image_url = request.build_absolute_uri('/static/images/logo.png')
             # 筛选该用户的已发布音频片段
             segments = AudioSegment.objects.filter(
