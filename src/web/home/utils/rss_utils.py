@@ -167,7 +167,7 @@ def clean_xml_output(xml_string):
     return xml_string
 
 
-def create_podcast_feed(title, link, description, language, author_name, image_url, author_email="example@example.com"):
+def create_podcast_feed(title, link, description, language, author_name, image_url, author_email=""):
     """
     使用feedgen库创建一个podcast feed
     """

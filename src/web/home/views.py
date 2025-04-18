@@ -95,6 +95,7 @@ def audio_rss_feed(request, user_id=None):
         title = f"{user.username}的Book2TTS音频"
         description = f"来自{user.username}在Book2TTS上发布的最新音频。"
         author_name = user.username
+        author_email = user.email if user.email else ""
         
         # Filter segments for this specific user
         segments = AudioSegment.objects.filter(
@@ -106,6 +107,7 @@ def audio_rss_feed(request, user_id=None):
         title = "Book2TTS 公开发布的音频"
         description = "来自 Book2TTS 的最新公开发布音频。"
         author_name = "Book2TTS"
+        author_email = ""
         
         # Fetch all published audio segments, ordered by most recent first
         segments = AudioSegment.objects.filter(
@@ -126,7 +128,8 @@ def audio_rss_feed(request, user_id=None):
         description=description,
         language=language,
         author_name=author_name,
-        image_url=image_url
+        image_url=image_url,
+        author_email=author_email
     )
 
     for segment in segments:
@@ -204,6 +207,7 @@ def audio_rss_feed_by_book(request, token, book_id):
         title = f"《{book.name}》的Book2TTS音频"
         description = f"《{book.name}》在Book2TTS上发布的音频。"
         author_name = user.username
+        author_email = user.email if user.email else ""
         
         # Filter segments for this specific book
         segments = AudioSegment.objects.filter(
@@ -235,7 +239,8 @@ def audio_rss_feed_by_book(request, token, book_id):
         description=description,
         language=language,
         author_name=author_name,
-        image_url=image_url
+        image_url=image_url,
+        author_email=author_email
     )
 
     for segment in segments:
@@ -339,7 +344,8 @@ def audio_rss_feed_by_token(request, token, book_id=None):
         description=description,
         language=language,
         author_name=user.username,
-        image_url=image_url
+        image_url=image_url,
+        author_email=user.email if user.email else ""
     )
 
     for segment in segments:
@@ -497,7 +503,8 @@ def public_rss_feed_by_token(request, token, book_id=None):
         description=description,
         language=language,
         author_name=user.username,
-        image_url=image_url
+        image_url=image_url,
+        author_email=user.email if user.email else ""
     )
 
     for segment in segments:
