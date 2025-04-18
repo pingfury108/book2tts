@@ -7,7 +7,6 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('workbench', '0005_audiosegment_published'),
-        ('workbench', 'assign_to_superuser'),
     ]
 
     operations = [

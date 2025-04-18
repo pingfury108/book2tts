@@ -2,11 +2,18 @@
 
 from django.db import migrations
 from django.contrib.auth import get_user_model
+from django.contrib.auth.hashers import make_password
 
 def assign_data_to_superuser(apps, schema_editor):
     # Get models
     Books = apps.get_model('workbench', 'Books')
     AudioSegment = apps.get_model('workbench', 'AudioSegment')
+    
+    # Check if there are any records to update
+    if not Books.objects.exists() and not AudioSegment.objects.exists():
+        print("No books or audio segments found, skipping migration")
+        return
+    
     User = apps.get_model('auth', 'User')  # Use the historical User model
     
     # Get a superuser (create one if none exists)
@@ -25,9 +32,9 @@ def assign_data_to_superuser(apps, schema_editor):
             username=username,
             email=email,
             is_superuser=True,
-            is_staff=True
+            is_staff=True,
+            password=make_password(password)  # Use make_password instead of set_password
         )
-        superuser.set_password(password)
         superuser.save()
         print(f"Created superuser '{username}' with password '{password}'")
     
