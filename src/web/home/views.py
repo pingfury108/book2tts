@@ -12,10 +12,40 @@ from feedgen.feed import FeedGenerator
 
 # 辅助函数：估计音频时长
 def estimate_audio_duration(audio_file):
-    """根据音频文件大小估算时长（粗略估计）"""
+    """使用ffmpeg获取音频文件时长"""
     if not audio_file:
         return 300, "0:05:00"  # 默认5分钟
     
+    try:
+        import ffmpeg
+        # 使用ffmpeg探测文件获取音频信息
+        probe = ffmpeg.probe(audio_file.path)
+        
+        # 查找音频流并获取时长
+        audio_stream = next(
+            (stream for stream in probe["streams"] if stream["codec_type"] == "audio"),
+            None,
+        )
+        
+        if audio_stream is not None:
+            duration_seconds = int(float(audio_stream["duration"]))
+            
+            # 格式化为时:分:秒
+            hours = duration_seconds // 3600
+            minutes = (duration_seconds % 3600) // 60
+            seconds = duration_seconds % 60
+            
+            if hours > 0:
+                formatted_duration = f"{hours}:{minutes:02d}:{seconds:02d}"
+            else:
+                formatted_duration = f"{minutes}:{seconds:02d}"
+            
+            return duration_seconds, formatted_duration
+    except (ImportError, Exception) as e:
+        # 如果ffmpeg不可用或出错，回退到基于文件大小的估算
+        print(f"使用文件大小估算音频时长: {str(e)}")
+        
+    # 回退方法: 使用文件大小估算时长
     # 假设平均比特率为128kbps
     bit_rate = 128 * 1024  # 比特/秒
     file_size = audio_file.size  # 字节
