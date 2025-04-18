@@ -70,9 +70,9 @@ class EdgeTTS:
 
         return False
 
-    def _merge_wav_files(self, input_files: list[str], output_file: str):
+    def _merge_audio_files(self, input_files: list[str], output_file: str):
         """
-        合并多个WAV文件
+        合并多个音频文件
         :param input_files: 输入文件列表
         :param output_file: 输出文件路径
         """
@@ -82,7 +82,7 @@ class EdgeTTS:
             f.write("\n".join([f"file '{audio_file}'" for audio_file in input_files]))
 
         ffmpeg.input(tmp_file, format="concat", safe=0).output(
-            output_file, format="wav", acodec="copy"
+            output_file, format="mp3", acodec="copy"
         ).run(overwrite_output=True)  # Add overwrite_output=True to force overwrite
         os.remove(tmp_file)
         return
@@ -111,7 +111,7 @@ class EdgeTTS:
                 self._text_to_segments(text, segment_length), 1
             ):
                 # 创建临时文件
-                temp_file = os.path.join(temp_dir, f"segment_{i}.wav")
+                temp_file = os.path.join(temp_dir, f"segment_{i}.mp3")
                 temp_files.append(temp_file)
 
                 print(f"正在处理第 {i}/{total_segments} 个段落...")
@@ -121,7 +121,7 @@ class EdgeTTS:
             if temp_files:
                 # 合并所有临时文件
                 print("正在合并音频文件...")
-                self._merge_wav_files(temp_files, output_file)
+                self._merge_audio_files(temp_files, output_file)
                 print(f"合成完成，文件已保存至: {output_file}")
                 return True
             else:
@@ -133,7 +133,6 @@ class EdgeTTS:
 
         finally:
             print(temp_dir)
-            """
             # 清理临时文件
             for temp_file in temp_files:
                 try:
@@ -148,5 +147,3 @@ class EdgeTTS:
                     os.rmdir(temp_dir)
             except Exception as e:
                 print(f"清理临时目录时发生错误: {str(e)}")
-
-                """

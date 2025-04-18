@@ -36,6 +36,7 @@ class Books(models.Model):
 
 class AudioSegment(models.Model):
     book = models.ForeignKey(Books, on_delete=models.CASCADE, related_name='audio_segments')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='audio_segments', null=True)
     title = models.CharField(max_length=255)
     text = models.TextField()
     book_page = models.CharField(max_length=255)
