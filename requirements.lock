@@ -123,6 +123,8 @@ grpcio==1.67.0
     # via grpcio-status
 grpcio-status==1.67.0
     # via google-api-core
+gunicorn==23.0.0
+    # via book2tts
 h11==0.14.0
     # via httpcore
     # via uvicorn
@@ -176,6 +178,7 @@ orjson==3.10.7
 packaging==24.1
     # via gradio
     # via gradio-client
+    # via gunicorn
     # via huggingface-hub
     # via matplotlib
 pandas==2.2.3

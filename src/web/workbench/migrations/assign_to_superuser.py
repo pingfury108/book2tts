@@ -40,7 +40,7 @@ def assign_data_to_superuser(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ('workbench', '0001_initial'),  # Update this to match your last migration
+        ('workbench', '0004_audiosegment'),  # Update this to make sure AudioSegment model is available
     ]
     
     operations = [
