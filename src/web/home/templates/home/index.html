@@ -4,11 +4,25 @@
 {% block content %}
 <div class="container mx-auto px-4 py-6">
   {% if user.is_authenticated %}
+    <!-- Hero welcome section for logged-in users -->
+    <div class="hero mb-8">
+      <div class="hero-content text-center py-12">
+        <div class="max-w-md">
+          <h1 class="text-5xl font-bold text-gray-800">Book2TTS</h1>
+          <p class="py-6 text-gray-700">将您喜爱的书籍转换为有声读物。上传、转换并聆听您的个人有声书库。</p>
+          <div class="flex justify-center gap-4">
+            <a href="{% url 'index' %}" class="btn bg-purple-700 hover:bg-purple-800 border-none text-white">制作</a>
+            <a href="{% url 'aggregated_audio_segments' %}" class="btn bg-transparent hover:bg-purple-100 text-purple-700 border-purple-700 hover:border-purple-800">有声书</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="flex justify-between items-center mb-6">
       <div class="flex items-center gap-2">
-        <h2 class="text-2xl font-bold">{% if display_title %}{{ display_title }}{% else %}我的已发布音频{% endif %}</h2>
+        <h2 class="text-2xl font-bold">{% if display_title %}{{ display_title }}{% else %}我的音频作品{% endif %}</h2>
         {% if user.is_authenticated and user.profile.rss_token %}
-        <a href="{% url 'token_audio_rss_feed' token=user.profile.rss_token|stringformat:'s' %}" class="flex items-center gap-1 text-sm" title="个人 RSS 订阅">
+        <a href="{% url 'token_audio_rss_feed' token=user.profile.rss_token|stringformat:'s' %}" class="flex items-center gap-1 text-sm text-purple-700" title="个人 RSS 订阅">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
             <path d="M5 3a1 1 0 000 2c5.523 0 10 4.477 10 10a1 1 0 102 0C17 7.373 11.627 2 5 2a1 1 0 00-1 1z" />
             <path d="M4 9a1 1 0 011-1 7 7 0 017 7 1 1 0 11-2 0 5 5 0 00-5-5 1 1 0 01-1-1zM3 15a2 2 0 114 0 2 2 0 01-4 0z" />
@@ -17,7 +31,7 @@
         </a>
         {% endif %}
         {% if book and user.profile.rss_token %}
-        <a href="{% url 'token_book_audio_rss_feed' token=user.profile.rss_token|stringformat:'s' book_id=book.id %}" class="flex items-center gap-1 text-sm" title="此书的 RSS 订阅">
+        <a href="{% url 'token_book_audio_rss_feed' token=user.profile.rss_token|stringformat:'s' book_id=book.id %}" class="flex items-center gap-1 text-sm text-purple-700" title="此书的 RSS 订阅">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
             <path d="M5 3a1 1 0 000 2c5.523 0 10 4.477 10 10a1 1 0 102 0C17 7.373 11.627 2 5 2a1 1 0 00-1 1z" />
             <path d="M4 9a1 1 0 011-1 7 7 0 017 7 1 1 0 11-2 0 5 5 0 00-5-5 1 1 0 01-1-1zM3 15a2 2 0 114 0 2 2 0 01-4 0z" />
@@ -27,7 +41,7 @@
         {% endif %}
       </div>
       {% if display_title %}
-        <a href="{% url 'home' %}" class="btn btn-sm btn-outline">返回全部</a>
+        <a href="{% url 'home' %}" class="btn btn-sm border-purple-700 text-purple-700 hover:bg-purple-100 hover:border-purple-800">返回全部</a>
       {% endif %}
     </div>
     
@@ -73,13 +87,13 @@
             
             <div class="flex flex-col gap-2">
               <!-- 详情按钮 -->
-              <a href="{% url 'audio_detail' segment.id %}" class="btn btn-sm btn-outline">
+              <a href="{% url 'audio_detail' segment.id %}" class="btn btn-sm border-purple-700 text-purple-700 hover:bg-purple-100">
                 详情
               </a>
               
               <!-- 播放按钮 -->
               <button 
-                class="btn btn-circle btn-primary btn-lg play-audio-btn hover:scale-105 transition-transform" 
+                class="btn btn-circle bg-purple-700 hover:bg-purple-800 border-none text-white btn-lg play-audio-btn hover:scale-105 transition-transform" 
                 data-audio-url="{{ segment.file.url }}"
                 data-audio-title="{{ segment.title }}"
               >
@@ -101,13 +115,16 @@
       </div>
     {% endif %}
   {% else %}
-    <div class="hero min-h-[50vh] bg-base-200 rounded-box">
-      <div class="hero-content text-center">
+    <!-- 未登录状态的美化主页 - 匹配截图样式 -->
+    <div class="hero my-6">
+      <div class="hero-content text-center py-16">
         <div class="max-w-md">
-          <h1 class="text-5xl font-bold">Book2TTS</h1>
+          <h1 class="text-5xl font-bold mb-2">Book2TTS</h1>
           <p class="py-6">将您喜爱的书籍转换为有声读物。上传、转换并聆听您的个人有声书库。</p>
-          <a href="{% url 'login' %}" class="btn btn-primary">登录</a>
-          <a href="{% url 'register' %}" class="btn btn-outline btn-primary">注册</a>
+          <div class="flex justify-center gap-4">
+            <a href="{% url 'login' %}" class="btn btn-primary">登录</a>
+            <a href="{% url 'register' %}" class="btn btn-outline btn-primary">注册</a>
+          </div>
         </div>
       </div>
     </div>
@@ -115,11 +132,11 @@
 </div>
 
 <!-- 音频播放器 -->
-<div id="audio-player-container" class="fixed bottom-0 left-0 right-0 bg-base-200 shadow-lg transform transition-transform duration-300 translate-y-full">
+<div id="audio-player-container" class="fixed bottom-0 left-0 right-0 bg-white shadow-lg transform transition-transform duration-300 translate-y-full">
   <div class="container mx-auto flex flex-col md:flex-row items-center justify-between p-4">
     <div class="flex items-center mb-2 md:mb-0">
       <div class="avatar mr-3">
-        <div class="w-12 h-12 rounded-full bg-purple-600 text-white flex items-center justify-center relative">
+        <div class="w-12 h-12 rounded-full bg-purple-700 text-white flex items-center justify-center relative">
           <!-- 使用简化的音符图标并完全居中 -->
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" class="absolute" style="fill:none; stroke:white; stroke-width:1.5; top:50%; left:50%; transform:translate(-50%, -50%);">
             <path d="M9 18V5l12-2v13"></path>
@@ -135,7 +152,7 @@
         您的浏览器不支持音频元素。
       </audio>
     </div>
-    <button id="close-player" class="btn btn-circle btn-sm btn-ghost">
+    <button id="close-player" class="btn btn-circle btn-sm text-purple-700 hover:bg-purple-100">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
       </svg>
