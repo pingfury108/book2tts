@@ -2,10 +2,7 @@ from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse
 from workbench.models import AudioSegment, Books, UserProfile
 from django.urls import reverse
-from django.utils.html import escape
-import datetime
 import uuid
-import os
 import re
 import html
 from feedgen.feed import FeedGenerator
@@ -15,6 +12,17 @@ def estimate_audio_duration(audio_file):
     """使用ffmpeg获取音频文件时长"""
     if not audio_file:
         return 300, "0:05:00"  # 默认5分钟
+    
+    # 格式化时长为时:分:秒字符串
+    def format_duration(seconds):
+        hours = seconds // 3600
+        minutes = (seconds % 3600) // 60
+        secs = seconds % 60
+        
+        if hours > 0:
+            return f"{hours}:{minutes:02d}:{secs:02d}"
+        else:
+            return f"{minutes}:{secs:02d}"
     
     try:
         import ffmpeg
@@ -29,18 +37,7 @@ def estimate_audio_duration(audio_file):
         
         if audio_stream is not None:
             duration_seconds = int(float(audio_stream["duration"]))
-            
-            # 格式化为时:分:秒
-            hours = duration_seconds // 3600
-            minutes = (duration_seconds % 3600) // 60
-            seconds = duration_seconds % 60
-            
-            if hours > 0:
-                formatted_duration = f"{hours}:{minutes:02d}:{seconds:02d}"
-            else:
-                formatted_duration = f"{minutes}:{seconds:02d}"
-            
-            return duration_seconds, formatted_duration
+            return duration_seconds, format_duration(duration_seconds)
     except (ImportError, Exception) as e:
         # 如果ffmpeg不可用或出错，回退到基于文件大小的估算
         print(f"使用文件大小估算音频时长: {str(e)}")
@@ -52,18 +49,7 @@ def estimate_audio_duration(audio_file):
     
     # 估算时长（秒）
     duration_seconds = int((file_size * 8) / bit_rate)
-    
-    # 格式化为时:分:秒
-    hours = duration_seconds // 3600
-    minutes = (duration_seconds % 3600) // 60
-    seconds = duration_seconds % 60
-    
-    if hours > 0:
-        formatted_duration = f"{hours}:{minutes:02d}:{seconds:02d}"
-    else:
-        formatted_duration = f"{minutes}:{seconds:02d}"
-    
-    return duration_seconds, formatted_duration
+    return duration_seconds, format_duration(duration_seconds)
 
 # 确保用户有一个有效的rss_token
 def ensure_rss_token(user):
@@ -87,9 +73,6 @@ def clean_xml_output(xml_string):
     """
     清理XML输出，修复常见的XML错误
     """
-    # 不再生成调试文件
-    # debug_xml_file(xml_string, "debug_original_before_clean.xml")
-    
     # 确保XML声明正确
     if xml_string.startswith('<?xml'):
         # 提取现有的XML声明
@@ -180,9 +163,6 @@ def clean_xml_output(xml_string):
             elif '</rss>' in xml_string:
                 # 如果找不到channel关闭标签，在rss关闭前添加
                 xml_string = xml_string.replace('</rss>', '</item>\n</channel>\n</rss>')
-    
-    # 不再生成调试文件
-    # debug_xml_file(xml_string, "debug_final_after_clean.xml")
     
     return xml_string
 
