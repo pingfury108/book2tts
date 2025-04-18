@@ -5,6 +5,13 @@ RUN adduser --disabled-password --gecos "" book2tts
 
 WORKDIR /app
 
+# Install system dependencies required for building packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
+    libc6-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN pip install uv
 
 COPY --chown=book2tts:book2tts . .
