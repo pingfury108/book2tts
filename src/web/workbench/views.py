@@ -182,28 +182,39 @@ def text_by_toc(request, book_id, name):
 
 @login_required
 def text_by_page(request, book_id, name):
-    name = name.replace("_", "/")
     book = get_object_or_404(Books, pk=book_id)
     texts = ""
-
-    if book.file_type == ".pdf":
-        try:
-            pbook = open_pdf(book.file.path)
-            texts = pbook[int(name)].get_text()
-        except Exception as e:
-            texts = f"Error extracting text: {str(e)}"
-    elif book.file_type == ".epub":
-        try:
-            ebook = open_ebook(book.file.path)
-            page_param = request.GET.get('page')
-            if page_param:
-                href_to_use = page_param
-            else:
-                href_to_use = name
-                
-            texts = get_content_with_href(ebook, href_to_use)
-        except Exception as e:
-            texts = f"Error extracting text: {str(e)}"
+    
+    # Support multiple names separated by comma
+    names = name.split(',')
+    combined_texts = []
+    
+    for page_name in names:
+        page_name = page_name.replace("_", "/")
+        
+        if book.file_type == ".pdf":
+            try:
+                pbook = open_pdf(book.file.path)
+                page_text = pbook[int(page_name)].get_text()
+                combined_texts.append(page_text)
+            except Exception as e:
+                combined_texts.append(f"Error extracting text for page {page_name}: {str(e)}")
+        elif book.file_type == ".epub":
+            try:
+                ebook = open_ebook(book.file.path)
+                page_param = request.GET.get('page')
+                if page_param:
+                    href_to_use = page_param
+                else:
+                    href_to_use = page_name
+                    
+                page_text = get_content_with_href(ebook, href_to_use)
+                combined_texts.append(page_text)
+            except Exception as e:
+                combined_texts.append(f"Error extracting text for page {page_name}: {str(e)}")
+    
+    # Combine all texts without a separator
+    texts = "\n\n".join(combined_texts)
 
     # Check if this is an HTMX request for just the text content
     if request.headers.get('HX-Target') == 'src-text':

@@ -1,7 +1,7 @@
 {% load custom_filters %}
 <!-- Pages navigation component - optimized for HTMX loading into #toc -->
 <div class="pages-container" data-pages-component="true">
-  <div class="grid grid-cols-3 gap-1 mb-2">
+  <div class="grid grid-cols-4 gap-1 mb-2">
     <button class="btn btn-xs btn-outline" id="goto-first"
             hx-get="{% url 'text_by_page' book_id=book_id name=pages.0.href|stringformat:"s"|replace:"/,_" %}?page={{ pages.0.href }}"
             hx-target="#src-text"
@@ -12,6 +12,14 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
         </svg>
         首页
+      </span>
+    </button>
+    <button class="btn btn-xs btn-outline" id="batch-extract">
+      <span class="inline-flex items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        提取
       </span>
     </button>
     <button class="btn btn-xs btn-outline" id="goto-page">
@@ -37,21 +45,96 @@
     </button>
     {% endwith %}
   </div>
+  
+  <div class="flex flex-wrap gap-1 mb-2">
+    <div class="border rounded-full px-3 py-1 flex items-center justify-center">
+      <span class="inline-flex items-center text-xs">掐头</span>
+      <input type="number" min="0" max="20" value="0" class="input-xs pl-2 text-xs border-none focus:outline-none" id="skip-start-input" />
+      <span class="inline-flex items-center mx-2 text-xs">去尾</span>
+      <input type="number" min="0" max="20" value="0" class="input-xs pl-2 text-xs border-none focus:outline-none" id="skip-end-input" />
+    </div>
+    <div class="border rounded-full px-3 py-1 flex items-center gap-1">
+      <input type="checkbox" id="select-all-pages" class="h-4 w-4" />
+      <label for="select-all-pages" class="text-sm">全选/取消全选</label>
+    </div>
+  </div>
+  
   <div class="single-column-container" style="width:100%; max-width:100%; overflow-x:hidden;">
-  <ul id="pages-list" class="menu menu-sm bg-base-100 rounded-box max-h-[calc(100vh-12rem)] overflow-y-auto overflow-x-hidden custom-scrollbar w-full flex flex-col single-column" style="column-count:1 !important; columns:1 !important; display:block !important;">
-    {% for page in pages %}
-    <li>
-      <a class="flex items-center py-1.5 px-3 w-full page-link transition-all duration-300 ease-in-out hover:bg-opacity-20 hover:bg-base-300{% if request.GET.page == page.href|stringformat:"s" %} active{% endif %}"
-         hx-get="{% url 'text_by_page' book_id=book_id name=page.href|stringformat:"s"|replace:"/,_" %}?page={{ page.href }}"
-         hx-target="#src-text"
-         hx-trigger="click"
-         hx-indicator=".page-loading"
-         data-page-number="{{ page.href }}"
-      >
-        <span class="truncate">{% if request.GET.page == page.href|stringformat:"s" %}<span class="indicator-dot mr-1">•</span>{% endif %}{{ page.title }}</span>
-      </a>
-    </li>
-    {% endfor %}
-  </ul>
+    <ul id="pages-list" class="menu menu-sm bg-base-100 rounded-box max-h-[calc(100vh-12rem)] overflow-y-auto overflow-x-hidden custom-scrollbar w-full single-column" style="column-count:1 !important; columns:1 !important;">
+      {% for page in pages %}
+      <li class="flex items-center w-full">
+        <div class="flex items-center w-full py-1.5 px-3 hover:bg-opacity-20 hover:bg-base-300{% if request.GET.page == page.href|stringformat:"s" %} active{% endif %}">
+          <input type="checkbox" class="page-checkbox checkbox checkbox-sm mr-2" value="{{ page.href }}" data-page="{{ page.href }}" />
+          <a class="flex-1 page-link"
+             hx-get="{% url 'text_by_page' book_id=book_id name=page.href|stringformat:"s"|replace:"/,_" %}?page={{ page.href }}"
+             hx-target="#src-text"
+             hx-trigger="click"
+             hx-indicator=".page-loading"
+             data-page-number="{{ page.href }}"
+          >
+            <span class="truncate">{% if request.GET.page == page.href|stringformat:"s" %}<span class="indicator-dot mr-1">•</span>{% endif %}{{ page.title }}</span>
+          </a>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
   </div>
 </div>
+
+<script>
+  // 初始化页面功能
+  function initPageFunctions() {
+    // Select All functionality
+    const selectAllCheckbox = document.getElementById('select-all-pages');
+    if (selectAllCheckbox) {
+      selectAllCheckbox.addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('.page-checkbox');
+        checkboxes.forEach(checkbox => {
+          checkbox.checked = selectAllCheckbox.checked;
+        });
+      });
+    }
+    
+    // Batch extraction button functionality
+    const batchExtractBtn = document.getElementById('batch-extract');
+    if (batchExtractBtn) {
+      batchExtractBtn.addEventListener('click', function() {
+        // Get all checked checkboxes
+        const checkedBoxes = document.querySelectorAll('.page-checkbox:checked');
+        const checkedPages = Array.from(checkedBoxes).map(box => box.value);
+        
+        // Only proceed if checkboxes are selected
+        if (checkedPages.length > 0) {
+          // Create a concatenated name parameter with all checked pages
+          const nameParam = checkedPages.join(',');
+          
+          // Get skip lines parameters
+          const skipStart = document.getElementById('skip-start-input').value || 0;
+          const skipEnd = document.getElementById('skip-end-input').value || 0;
+          
+          // Build the URL with book_id and the concatenated name
+          const url = '{% url "text_by_page" book_id=book_id name="PLACEHOLDER" %}'.replace('PLACEHOLDER', nameParam) 
+                      + '?page=' + nameParam
+                      + '&skip_start=' + skipStart
+                      + '&skip_end=' + skipEnd;
+          
+          // Trigger HTMX request
+          htmx.ajax('GET', url, {target: '#src-text', swap: 'innerHTML', indicator: '.page-loading'});
+        } else {
+          // Alert if no checkboxes selected
+          alert('请先选择要提取的页面！');
+        }
+      });
+    }
+  }
+
+  // 初始化函数在页面加载和内容更新后都会执行
+  document.addEventListener('DOMContentLoaded', initPageFunctions);
+  
+  // 监听HTMX内容加载完成事件
+  document.body.addEventListener('htmx:afterOnLoad', function(event) {
+    if (event.detail.target.id === 'toc' || event.detail.target.querySelector('[data-pages-component]')) {
+      initPageFunctions();
+    }
+  });
+</script>
