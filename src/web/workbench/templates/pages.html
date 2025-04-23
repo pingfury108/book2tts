@@ -49,9 +49,9 @@
   <div class="flex flex-wrap gap-1 mb-2">
     <div class="border rounded-full px-4 py-1 flex items-center justify-between w-auto">
       <span class="inline-flex items-center text-xs">掐头</span>
-      <input type="number" min="0" max="20" value="0" class="input-xs text-xs border-none focus:outline-none w-10" id="skip-start-input" />
+      <input type="number" min="0" max="20" value="0" class="input-xs text-xs border-none focus:outline-none w-10" id="skip-start-input" name="head_cut"/>
       <span class="inline-flex items-center mx-2 text-xs">去尾</span>
-      <input type="number" min="0" max="20" value="0" class="input-xs  text-xs border-none focus:outline-none w-10" id="skip-end-input" />
+      <input type="number" min="0" max="20" value="0" class="input-xs  text-xs border-none focus:outline-none w-10" id="skip-end-input" name="tail_cut"/>
       <input type="checkbox" id="select-all-pages" class="checkbox checkbox-sm" />
       <label for="select-all-pages" class="text-xs ml-1">全选/取消</label>
     </div>
@@ -68,9 +68,10 @@
              hx-target="#src-text"
              hx-trigger="click"
              hx-indicator=".page-loading"
+             hx-include="#skip-start-input, #skip-end-input"
              data-page-number="{{ page.href }}"
           >
-            <span class="truncate">{% if request.GET.page == page.href|stringformat:"s" %}<span class="indicator-dot mr-1">•</span>{% endif %}{{ page.title }}</span>
+            <span class="truncate">{{ page.title }}</span>
           </a>
         </div>
       </li>
