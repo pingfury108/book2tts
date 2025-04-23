@@ -5138,6 +5138,11 @@ details.collapse summary::-webkit-details-marker {
   margin-right: 0.5rem;
 }
 
+.mx-3 {
+  margin-left: 0.75rem;
+  margin-right: 0.75rem;
+}
+
 .mb-1 {
   margin-bottom: 0.25rem;
 }
@@ -5385,6 +5390,14 @@ details.collapse summary::-webkit-details-marker {
   width: 3.5rem;
 }
 
+.w-auto {
+  width: auto;
+}
+
+.w-9 {
+  width: 2.25rem;
+}
+
 .max-w-3xl {
   max-width: 48rem;
 }
@@ -5590,6 +5603,10 @@ details.collapse summary::-webkit-details-marker {
   border-bottom-width: 1px;
 }
 
+.border-l {
+  border-left-width: 1px;
+}
+
 .border-none {
   border-style: none;
 }
@@ -5602,6 +5619,11 @@ details.collapse summary::-webkit-details-marker {
 .border-purple-700 {
   --tw-border-opacity: 1;
   border-color: rgb(126 34 206 / var(--tw-border-opacity));
+}
+
+.border-gray-300 {
+  --tw-border-opacity: 1;
+  border-color: rgb(209 213 219 / var(--tw-border-opacity));
 }
 
 .bg-base-100 {

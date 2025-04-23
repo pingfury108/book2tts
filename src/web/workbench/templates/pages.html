@@ -47,15 +47,13 @@
   </div>
   
   <div class="flex flex-wrap gap-1 mb-2">
-    <div class="border rounded-full px-3 py-1 flex items-center justify-center">
+    <div class="border rounded-full px-4 py-1 flex items-center justify-between w-auto">
       <span class="inline-flex items-center text-xs">掐头</span>
-      <input type="number" min="0" max="20" value="0" class="input-xs pl-2 text-xs border-none focus:outline-none" id="skip-start-input" />
+      <input type="number" min="0" max="20" value="0" class="input-xs text-xs border-none focus:outline-none w-10" id="skip-start-input" />
       <span class="inline-flex items-center mx-2 text-xs">去尾</span>
-      <input type="number" min="0" max="20" value="0" class="input-xs pl-2 text-xs border-none focus:outline-none" id="skip-end-input" />
-    </div>
-    <div class="border rounded-full px-3 py-1 flex items-center gap-1">
-      <input type="checkbox" id="select-all-pages" class="h-4 w-4" />
-      <label for="select-all-pages" class="text-sm">全选/取消全选</label>
+      <input type="number" min="0" max="20" value="0" class="input-xs  text-xs border-none focus:outline-none w-10" id="skip-end-input" />
+      <input type="checkbox" id="select-all-pages" class="checkbox checkbox-sm" />
+      <label for="select-all-pages" class="text-xs ml-1">全选/取消</label>
     </div>
   </div>
   
