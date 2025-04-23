@@ -66,6 +66,10 @@ class UserProfile(models.Model):
 # Signal to create/update UserProfile whenever a User object is saved
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_or_update_user_profile(sender, instance, created, **kwargs):
-    if created:
-        UserProfile.objects.create(user=instance)
-    instance.profile.save()
+    try:
+        # 尝试获取用户的profile
+        profile = instance.profile
+    except UserProfile.DoesNotExist:
+        # 如果用户没有profile，创建一个
+        profile = UserProfile.objects.create(user=instance)
+    profile.save()

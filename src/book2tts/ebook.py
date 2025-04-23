@@ -28,26 +28,41 @@ def traverse_toc(items, toc):
 
 def get_content_with_href(book, href: str):
     h = href.split("#")[0]
-    item = book.get_item_with_href(h)
-
-    if item:
-        soup = BeautifulSoup(item.get_content(), "html.parser")
-        # p_tags = soup.find_all('p')
-        for a in soup.find_all("a"):
-            a.decompose()
-        texts = soup.get_text("\n", strip=True)
-        # texts = "\n".join([p.text for p in p_tags])
-        texts = "\n".join(
-            list(
-                map(
-                    lambda s: s.replace(" ", "").replace("\xa0", ""),
-                    texts.split("\n"),
+    
+    try:
+        item = book.get_item_with_href(h)
+        
+        if item:
+            try:
+                content = item.get_content()
+                
+                soup = BeautifulSoup(content, "html.parser")
+                
+                # p_tags = soup.find_all('p')
+                for a in soup.find_all("a"):
+                    a.decompose()
+                    
+                texts = soup.get_text("\n", strip=True)
+                
+                # texts = "\n".join([p.text for p in p_tags])
+                texts = "\n".join(
+                    list(
+                        map(
+                            lambda s: s.replace(" ", "").replace("\xa0", ""),
+                            texts.split("\n"),
+                        )
+                    )
                 )
-            )
-        )
-        return texts
-    else:
-        return None
+                
+                return texts
+            except Exception as e:
+                return f"Error extracting content: {str(e)}"
+        else:
+            # Try to log available items to help diagnose the issue
+            available_items = [item.get_name() for item in book.items if item.get_type() == 9]
+            return f"No content found for href: {href}"
+    except Exception as e:
+        return f"Error: {str(e)}"
 
 
 def ebook_toc(book):
@@ -75,5 +90,8 @@ def ebook_pages(book):
 
 @lru_cache(maxsize=10)
 def open_ebook(filepath):
-    book = epub.read_epub(filepath)
-    return book
+    try:
+        book = epub.read_epub(filepath)
+        return book
+    except Exception as e:
+        raise

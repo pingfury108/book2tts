@@ -201,7 +201,7 @@ function updateBookName(event, bookId) {
     const formData = new FormData(form);
     
     // Send request
-    fetch(`/workbench/update_book_name/${bookId}/`, {
+    fetch(`/workbench/book/${bookId}/update-name/`, {
         method: 'POST',
         body: formData,
         headers: {

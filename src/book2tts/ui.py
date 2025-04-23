@@ -215,7 +215,13 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
             pass
         return ""
 
-    def parse_content_range(value, start_page: int, end_page: int, line_num_head: int = 0, line_num_tail: int = 0):
+    def parse_content_range(
+        value,
+        start_page: int,
+        end_page: int,
+        line_num_head: int = 0,
+        line_num_tail: int = 0,
+    ):
         if start_page > 0 and end_page > start_page:
             value = [f"page-{i}" for i in range(start_page, end_page)]
             pass
@@ -225,17 +231,21 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                 for i in [int(s.split("-")[-1]) for s in value]:
                     text = book_toc[i]
                     # Apply line number trimming
-                    text_lines = text.split('\n')
+                    text_lines = text.split("\n")
                     if len(text_lines) > 1:
-                        end_idx = len(text_lines) if line_num_tail == 0 else -line_num_tail
-                        text = '\n'.join(text_lines[line_num_head:end_idx])
+                        end_idx = (
+                            len(text_lines) if line_num_tail == 0 else -line_num_tail
+                        )
+                        text = "\n".join(text_lines[line_num_head:end_idx])
                     results.append(text)
                     yield "\n\n\n".join(results)
                     pass
             pass
         return ""
 
-    def parse_content(value, book_title, line_num_head: int = 0, line_num_tail: int = 0):
+    def parse_content(
+        value, book_title, line_num_head: int = 0, line_num_tail: int = 0
+    ):
         if value is None or book_title is None:
             return None, None
         if book_type == "pdf":
@@ -246,10 +256,12 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                 for i in [int(s.split("-")[-1]) for s in value]:
                     text = str(book_toc[i])
                     # Apply line number trimming
-                    text_lines = text.split('\n')
+                    text_lines = text.split("\n")
                     if len(text_lines) > 1:
-                        end_idx = len(text_lines) if line_num_tail == 0 else -line_num_tail
-                        text = '\n'.join(text_lines[line_num_head:end_idx])
+                        end_idx = (
+                            len(text_lines) if line_num_tail == 0 else -line_num_tail
+                        )
+                        text = "\n".join(text_lines[line_num_head:end_idx])
                     texts.append(text)
                 return "\n\n\n".join(texts), gen_out_file(book_title, value)
 
@@ -273,7 +285,7 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
     def gen_out_file(book_title, dir_tree):
         os.makedirs("/tmp/book2tts", exist_ok=True)
         tmpfile = tempfile.NamedTemporaryFile(
-            suffix=".wav",
+            suffix=".mp3",
             dir="/tmp/book2tts",
             prefix=f"{book_title}{outfile_prefix(dir_tree)}",
             delete=True,
@@ -282,13 +294,13 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
         return outfile
 
     def gen_tts(
-            text_content,
-            tts_content,
-            tts_provide,
-            tts_mode,
-            outfile,
-            azure_key,
-            azure_region,
+        text_content,
+        tts_content,
+        tts_provide,
+        tts_mode,
+        outfile,
+        azure_key,
+        azure_region,
     ):
         content = text_content
         if tts_content.strip() != "":
@@ -365,10 +377,11 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
         print(book_type_pdf_img, book_type_pdf_img_vector)
         return img, vector
 
-
     file.change(parse_toc, inputs=file, outputs=[dir_tree, book_title])
     dir_tree.change(
-        parse_content, inputs=[dir_tree, book_title, line_num_head, line_num_tail], outputs=[text_content, outfile]
+        parse_content,
+        inputs=[dir_tree, book_title, line_num_head, line_num_tail],
+        outputs=[text_content, outfile],
     )
 
     btn1.click(

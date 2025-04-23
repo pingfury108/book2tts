@@ -28,7 +28,6 @@ from .models import Books, AudioSegment
 from book2tts.ebook import open_ebook, ebook_toc, get_content_with_href, ebook_pages
 from book2tts.pdf import open_pdf
 
-
 @login_required
 def index(request, book_id):
     book = get_object_or_404(Books, pk=book_id)
@@ -162,11 +161,17 @@ def text_by_toc(request, book_id, name):
     book = get_object_or_404(Books, pk=book_id)
     texts = ""
     if book.file_type == ".pdf":
-        pbook = open_pdf(book.file.path)
-        texts = pbook[int(name)].get_text()
+        try:
+            pbook = open_pdf(book.file.path)
+            texts = pbook[int(name)].get_text()
+        except Exception as e:
+            texts = f"Error extracting text: {str(e)}"
     elif book.file_type == ".epub":
-        ebook = open_ebook(book.file.path)
-        texts = get_content_with_href(ebook, name)
+        try:
+            ebook = open_ebook(book.file.path)
+            texts = get_content_with_href(ebook, name)
+        except Exception as e:
+            texts = f"Error extracting text: {str(e)}"
 
     # Check if this is an HTMX request for just the text content
     if request.headers.get('HX-Target') == 'src-text':
@@ -182,11 +187,23 @@ def text_by_page(request, book_id, name):
     texts = ""
 
     if book.file_type == ".pdf":
-        pbook = open_pdf(book.file.path)
-        texts = pbook[int(name)].get_text()
+        try:
+            pbook = open_pdf(book.file.path)
+            texts = pbook[int(name)].get_text()
+        except Exception as e:
+            texts = f"Error extracting text: {str(e)}"
     elif book.file_type == ".epub":
-        ebook = open_ebook(book.file.path)
-        texts = get_content_with_href(ebook, name)
+        try:
+            ebook = open_ebook(book.file.path)
+            page_param = request.GET.get('page')
+            if page_param:
+                href_to_use = page_param
+            else:
+                href_to_use = name
+                
+            texts = get_content_with_href(ebook, href_to_use)
+        except Exception as e:
+            texts = f"Error extracting text: {str(e)}"
 
     # Check if this is an HTMX request for just the text content
     if request.headers.get('HX-Target') == 'src-text':
