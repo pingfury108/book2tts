@@ -185,6 +185,13 @@ def text_by_page(request, book_id, name):
     book = get_object_or_404(Books, pk=book_id)
     texts = ""
     
+    # Get line filtering parameters from query string
+    head_cut = int(request.GET.get('head_cut', 0))  # Lines to remove from beginning (default: 0)
+    tail_cut = int(request.GET.get('tail_cut', 0))  # Lines to remove from end (default: 0)
+    line_count = request.GET.get('line_count')  # Total lines to keep (optional)
+    if line_count:
+        line_count = int(line_count)
+    
     # Support multiple names separated by comma
     names = name.split(',')
     combined_texts = []
@@ -196,6 +203,26 @@ def text_by_page(request, book_id, name):
             try:
                 pbook = open_pdf(book.file.path)
                 page_text = pbook[int(page_name)].get_text()
+                
+                # Apply line filtering to individual page content
+                if head_cut > 0 or tail_cut > 0 or line_count:
+                    lines = page_text.splitlines()
+                    total_lines = len(lines)
+                    
+                    # Calculate start and end indices
+                    start_idx = min(head_cut, total_lines)
+                    
+                    if line_count:
+                        # If line_count is specified, use it to calculate end_idx
+                        end_idx = min(start_idx + line_count, total_lines)
+                    else:
+                        # Otherwise, remove tail_cut lines from the end
+                        end_idx = max(start_idx, total_lines - tail_cut)
+                    
+                    # Get the filtered lines
+                    filtered_lines = lines[start_idx:end_idx]
+                    page_text = "\n".join(filtered_lines)
+                
                 combined_texts.append(page_text)
             except Exception as e:
                 combined_texts.append(f"Error extracting text for page {page_name}: {str(e)}")
@@ -209,13 +236,35 @@ def text_by_page(request, book_id, name):
                     href_to_use = page_name
                     
                 page_text = get_content_with_href(ebook, href_to_use)
+                
+                # Apply line filtering to individual page content
+                if head_cut > 0 or tail_cut > 0 or line_count:
+                    lines = page_text.splitlines()
+                    total_lines = len(lines)
+                    
+                    # Calculate start and end indices
+                    start_idx = min(head_cut, total_lines)
+                    
+                    if line_count:
+                        # If line_count is specified, use it to calculate end_idx
+                        end_idx = min(start_idx + line_count, total_lines)
+                    else:
+                        # Otherwise, remove tail_cut lines from the end
+                        end_idx = max(start_idx, total_lines - tail_cut)
+                    
+                    # Get the filtered lines
+                    filtered_lines = lines[start_idx:end_idx]
+                    page_text = "\n".join(filtered_lines)
+                
                 combined_texts.append(page_text)
             except Exception as e:
                 combined_texts.append(f"Error extracting text for page {page_name}: {str(e)}")
     
     # Combine all texts without a separator
     texts = "\n\n".join(combined_texts)
-
+    
+    # Remove the global line filtering logic as it's now applied per page
+    
     # Check if this is an HTMX request for just the text content
     if request.headers.get('HX-Target') == 'src-text':
         return render(request, "text_content.html", {"texts": texts})

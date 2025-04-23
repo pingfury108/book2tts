@@ -113,8 +113,8 @@
           // Build the URL with book_id and the concatenated name
           const url = '{% url "text_by_page" book_id=book_id name="PLACEHOLDER" %}'.replace('PLACEHOLDER', nameParam) 
                       + '?page=' + nameParam
-                      + '&skip_start=' + skipStart
-                      + '&skip_end=' + skipEnd;
+                      + '&head_cut=' + skipStart
+                      + '&tail_cut=' + skipEnd;
           
           // Trigger HTMX request
           htmx.ajax('GET', url, {target: '#src-text', swap: 'innerHTML', indicator: '.page-loading'});
