@@ -1,6 +1,7 @@
 {% load custom_filters %}
 <!-- TOC navigation component - optimized for HTMX loading into #toc -->
 <div class="toc-container">
+  <div class="toc-loading loading loading-spinner loading-sm text-center w-full mt-2 mb-2 hidden"></div>
   <ul id="toc-list" class="menu menu-sm bg-base-100 rounded-box max-h-[calc(100vh-12rem)] overflow-y-auto overflow-x-hidden custom-scrollbar w-full flex flex-col single-column" style="column-count:1 !important; columns:1 !important; display:block !important;">
     {% for toc in tocs %}
     <li>
@@ -8,7 +9,8 @@
          hx-get="{% url 'text_by_toc' book_id=book_id name=toc.href|stringformat:"s"|replace:"/,_" %}?toc={{ toc.href|stringformat:"s" }}"
          hx-target="#src-text"
          hx-trigger="{% if forloop.first %}load, {% endif %}click"
-         hx-indicator=".toc-loading"
+         hx-indicator=".toc-container .toc-loading"
+         hx-swap="value"
          data-toc-href="{{ toc.href }}"
       >
         <span class="truncate">{% if request.GET.toc == toc.href %}<span class="indicator-dot mr-1">•</span>{% endif %}{{ toc.title }}</span>

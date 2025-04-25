@@ -1,12 +1,13 @@
 {% load custom_filters %}
 <!-- Pages navigation component - optimized for HTMX loading into #toc -->
 <div class="pages-container" data-pages-component="true">
+  <div class="page-loading loading loading-spinner loading-sm text-center w-full mt-2 mb-2 hidden"></div>
   <div class="grid grid-cols-4 gap-1 mb-2">
     <button class="btn btn-xs btn-outline" id="goto-first"
             hx-get="{% url 'text_by_page' book_id=book_id name=pages.0.href|stringformat:"s"|replace:"/,_" %}?page={{ pages.0.href }}"
             hx-target="#src-text"
-            hx-swap="innerHTML"
-            hx-indicator=".page-loading">
+            hx-swap="value"
+            hx-indicator=".pages-container .page-loading">
       <span class="inline-flex items-center">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
@@ -34,8 +35,8 @@
     <button class="btn btn-xs btn-outline" id="goto-last"
             hx-get="{% url 'text_by_page' book_id=book_id name=last_page.href|stringformat:"s"|replace:"/,_" %}?page={{ last_page.href }}"
             hx-target="#src-text"
-            hx-swap="innerHTML"
-            hx-indicator=".page-loading">
+            hx-swap="value"
+            hx-indicator=".pages-container .page-loading">
       <span class="inline-flex items-center">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
@@ -67,8 +68,9 @@
              hx-get="{% url 'text_by_page' book_id=book_id name=page.href|stringformat:"s"|replace:"/,_" %}?page={{ page.href }}"
              hx-target="#src-text"
              hx-trigger="click"
-             hx-indicator=".page-loading"
+             hx-indicator=".pages-container .page-loading"
              hx-include="#skip-start-input, #skip-end-input"
+             hx-swap="value"
              data-page-number="{{ page.href }}"
           >
             <span class="truncate">{{ page.title }}</span>
@@ -118,7 +120,7 @@
                       + '&tail_cut=' + skipEnd;
           
           // Trigger HTMX request
-          htmx.ajax('GET', url, {target: '#src-text', swap: 'innerHTML', indicator: '.page-loading'});
+          htmx.ajax('GET', url, {target: '#src-text', swap: 'innerHTML', indicator: '.pages-container .page-loading'});
         } else {
           // Alert if no checkboxes selected
           alert('请先选择要提取的页面！');

@@ -3804,6 +3804,10 @@ details.collapse summary::-webkit-details-marker {
   width: 1rem;
 }
 
+.loading-sm {
+  width: 1.25rem;
+}
+
 .loading-md {
   width: 1.5rem;
 }
