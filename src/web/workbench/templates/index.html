@@ -326,6 +326,14 @@
        if (typeof htmx !== 'undefined') {
          htmx.process(publishBtn);
        }
+
+       // 重新初始化 TOC 点击事件处理
+       const tocLinks = document.querySelectorAll('#toc a');
+       tocLinks.forEach(link => {
+         if (typeof htmx !== 'undefined') {
+           htmx.process(link);
+         }
+       });
      } else {
        document.getElementById('audio-status').textContent = '合成失败：' + data.message;
      }
