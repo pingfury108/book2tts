@@ -133,9 +133,17 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 
-STATIC_ROOT = "/app/data/static"
+# In production, collectstatic will copy files to this directory
+STATIC_ROOT = os.getenv("STATIC_ROOT", os.path.join(BASE_DIR, "staticfiles"))
 
-STATICFILES_DIRS = [BASE_DIR / "static"]
+# Additional locations of static files
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
+
+# Ensure static files are served in production
+if not DEBUG:
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
