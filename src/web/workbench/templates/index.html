@@ -147,14 +147,48 @@
  
  // HTMX内容更新后重新设置
  document.body.addEventListener('htmx:afterSwap', setupFontSizeButtons);
+
+ // 添加调试日志
+ function logState(message) {
+   console.log(`[State] ${message}:`, {
+     currentPageName: window.currentPageName,
+     currentPageId: window.currentPageId,
+     activeTab: window.activeTab,
+     currentAudioSegmentId: window.currentAudioSegmentId
+   });
+ }
+
+ // 重置页面状态
+ function resetPageState() {
+   window.currentPageName = '';
+   window.currentPageId = '';
+   window.activeTab = 'tab_toc';
+   logState('State reset');
+ }
+
+ // 处理 TOC/Page 链接的 HTMX 属性
+ function processTocLinks() {
+   const tocLinks = document.querySelectorAll('#toc a');
+   tocLinks.forEach(link => {
+     if (typeof htmx !== 'undefined') {
+       htmx.process(link);
+     }
+   });
+   console.log('Processed TOC links:', tocLinks.length);
+ }
  
  // Track page/TOC changes when content is loaded via HTMX
  document.body.addEventListener('htmx:afterRequest', function(evt) {
+   console.log('HTMX afterRequest:', {
+     target: evt.detail.target?.id,
+     successful: evt.detail.successful,
+     xhr: evt.detail.xhr
+   });
+
    // If this was a tab switch (target is #toc)
    if (evt.detail.target && evt.detail.target.id === 'toc') {
-     // Reset current page name when switching tabs
-     window.currentPageName = '';
-     window.currentPageId = '';
+     resetPageState();
+     processTocLinks();
      
      // Update placeholder
      const titleInput = document.getElementById('audio-title-input');
@@ -179,13 +213,14 @@
          // Try to extract from hx-get URL
          const hxGetAttr = activeItem.getAttribute('hx-get');
          if (hxGetAttr) {
-           // Extract page/toc parameter from URL query string
            const urlParams = new URLSearchParams(hxGetAttr.split('?')[1] || '');
            const pageParam = urlParams.get('page');
            const tocParam = urlParams.get('toc');
            window.currentPageId = pageParam || tocParam || '';
          }
        }
+       
+       logState('Content loaded');
        
        // Update the audio title input placeholder
        const titleInput = document.getElementById('audio-title-input');
@@ -197,10 +232,10 @@
  });
  
  // 页面/目录项点击处理
- // Use window object to avoid redeclaration issues with HTMX
  window.currentPageName = window.currentPageName || ''; // Display name
  window.currentPageId = window.currentPageId || ''; // Actual page ID
  window.activeTab = window.activeTab || 'tab_toc'; // Track which tab is currently active
+ window.currentAudioSegmentId = window.currentAudioSegmentId || 0;
  
  document.body.addEventListener('click', function(event) {
    // Handle tab switching
@@ -208,14 +243,16 @@
      event.target.classList.add('tab-active');
      document.getElementById("tab_page").classList.remove('tab-active');
      window.activeTab = 'tab_toc';
+     logState('Tab switched to TOC');
    };
    if (event.target.id === 'tab_page') {
      event.target.classList.add('tab-active');
      document.getElementById("tab_toc").classList.remove('tab-active');
      window.activeTab = 'tab_page';
+     logState('Tab switched to Page');
    }
    
-   // Track clicked TOC or page item - works for both tabs since content is loaded into #toc
+   // Track clicked TOC or page item
    if (event.target.closest('#toc a')) {
      const clickedItem = event.target.closest('#toc a');
      
@@ -239,13 +276,14 @@
        // Try to extract from hx-get URL
        const hxGetAttr = clickedItem.getAttribute('hx-get');
        if (hxGetAttr) {
-         // Extract page/toc parameter from URL query string
          const urlParams = new URLSearchParams(hxGetAttr.split('?')[1] || '');
          const pageParam = urlParams.get('page');
          const tocParam = urlParams.get('toc');
          window.currentPageId = pageParam || tocParam || '';
        }
      }
+     
+     logState('TOC/Page item clicked');
      
      // Update the audio title input placeholder
      const titleInput = document.getElementById('audio-title-input');
@@ -254,8 +292,6 @@
      }
    }
  });
-
- window.currentAudioSegmentId = window.currentAudioSegmentId || 0;
 
  // 音频合成和管理
  document.getElementById('synthesize-btn')?.addEventListener('click', async function() {
@@ -291,6 +327,7 @@
      });
      
      const data = await response.json();
+     console.log('Audio synthesis response:', data);
      
      if (data.status === 'success') {
        // 显示音频播放器
@@ -322,18 +359,15 @@
        console.log("Setting publish URL to:", publishUrl);
        publishBtn.setAttribute('hx-post', publishUrl);
        
-       // Ensure HTMX processes the updated attributes so its click handler works
+       // Ensure HTMX processes the updated attributes
        if (typeof htmx !== 'undefined') {
          htmx.process(publishBtn);
        }
 
-       // 重新初始化 TOC 点击事件处理
-       const tocLinks = document.querySelectorAll('#toc a');
-       tocLinks.forEach(link => {
-         if (typeof htmx !== 'undefined') {
-           htmx.process(link);
-         }
-       });
+       // 重新处理 TOC 链接
+       processTocLinks();
+       
+       logState('Audio synthesized');
      } else {
        document.getElementById('audio-status').textContent = '合成失败：' + data.message;
      }
@@ -344,6 +378,26 @@
      // 恢复按钮状态
      this.innerHTML = '合成音频';
      this.disabled = false;
+   }
+ });
+
+ // 添加 HTMX 请求和响应监听
+ document.body.addEventListener('htmx:beforeRequest', function(evt) {
+   console.log('HTMX beforeRequest:', {
+     target: evt.detail.target?.id,
+     path: evt.detail.path,
+     verb: evt.detail.verb
+   });
+ });
+
+ document.body.addEventListener('htmx:afterSwap', function(evt) {
+   console.log('HTMX afterSwap:', {
+     target: evt.detail.target?.id,
+     path: evt.detail.path
+   });
+   // 确保在内容更新后重新处理 TOC 链接
+   if (evt.detail.target && evt.detail.target.id === 'toc') {
+     processTocLinks();
    }
  });
 </script>
