@@ -145,7 +145,13 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
 
     gr.Markdown("### 音频播放")
     with gr.Row():
-        audio = gr.Audio(label="输出音频", sources=[])
+        audio = gr.Audio(
+            label="输出音频", 
+            sources=[], 
+            autoplay=False,  # 禁用自动播放
+            show_download_button=True,  # 显示下载按钮
+            format="mp3"  # 指定音频格式
+        )
         pass
 
     book = None
