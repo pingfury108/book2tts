@@ -25,11 +25,15 @@ from book2tts.tts import (
     edge_text_to_speech,
     azure_long_text_to_speech,
 )
+from book2tts.llm_service import LLMService
 
 # from book2tts.llm import ocr_gemini
 from book2tts.ocr import ocr_volc
 
 load_dotenv()
+
+# Initialize LLM service
+llm_service = LLMService()
 
 with gr.Blocks(title="Book 2 TTS") as book2tts:
     gr.Markdown("# Book 2 TTS")
@@ -84,6 +88,22 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
         )
         btn_ocr = gr.Button("识别PDF图片(LLM)")
         btn_ocr_volc = gr.Button("识别PDF图片(OCR)")
+    with gr.Row():
+        system_prompt = gr.TextArea(
+            label="系统提示词",
+            value="""
+# Role: 我是一个专门用于排版文本内容的 AI 角色
+
+## Constrains: 
+- 保持原有语言
+- 输出纯文本
+- 去除页码(数字）之后行的文字
+- 去页首，页尾这些文字，e.g: THE BIBLE STORY, BACK TO THE BEGINNING, PART ONE , STORY 2，BIRTHDAY OF A WORLD, THE BIBLE STORY
+- 使用小写字母
+- 缺失的标点符号补全
+            """,
+            lines=10
+        )
     with gr.Row():
         btn_llm = gr.Button("处理语言文本")
 
@@ -346,27 +366,18 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
             pass
         return "\n".join(lines[line_num_head:line_num_tail])
 
-    def llm_gen(text, api_key, base_api, line_num_head, line_num_tail):
+    def llm_gen(text, api_key, base_api, line_num_head, line_num_tail, system_prompt):
         results = []
         for sub_text in text.split("\n\n\n"):
-            """
-            for part in llm_parse_text_streaming(exclude_text(
-                    sub_text, line_num_head, line_num_tail),
-                                                 api_key,
-                                                 base_api=base_api):
-                results.append(part)
-                yield "".join(results)  #每次yield累加后的结果
-            """
-            result = llm_parse_text_workflow(
-                exclude_text(sub_text, line_num_head, line_num_tail),
-                api_key,
-                base_api=base_api,
+            result = llm_service.process_text(
+                system_prompt=system_prompt,
+                user_content=exclude_text(sub_text, line_num_head, line_num_tail),
+                temperature=0.7
             )
-            if result is not None:
-                results.append(result)
+            if result.get("success"):
+                results.append(result["result"])
             else:
-                print(f"llm gen result: {result}")
-                pass
+                print(f"llm gen error: {result.get('error')}")
             yield "".join(results)
         pass
 
@@ -406,6 +417,7 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
             dify_base_api,
             line_num_head,
             line_num_tail,
+            system_prompt,
         ],
         outputs=tts_content,
     )
