@@ -273,17 +273,94 @@ def text_by_page(request, book_id, name):
 
 
 @login_required
-@require_http_methods(["POST"])
+@require_http_methods(["GET", "POST"])
 def reformat(request):
-    texts = request.POST["texts"]
+    """Handle text reformatting with SSE streaming response"""
+    # Check if this is an SSE request
+    if request.headers.get('Accept') == 'text/event-stream':
+        # For SSE connection, return a connection message
+        response = StreamingHttpResponse(
+            streaming_content=stream_connection_message(),
+            content_type='text/event-stream'
+        )
+        response['Cache-Control'] = 'no-cache'
+        response['X-Accel-Buffering'] = 'no'  # Disable nginx buffering
+        return response
     
-    # Process the text directly instead of using SSE
-    # Simple text reformatting: remove extra whitespace, normalize line breaks
-    lines = [line.strip() for line in texts.splitlines() if line.strip()]
-    reformatted_text = "\n".join(lines)  # Double line breaks between paragraphs
+    # Handle POST request with text content
+    texts = request.POST.get("texts", "")
+    if not texts:
+        return HttpResponse("No text content provided", status=400)
     
-    # Always return just the text content using text_content.html
-    return render(request, "text_content.html", {"texts": reformatted_text})
+    # Create a response with SSE headers
+    response = StreamingHttpResponse(
+        streaming_content=format_text_stream(texts),
+        content_type='text/event-stream'
+    )
+    response['Cache-Control'] = 'no-cache'
+    response['X-Accel-Buffering'] = 'no'  # Disable nginx buffering
+    return response
+
+def stream_connection_message():
+    """Stream initial connection message and keepalive"""
+    try:
+        # Send connection established message
+        yield "event: connected\ndata: [CONNECTED]\n\n"
+        
+        # Keep connection alive with periodic messages
+        while True:
+            time.sleep(15)  # Send keepalive every 15 seconds
+            yield "event: keepalive\ndata: [KEEPALIVE]\n\n"
+    except Exception as e:
+        yield f"event: error\ndata: Connection error: {str(e)}\n\n"
+
+def format_text_stream(texts):
+    """Stream formatted text using SSE with proper event handling"""
+    try:
+        # Initialize LLM service
+        from book2tts.ui import LLMService
+        llm_service = LLMService()
+        
+        # System prompt for text formatting
+        system_prompt = """
+# Role: 我是一个专门用于排版文本内容的 AI 角色
+
+## Constrains: 
+- 保持原有语言
+- 输出纯文本
+- 去除页码(数字）之后行的文字
+- 去页首，页尾这些文字，e.g: THE BIBLE STORY, BACK TO THE BEGINNING, PART ONE , STORY 2，BIRTHDAY OF A WORLD, THE BIBLE STORY
+- 使用小写字母
+- 缺失的标点符号补全
+"""
+        
+        # Send start event
+        yield "event: start\ndata: Starting text formatting...\n\n"
+        
+        # Process text in chunks
+        chunk_size = 1000  # Process 1000 characters at a time
+        for i in range(0, len(texts), chunk_size):
+            chunk = texts[i:i + chunk_size]
+            result = llm_service.process_text(
+                system_prompt=system_prompt,
+                user_content=chunk,
+                temperature=0.7
+            )
+            
+            # Send formatted chunk via SSE with proper event type
+            yield f"event: message\ndata: {result}\n\n"
+            
+            # Add a small delay to prevent overwhelming the client
+            time.sleep(0.1)
+            
+        # Send completion event
+        yield "event: complete\ndata: [DONE]\n\n"
+        
+    except Exception as e:
+        # Send error event with proper event type
+        error_msg = str(e)
+        print(f"Error in format_text_stream: {error_msg}")  # Log the error
+        yield f"event: error\ndata: [ERROR] {error_msg}\n\n"
 
 @login_required
 def aggregated_audio_segments(request):
