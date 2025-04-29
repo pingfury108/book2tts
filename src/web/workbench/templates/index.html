@@ -423,6 +423,12 @@
      formatBtn.disabled = false;
      formatBtn.innerHTML = '自动排版';
    }
+   
+   // 如果文本框是空的，但过程中没收到任何内容，恢复原文本
+   const textarea = document.getElementById('src-text');
+   if (textarea && !formattedText && textarea.value.startsWith('正在进行自动排版')) {
+     textarea.value = textContent || '';
+   }
  }
  
  // 自动排版按钮点击处理
@@ -446,16 +452,33 @@
    formattedText = '';
    isFormattingInProgress = true;
    
-   // 清空文本框
+   // 清空文本框并显示初始提示
    const textarea = document.getElementById('src-text');
    if (textarea) {
-     textarea.value = '';
+     textarea.value = '正在进行自动排版，请稍候...';
      console.log('文本区域已清空');
    }
 
    try {
      // 建立SSE连接并发送POST请求
      console.log('发送POST请求并建立SSE连接');
+     
+     // 添加进度显示变量
+     let progressCount = 0;
+     const progressInterval = setInterval(() => {
+       if (isFormattingInProgress) {
+         progressCount = (progressCount + 1) % 4;
+         const dots = '.'.repeat(progressCount);
+         formatBtn.innerHTML = `排版中${dots}`;
+         
+         // 如果没有收到任何格式化文本，继续显示等待消息
+         if (!formattedText && textarea) {
+           textarea.value = `正在进行自动排版，请稍候${dots}`;
+         }
+       } else {
+         clearInterval(progressInterval);
+       }
+     }, 500);
      
      // 首先创建POST请求发送文本内容
      fetch('{% url "reformat" %}', {
