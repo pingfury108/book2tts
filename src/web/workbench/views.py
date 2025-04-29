@@ -340,8 +340,12 @@ def format_text_stream(texts):
             # 直接提取result字段的文本内容
             if isinstance(result, dict) and result.get('success') and result.get('result'):
                 formatted_text = result['result']
+                # 修复SSE消息格式，处理多行文本
+                # 在SSE协议中，data字段中的每个换行符前都需要加上"data: "前缀
+                # 将文本中的换行符替换为换行+data前缀
+                sse_formatted_text = formatted_text.replace('\n', '\ndata: ')
                 # Send formatted text directly via SSE
-                yield f"event: message\ndata: {formatted_text}\n\n"
+                yield f"event: message\ndata: {sse_formatted_text}\n\n"
             else:
                 # 处理错误情况
                 error_message = "处理文本失败"

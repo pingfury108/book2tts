@@ -524,32 +524,37 @@
              
              // 修改数据提取方式，支持多行内容
              let dataContent = '';
-             if (message.includes('data: ')) {
-               // 获取data标记之后的所有内容，包括多行
-               dataContent = message.substring(message.indexOf('data: ') + 6);
-             }
              
-             if (eventMatch && dataContent) {
+             // 检查事件类型
+             if (eventMatch) {
                const eventType = eventMatch[1];
-               
-               // 简化日志输出
                console.log('处理事件类型:', eventType);
                
-               if (eventType === 'message') {
-                 // 数据内容即为格式化后的文本，无需再解析JSON
-                 console.log('收到格式化文本:', dataContent.substring(0, 50) + '...');
-                 
-                 // 累积格式化后的文本
-                 formattedText += dataContent;
-                 if (textarea) {
-                   textarea.value = formattedText;
-                   textarea.scrollTop = textarea.scrollHeight;
+               // 提取所有data开头的行
+               const dataLines = message.split('\n').filter(line => line.startsWith('data: '));
+               
+               // 从每行提取数据内容（去掉"data: "前缀）
+               if (dataLines.length > 0) {
+                 dataContent = dataLines.map(line => line.substring(6)).join('\n');
+               }
+               
+               if (dataContent) {
+                 if (eventType === 'message') {
+                   // 数据内容即为格式化后的文本，无需再解析JSON
+                   console.log('收到格式化文本:', dataContent.substring(0, 50) + '...');
+                   
+                   // 累积格式化后的文本
+                   formattedText += dataContent;
+                   if (textarea) {
+                     textarea.value = formattedText;
+                     textarea.scrollTop = textarea.scrollHeight;
+                   }
+                 } else if (eventType === 'complete') {
+                   console.log('格式化完成');
+                 } else if (eventType === 'error') {
+                   console.error('格式化错误:', dataContent);
+                   alert('自动排版失败: ' + dataContent);
                  }
-               } else if (eventType === 'complete') {
-                 console.log('格式化完成');
-               } else if (eventType === 'error') {
-                 console.error('格式化错误:', dataContent);
-                 alert('自动排版失败: ' + dataContent);
                }
              }
            }
