@@ -402,35 +402,62 @@
  let formatEventSource = null;
  let isFormattingInProgress = false;
  
+ // 安全地清理资源的函数
+ function cleanupFormatting() {
+   // 安全地关闭事件源
+   if (formatEventSource) {
+     try {
+       formatEventSource.close();
+     } catch (e) {
+       console.error('关闭事件源时出错:', e);
+     }
+     formatEventSource = null;
+   }
+   
+   // 重置状态
+   isFormattingInProgress = false;
+   
+   // 恢复按钮状态
+   const formatBtn = document.getElementById('format-text-btn');
+   if (formatBtn) {
+     formatBtn.disabled = false;
+     formatBtn.innerHTML = '自动排版';
+   }
+ }
+ 
  // 自动排版按钮点击处理
  document.getElementById('format-text-btn')?.addEventListener('click', function() {
    const textContent = document.getElementById('src-text').value;
    const formatBtn = this;
+   
+   if (!textContent.trim()) {
+     alert('请先输入或加载文本内容');
+     return;
+   }
    
    // 禁用按钮并显示加载状态
    formatBtn.disabled = true;
    formatBtn.innerHTML = '正在排版...';
    
    // 关闭任何已存在的连接
-   if (formatEventSource) {
-     formatEventSource.close();
-     formatEventSource = null;
-   }
+   cleanupFormatting();
    
-   // 重置文本累积变量
+   // 重置文本累积变量和状态
    formattedText = '';
    isFormattingInProgress = true;
    
-   // 建立新的SSE连接
-   formatEventSource = new EventSource('{% url "reformat" %}');
-   console.log('Creating new EventSource connection to', '{% url "reformat" %}');
-   
-   // 连接事件
-   formatEventSource.addEventListener('open', function(e) {
-     console.log('SSE Connection established');
+   // 清空文本框
+   const textarea = document.getElementById('src-text');
+   if (textarea) {
+     textarea.value = '';
+     console.log('文本区域已清空');
+   }
+
+   try {
+     // 建立SSE连接并发送POST请求
+     console.log('发送POST请求并建立SSE连接');
      
-     // 发送POST请求以触发排版处理
-     console.log('Sending POST request with text:', textContent.substring(0, 100) + '...');
+     // 首先创建POST请求发送文本内容
      fetch('{% url "reformat" %}', {
        method: 'POST',
        headers: {
@@ -440,131 +467,89 @@
        body: new URLSearchParams({
          texts: textContent
        })
-     }).catch(error => {
-       console.error('Error sending text:', error);
-       formatBtn.disabled = false;
-       formatBtn.innerHTML = '自动排版';
-       formatEventSource.close();
-       isFormattingInProgress = false;
-     });
-   });
-   
-   // 开始事件
-   formatEventSource.addEventListener('start', function(e) {
-     console.log('Text formatting started');
-     // 重置文本累积
-     formattedText = '';
-     // 清空文本框或者保留原文
-     const textarea = document.getElementById('src-text');
-     if (textarea) {
-       // 可以选择清空文本框
-       // textarea.value = '';
-     }
-   });
-   
-   // 消息事件 - 默认事件类型
-   formatEventSource.addEventListener('message', function(e) {
-     console.log('Received SSE message:', e.data);
-     const textarea = document.getElementById('src-text');
-     if (textarea && e.data) {
-       try {
-         // 尝试解析JSON数据
-         const jsonData = JSON.parse(e.data);
-         console.log('Parsed JSON data:', jsonData);
-         
-         // 检查是否是增量更新或完整结果
-         if (jsonData.success && jsonData.result) {
-           // 根据服务器实现，这里可能是增量更新或完整结果
-           // 假设服务器一次性发送完整结果
-           formattedText = jsonData.result;
-           textarea.value = formattedText;
-           textarea.scrollTop = textarea.scrollHeight;
-           console.log('Updated textarea with formatted text');
-         } 
-         // 检查是否是部分更新
-         else if (jsonData.partial_result) {
-           // 追加部分结果
-           formattedText += jsonData.partial_result;
-           textarea.value = formattedText;
-           textarea.scrollTop = textarea.scrollHeight;
-           console.log('Appended partial text update');
-         }
-         // 检查是否有错误
-         else if (jsonData.error) {
-           console.error('Server error:', jsonData.error);
-         }
-         // 通用回退：检查任何可能包含文本的字段
-         else {
-           // 尝试从JSON中提取任何可能的文本内容
-           let extractedText = '';
-           for (const key in jsonData) {
-             if (typeof jsonData[key] === 'string' && jsonData[key].length > 0) {
-               extractedText = jsonData[key];
-               break;
+     }).then(response => {
+       // 检查响应是否成功
+       if (!response.ok) {
+         throw new Error('服务器响应错误');
+       }
+       
+       // 创建一个新的事件源读取流式响应结果
+       const reader = response.body.getReader();
+       const decoder = new TextDecoder();
+       
+       // 读取响应流
+       function readStream() {
+         reader.read().then(({ done, value }) => {
+           if (done) {
+             console.log('流读取完成');
+             cleanupFormatting();
+             return;
+           }
+           
+           // 处理收到的数据块
+           const chunk = decoder.decode(value, { stream: true });
+           // 简化日志，避免输出大量原始数据
+           console.log('接收到数据块...');
+           
+           // 分割SSE消息
+           const messages = chunk.split('\n\n');
+           for (const message of messages) {
+             if (!message.trim()) continue;
+             
+             // 提取事件类型和数据
+             const eventMatch = message.match(/^event: (.+)$/m);
+             
+             // 修改数据提取方式，支持多行内容
+             let dataContent = '';
+             if (message.includes('data: ')) {
+               // 获取data标记之后的所有内容，包括多行
+               dataContent = message.substring(message.indexOf('data: ') + 6);
+             }
+             
+             if (eventMatch && dataContent) {
+               const eventType = eventMatch[1];
+               
+               // 简化日志输出
+               console.log('处理事件类型:', eventType);
+               
+               if (eventType === 'message') {
+                 // 数据内容即为格式化后的文本，无需再解析JSON
+                 console.log('收到格式化文本:', dataContent.substring(0, 50) + '...');
+                 
+                 // 累积格式化后的文本
+                 formattedText += dataContent;
+                 if (textarea) {
+                   textarea.value = formattedText;
+                   textarea.scrollTop = textarea.scrollHeight;
+                 }
+               } else if (eventType === 'complete') {
+                 console.log('格式化完成');
+               } else if (eventType === 'error') {
+                 console.error('格式化错误:', dataContent);
+                 alert('自动排版失败: ' + dataContent);
+               }
              }
            }
            
-           if (extractedText) {
-             console.log('Found text in unexpected JSON structure:', extractedText.substring(0, 50) + '...');
-             formattedText = extractedText;  // 或者考虑 += 来追加
-             textarea.value = formattedText;
-             textarea.scrollTop = textarea.scrollHeight;
-           }
-         }
-       } catch (error) {
-         // 如果不是JSON，尝试直接使用文本 - 追加模式
-         console.log('JSON parse error, using raw text data:', error);
-         // 追加接收到的文本
-         formattedText += e.data;
-         textarea.value = formattedText;
-         textarea.scrollTop = textarea.scrollHeight;
+           // 继续读取流
+           readStream();
+         }).catch(error => {
+           console.error('读取流错误:', error);
+           cleanupFormatting();
+         });
        }
-     }
-   });
-   
-   // 完成事件
-   formatEventSource.addEventListener('complete', function(e) {
-     console.log('Text formatting completed');
-     formatBtn.disabled = false;
-     formatBtn.innerHTML = '自动排版';
-     formatEventSource.close();
-     formatEventSource = null;
-     isFormattingInProgress = false;
-   });
-   
-   // 错误事件
-   formatEventSource.addEventListener('error', function(e) {
-     console.error('SSE Error:', e);
-     formatBtn.disabled = false;
-     formatBtn.innerHTML = '自动排版';
-     
-     // 尝试从错误事件中获取数据
-     let errorMsg = '连接错误';
-     if (e.data) {
-       try {
-         const jsonData = JSON.parse(e.data);
-         errorMsg = jsonData.error || jsonData.message || '未知错误';
-       } catch (error) {
-         // 如果不是JSON，直接使用文本
-         errorMsg = e.data.startsWith('[ERROR]') ? e.data.substring(8) : e.data;
-       }
-     }
-     alert('自动排版失败: ' + errorMsg);
-     
-     formatEventSource.close();
-     formatEventSource = null;
-     isFormattingInProgress = false;
-   });
-   
-   // 连接错误处理
-   formatEventSource.onerror = function(e) {
-     console.error('SSE connection error:', e);
-     formatBtn.disabled = false;
-     formatBtn.innerHTML = '自动排版';
-     formatEventSource.close();
-     formatEventSource = null;
-     isFormattingInProgress = false;
-   };
+       
+       // 开始读取流
+       readStream();
+     }).catch(error => {
+       console.error('发送文本错误:', error);
+       cleanupFormatting();
+       alert('自动排版失败: ' + error.message);
+     });
+   } catch (error) {
+     console.error('捕获到的错误:', error);
+     cleanupFormatting();
+   }
  });
 </script>
 

@@ -276,43 +276,33 @@ def text_by_page(request, book_id, name):
 @require_http_methods(["GET", "POST"])
 def reformat(request):
     """Handle text reformatting with SSE streaming response"""
-    # Check if this is an SSE request
-    if request.headers.get('Accept') == 'text/event-stream':
-        # For SSE connection, return a connection message
+    # Handle POST request with text content
+    if request.method == 'POST':
+        texts = request.POST.get("texts", "")
+        if not texts:
+            return HttpResponse("No text content provided", status=400)
+        
+        # Create a response with SSE headers
         response = StreamingHttpResponse(
-            streaming_content=stream_connection_message(),
+            streaming_content=format_text_stream(texts),
             content_type='text/event-stream'
         )
         response['Cache-Control'] = 'no-cache'
         response['X-Accel-Buffering'] = 'no'  # Disable nginx buffering
         return response
     
-    # Handle POST request with text content
-    texts = request.POST.get("texts", "")
-    if not texts:
-        return HttpResponse("No text content provided", status=400)
+    # Handle GET request for SSE connection - this should never be called anymore
+    # but we keep it for compatibility
+    def empty_stream():
+        yield "event: connected\ndata: [CONNECTED]\n\n"
     
-    # Create a response with SSE headers
     response = StreamingHttpResponse(
-        streaming_content=format_text_stream(texts),
+        streaming_content=empty_stream(),
         content_type='text/event-stream'
     )
     response['Cache-Control'] = 'no-cache'
     response['X-Accel-Buffering'] = 'no'  # Disable nginx buffering
     return response
-
-def stream_connection_message():
-    """Stream initial connection message and keepalive"""
-    try:
-        # Send connection established message
-        yield "event: connected\ndata: [CONNECTED]\n\n"
-        
-        # Keep connection alive with periodic messages
-        while True:
-            time.sleep(15)  # Send keepalive every 15 seconds
-            yield "event: keepalive\ndata: [KEEPALIVE]\n\n"
-    except Exception as e:
-        yield f"event: error\ndata: Connection error: {str(e)}\n\n"
 
 def format_text_stream(texts):
     """Stream formatted text using SSE with proper event handling"""
@@ -347,8 +337,18 @@ def format_text_stream(texts):
                 temperature=0.7
             )
             
-            # Send formatted chunk via SSE with proper event type
-            yield f"event: message\ndata: {result}\n\n"
+            # 直接提取result字段的文本内容
+            if isinstance(result, dict) and result.get('success') and result.get('result'):
+                formatted_text = result['result']
+                # Send formatted text directly via SSE
+                yield f"event: message\ndata: {formatted_text}\n\n"
+            else:
+                # 处理错误情况
+                error_message = "处理文本失败"
+                if isinstance(result, dict) and result.get('error'):
+                    error_message = result['error']
+                yield f"event: error\ndata: {error_message}\n\n"
+                break
             
             # Add a small delay to prevent overwhelming the client
             time.sleep(0.1)
