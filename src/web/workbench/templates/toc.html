@@ -1,7 +1,7 @@
 {% load custom_filters %}
 <!-- TOC navigation component - optimized for jQuery loading into #src-text -->
 <div class="toc-container h-full">
-  <ul id="toc-list" class="menu menu-sm bg-base-100 rounded-box overflow-y-visible overflow-x-hidden custom-scrollbar w-full flex flex-col single-column" style="column-count:1 !important; columns:1 !important; display:block !important;">
+  <ul id="toc-list" class="menu menu-sm bg-base-100 rounded-box w-full flex flex-col single-column" style="column-count:1 !important; columns:1 !important; display:block !important;">
     {% for toc in tocs %}
     <li>
       <a class="flex items-center py-1.5 px-3 w-full toc-link transition-all duration-300 ease-in-out hover:bg-opacity-20 hover:bg-base-300{% if request.GET.toc == toc.href %} active{% endif %}"

@@ -3,7 +3,7 @@
 
 {% block content %}
 <div class="flex p-2 w-full h-screen bg-base-100">
-    <div class="grow h-full w-1/5 overflow-hidden rounded-lg">
+    <div class="grow h-full w-1/5 overflow-hidden rounded-lg flex flex-col">
       <div class="container text-center p-2">
         <h2 class="text-lg font-bold mb-2">📚 {{ title }}</h2>
         <div role="tablist" class="tabs tabs-bordered">
@@ -23,7 +23,7 @@
           >页面 ({{ pages|length }} 页)</a>
         </div>
       </div>
-        <div class="container pt-2 overflow-y-auto" style="height: calc(100% - 5rem);" id="toc" hx-get="{% url 'toc' book_id=book_id %}" hx-trigger="load">
+        <div class="container pt-2 flex-grow overflow-y-auto" id="toc" hx-get="{% url 'toc' book_id=book_id %}" hx-trigger="load">
         </div>
     </div>
     <div class="divider divider-horizontal"></div>

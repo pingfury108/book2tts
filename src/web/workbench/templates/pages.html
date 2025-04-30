@@ -1,58 +1,60 @@
 {% load custom_filters %}
 <!-- Pages navigation component - optimized for jQuery loading into #src-text -->
-<div class="pages-container" data-pages-component="true">
-  <div class="grid grid-cols-4 gap-1 mb-2">
-    <button class="btn btn-xs btn-outline" id="goto-first"
-            data-text-url="{% url 'text_by_page' book_id=book_id name=pages.0.href|stringformat:"s"|replace:"/,_" %}?page={{ pages.0.href }}">
-      <span class="inline-flex items-center">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-        </svg>
-        首页
-      </span>
-    </button>
-    <button class="btn btn-xs btn-outline" id="batch-extract">
-      <span class="inline-flex items-center">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-        提取
-      </span>
-    </button>
-    <button class="btn btn-xs btn-outline" id="goto-page">
-      <span class="inline-flex items-center">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-        跳转
-      </span>
-    </button>
-    {% with last_page=pages|last %}
-    <button class="btn btn-xs btn-outline" id="goto-last"
-            data-text-url="{% url 'text_by_page' book_id=book_id name=last_page.href|stringformat:"s"|replace:"/,_" %}?page={{ last_page.href }}">
-      <span class="inline-flex items-center">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-        </svg>
-        末页
-      </span>
-    </button>
-    {% endwith %}
-  </div>
-  
-  <div class="flex flex-wrap gap-1 mb-2">
-    <div class="border rounded-full px-4 py-1 flex items-center justify-between w-auto">
-      <span class="inline-flex items-center text-xs">掐头</span>
-      <input type="number" min="0" max="20" value="0" class="input-xs text-xs border-none focus:outline-none w-10" id="skip-start-input" name="head_cut"/>
-      <span class="inline-flex items-center mx-2 text-xs">去尾</span>
-      <input type="number" min="0" max="20" value="0" class="input-xs  text-xs border-none focus:outline-none w-10" id="skip-end-input" name="tail_cut"/>
-      <input type="checkbox" id="select-all-pages" class="checkbox checkbox-sm" />
-      <label for="select-all-pages" class="text-xs ml-1">全选/取消</label>
+<div class="pages-container h-full flex flex-col" data-pages-component="true">
+  <div class="flex-none">
+    <div class="grid grid-cols-4 gap-1 mb-2">
+      <button class="btn btn-xs btn-outline" id="goto-first"
+              data-text-url="{% url 'text_by_page' book_id=book_id name=pages.0.href|stringformat:"s"|replace:"/,_" %}?page={{ pages.0.href }}">
+        <span class="inline-flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+          </svg>
+          首页
+        </span>
+      </button>
+      <button class="btn btn-xs btn-outline" id="batch-extract">
+        <span class="inline-flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          提取
+        </span>
+      </button>
+      <button class="btn btn-xs btn-outline" id="goto-page">
+        <span class="inline-flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          跳转
+        </span>
+      </button>
+      {% with last_page=pages|last %}
+      <button class="btn btn-xs btn-outline" id="goto-last"
+              data-text-url="{% url 'text_by_page' book_id=book_id name=last_page.href|stringformat:"s"|replace:"/,_" %}?page={{ last_page.href }}">
+        <span class="inline-flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+          </svg>
+          末页
+        </span>
+      </button>
+      {% endwith %}
+    </div>
+    
+    <div class="flex flex-wrap gap-1 mb-2">
+      <div class="border rounded-full px-4 py-1 flex items-center justify-between w-auto">
+        <span class="inline-flex items-center text-xs">掐头</span>
+        <input type="number" min="0" max="20" value="0" class="input-xs text-xs border-none focus:outline-none w-10" id="skip-start-input" name="head_cut"/>
+        <span class="inline-flex items-center mx-2 text-xs">去尾</span>
+        <input type="number" min="0" max="20" value="0" class="input-xs  text-xs border-none focus:outline-none w-10" id="skip-end-input" name="tail_cut"/>
+        <input type="checkbox" id="select-all-pages" class="checkbox checkbox-sm" />
+        <label for="select-all-pages" class="text-xs ml-1">全选/取消</label>
+      </div>
     </div>
   </div>
   
-  <div class="single-column-container h-full" style="width:100%; max-width:100%; overflow-x:hidden;">
-    <ul id="pages-list" class="menu menu-sm bg-base-100 rounded-box overflow-y-visible overflow-x-hidden custom-scrollbar w-full flex flex-col single-column" style="column-count:1 !important; columns:1 !important; display:block !important;">
+  <div class="flex-grow overflow-x-hidden">
+    <ul id="pages-list" class="menu menu-sm bg-base-100 rounded-box w-full flex flex-col single-column" style="column-count:1 !important; columns:1 !important; display:block !important;">
       {% for page in pages %}
       <li class="flex items-center w-full hover:bg-base-200 transition-colors duration-200">
         <div class="flex items-center w-full py-1.5 px-3{% if request.GET.page == page.href|stringformat:"s" %} active{% endif %}">
@@ -67,13 +69,6 @@
       </li>
       {% endfor %}
     </ul>
-  </div>
-  
-  <!-- Optimized loading indicator -->
-  <div class="pages-loading-container fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 hidden">
-    <div class="bg-base-200 rounded-lg shadow-lg p-2">
-      <div class="loading loading-spinner loading-xs"></div>
-    </div>
   </div>
 </div>
 
@@ -94,9 +89,6 @@
     // 添加jQuery处理页面链接点击事件
     $('.page-link').off('click').on('click', function(e) {
       e.preventDefault();
-      
-      // Show loading indicator
-      $('.pages-loading-container').removeClass('hidden');
       
       // Get URL from data attribute - 这里已经包含了必要的替换
       const url = $(this).data('text-url');
@@ -142,10 +134,6 @@
         error: function(xhr, status, error) {
           console.error('Error loading page content:', error);
           alert('加载页面内容失败：' + error);
-        },
-        complete: function() {
-          // Hide loading indicator
-          $('.pages-loading-container').addClass('hidden');
         }
       });
     });
@@ -153,9 +141,6 @@
     // 添加首末页按钮点击事件处理
     $('#goto-first, #goto-last').off('click').on('click', function(e) {
       e.preventDefault();
-      
-      // Show loading indicator
-      $('.pages-loading-container').removeClass('hidden');
       
       // Get URL from data attribute - 这里已经包含了必要的替换
       const url = $(this).data('text-url');
@@ -184,10 +169,6 @@
         error: function(xhr, status, error) {
           console.error('Error loading page content:', error);
           alert('加载页面内容失败：' + error);
-        },
-        complete: function() {
-          // Hide loading indicator
-          $('.pages-loading-container').addClass('hidden');
         }
       });
     });
@@ -205,9 +186,6 @@
         
         // Only proceed if checkboxes are selected
         if (checkedPages.length > 0) {
-          // Show loading indicator
-          $('.pages-loading-container').removeClass('hidden');
-          
           // 需要单独请求每个页面然后合并内容，而不是通过逗号分隔的列表
           // Get skip lines parameters
           const skipStart = $('#skip-start-input').val() || 0;
@@ -215,9 +193,6 @@
           
           const allContents = [];
           let completedRequests = 0;
-          
-          // Show loading indicator with progress
-          $('.pages-loading-container').removeClass('hidden');
           
           // 对每个页面分别发起请求
           checkedPages.forEach(function(page, index) {
@@ -252,9 +227,6 @@
                 if (completedRequests === checkedPages.length) {
                   const combinedContent = allContents.join('\n\n');
                   $('#src-text').val(combinedContent);
-                  
-                  // 隐藏加载指示器
-                  $('.pages-loading-container').addClass('hidden');
                   
                   // Log state change
                   if (typeof logState === 'function') {
