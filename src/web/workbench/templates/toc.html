@@ -1,16 +1,11 @@
 {% load custom_filters %}
-<!-- TOC navigation component - optimized for HTMX loading into #toc -->
+<!-- TOC navigation component - optimized for jQuery loading into #src-text -->
 <div class="toc-container">
-  <div class="toc-loading loading loading-spinner loading-sm text-center w-full mt-2 mb-2 hidden"></div>
   <ul id="toc-list" class="menu menu-sm bg-base-100 rounded-box max-h-[calc(100vh-12rem)] overflow-y-auto overflow-x-hidden custom-scrollbar w-full flex flex-col single-column" style="column-count:1 !important; columns:1 !important; display:block !important;">
     {% for toc in tocs %}
     <li>
       <a class="flex items-center py-1.5 px-3 w-full toc-link transition-all duration-300 ease-in-out hover:bg-opacity-20 hover:bg-base-300{% if request.GET.toc == toc.href %} active{% endif %}"
-         hx-get="{% url 'text_by_toc' book_id=book_id name=toc.href|stringformat:"s"|replace:"/,_" %}?toc={{ toc.href|stringformat:"s" }}"
-         hx-target="#src-text"
-         hx-trigger="{% if forloop.first %}load, {% endif %}click"
-         hx-indicator=".toc-container .toc-loading"
-         hx-swap="value"
+         data-text-url="{% url 'text_by_toc' book_id=book_id name=toc.href|stringformat:"s"|replace:"/,_" %}?toc={{ toc.href|stringformat:"s" }}"
          data-toc-href="{{ toc.href }}"
       >
         <span class="truncate">{% if request.GET.toc == toc.href %}<span class="indicator-dot mr-1">•</span>{% endif %}{{ toc.title }}</span>
@@ -18,4 +13,64 @@
     </li>
     {% endfor %}
   </ul>
+  <div class="loading-container fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 hidden">
+    <div class="bg-base-200 rounded-lg shadow-lg p-2">
+      <div class="loading loading-spinner loading-xs"></div>
+    </div>
+  </div>
 </div>
+
+<script>
+$(document).ready(function() {
+  // Handle TOC link clicks
+  $('.toc-container').on('click', '.toc-link', function(e) {
+    e.preventDefault();
+    
+    // Show loading indicator
+    $('.loading-container').removeClass('hidden');
+    
+    // Get the URL from data attribute
+    const url = $(this).data('text-url');
+    
+    // Fetch the text content
+    $.ajax({
+      url: url,
+      type: 'GET',
+      success: function(response) {
+        // Update the textarea with the response
+        $('#src-text').val(response);
+        
+        // Highlight the clicked item
+        $('.toc-link').removeClass('bg-base-300');
+        $(e.currentTarget).addClass('bg-base-300');
+        
+        // Update page state (required for other functionality)
+        window.currentPageName = $(e.currentTarget).find('span').text().trim();
+        window.currentPageId = $(e.currentTarget).data('toc-href');
+        
+        // Update audio title placeholder
+        const titleInput = document.getElementById('audio-title-input');
+        if (titleInput) {
+          titleInput.placeholder = `音频标题 (默认: ${window.currentPageName})`;
+        }
+        
+        // Log state change
+        if (typeof logState === 'function') {
+          logState('Content loaded with jQuery');
+        }
+      },
+      error: function(xhr, status, error) {
+        console.error('Error loading text content:', error);
+        alert('加载内容失败：' + error);
+      },
+      complete: function() {
+        // Hide loading indicator
+        $('.loading-container').addClass('hidden');
+      }
+    });
+  });
+  
+  // Auto-load the first TOC item
+  $('.toc-link:first').trigger('click');
+});
+</script>

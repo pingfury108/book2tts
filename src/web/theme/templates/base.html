@@ -10,9 +10,8 @@
     {% tailwind_css %}
     {% load static %}
     <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
-    <link rel="stylesheet" href="{% static 'pages-component.css' %}">
     <script src="{% static 'htmx.min.js' %}"></script>
-    <script src="{% static 'pages-component.js' %}"></script>
+    <script src="{% static 'jquery.min.js' %}"></script>
     
     <!-- RSS 订阅链接 -->
     {% if user.is_authenticated and user.profile.rss_token %}

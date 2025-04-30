@@ -1,13 +1,9 @@
 {% load custom_filters %}
-<!-- Pages navigation component - optimized for HTMX loading into #toc -->
+<!-- Pages navigation component - optimized for jQuery loading into #src-text -->
 <div class="pages-container" data-pages-component="true">
-  <div class="page-loading loading loading-spinner loading-sm text-center w-full mt-2 mb-2 hidden"></div>
   <div class="grid grid-cols-4 gap-1 mb-2">
     <button class="btn btn-xs btn-outline" id="goto-first"
-            hx-get="{% url 'text_by_page' book_id=book_id name=pages.0.href|stringformat:"s"|replace:"/,_" %}?page={{ pages.0.href }}"
-            hx-target="#src-text"
-            hx-swap="value"
-            hx-indicator=".pages-container .page-loading">
+            data-text-url="{% url 'text_by_page' book_id=book_id name=pages.0.href|stringformat:"s"|replace:"/,_" %}?page={{ pages.0.href }}">
       <span class="inline-flex items-center">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
@@ -33,10 +29,7 @@
     </button>
     {% with last_page=pages|last %}
     <button class="btn btn-xs btn-outline" id="goto-last"
-            hx-get="{% url 'text_by_page' book_id=book_id name=last_page.href|stringformat:"s"|replace:"/,_" %}?page={{ last_page.href }}"
-            hx-target="#src-text"
-            hx-swap="value"
-            hx-indicator=".pages-container .page-loading">
+            data-text-url="{% url 'text_by_page' book_id=book_id name=last_page.href|stringformat:"s"|replace:"/,_" %}?page={{ last_page.href }}">
       <span class="inline-flex items-center">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
@@ -65,12 +58,7 @@
         <div class="flex items-center w-full py-1.5 px-3{% if request.GET.page == page.href|stringformat:"s" %} active{% endif %}">
           <input type="checkbox" class="page-checkbox checkbox checkbox-sm mr-2" value="{{ page.href }}" data-page="{{ page.href }}" />
           <a class="flex-1 page-link"
-             hx-get="{% url 'text_by_page' book_id=book_id name=page.href|stringformat:"s"|replace:"/,_" %}?page={{ page.href }}"
-             hx-target="#src-text"
-             hx-trigger="click"
-             hx-indicator=".pages-container .page-loading"
-             hx-include="#skip-start-input, #skip-end-input"
-             hx-swap="value"
+             data-text-url="{% url 'text_by_page' book_id=book_id name=page.href|stringformat:"s"|replace:"/,_" %}?page={{ page.href }}"
              data-page-number="{{ page.href }}"
           >
             <span class="truncate">{{ page.title }}</span>
@@ -79,6 +67,13 @@
       </li>
       {% endfor %}
     </ul>
+  </div>
+  
+  <!-- Optimized loading indicator -->
+  <div class="pages-loading-container fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 hidden">
+    <div class="bg-base-200 rounded-lg shadow-lg p-2">
+      <div class="loading loading-spinner loading-xs"></div>
+    </div>
   </div>
 </div>
 
@@ -95,32 +90,177 @@
         });
       });
     }
+
+    // 添加jQuery处理页面链接点击事件
+    $('.page-link').off('click').on('click', function(e) {
+      e.preventDefault();
+      
+      // Show loading indicator
+      $('.pages-loading-container').removeClass('hidden');
+      
+      // Get URL from data attribute - 这里已经包含了必要的替换
+      const url = $(this).data('text-url');
+      const skipStart = $('#skip-start-input').val() || 0;
+      const skipEnd = $('#skip-end-input').val() || 0;
+      
+      // 使用与原始HTMX请求相同的参数拼接方式
+      const fullUrl = url + '&head_cut=' + skipStart + '&tail_cut=' + skipEnd;
+      
+      console.log('Requesting page content from URL:', fullUrl);
+      
+      // Fetch the text content
+      $.ajax({
+        url: fullUrl,
+        type: 'GET',
+        success: function(response) {
+          console.log('Page content received, length:', response.length);
+          // Update the textarea with the response
+          $('#src-text').val(response);
+          
+          // Highlight the clicked item
+          $('.page-link').parent().removeClass('active');
+          $(e.currentTarget).parent().addClass('active');
+          
+          // Update page state (required for other functionality)
+          window.currentPageName = $(e.currentTarget).find('span').text().trim();
+          window.currentPageId = $(e.currentTarget).data('page-number');
+          
+          // Update audio title placeholder
+          const titleInput = document.getElementById('audio-title-input');
+          if (titleInput) {
+            titleInput.placeholder = `音频标题 (默认: ${window.currentPageName})`;
+          }
+          
+          // Log state change
+          if (typeof logState === 'function') {
+            logState('Page content loaded with jQuery');
+          }
+        },
+        error: function(xhr, status, error) {
+          console.error('Error loading page content:', error);
+          alert('加载页面内容失败：' + error);
+        },
+        complete: function() {
+          // Hide loading indicator
+          $('.pages-loading-container').addClass('hidden');
+        }
+      });
+    });
+    
+    // 添加首末页按钮点击事件处理
+    $('#goto-first, #goto-last').off('click').on('click', function(e) {
+      e.preventDefault();
+      
+      // Show loading indicator
+      $('.pages-loading-container').removeClass('hidden');
+      
+      // Get URL from data attribute - 这里已经包含了必要的替换
+      const url = $(this).data('text-url');
+      const skipStart = $('#skip-start-input').val() || 0;
+      const skipEnd = $('#skip-end-input').val() || 0;
+      
+      // 使用与原始HTMX请求相同的参数拼接方式
+      const fullUrl = url + '&head_cut=' + skipStart + '&tail_cut=' + skipEnd;
+      
+      console.log('Requesting first/last page content from URL:', fullUrl);
+      
+      // Fetch the text content
+      $.ajax({
+        url: fullUrl,
+        type: 'GET',
+        success: function(response) {
+          console.log('First/last page content received, length:', response.length);
+          // Update the textarea with the response
+          $('#src-text').val(response);
+          
+          // Log state change
+          if (typeof logState === 'function') {
+            logState('Page content loaded with jQuery (first/last)');
+          }
+        },
+        error: function(xhr, status, error) {
+          console.error('Error loading page content:', error);
+          alert('加载页面内容失败：' + error);
+        },
+        complete: function() {
+          // Hide loading indicator
+          $('.pages-loading-container').addClass('hidden');
+        }
+      });
+    });
     
     // Batch extraction button functionality
     const batchExtractBtn = document.getElementById('batch-extract');
     if (batchExtractBtn) {
-      batchExtractBtn.addEventListener('click', function() {
+      $(batchExtractBtn).off('click').on('click', function() {
+        console.log('Batch extract button clicked');
+        
         // Get all checked checkboxes
         const checkedBoxes = document.querySelectorAll('.page-checkbox:checked');
         const checkedPages = Array.from(checkedBoxes).map(box => box.value);
+        console.log('Selected pages:', checkedPages);
         
         // Only proceed if checkboxes are selected
         if (checkedPages.length > 0) {
-          // Create a concatenated name parameter with all checked pages
-          const nameParam = checkedPages.join(',');
+          // Show loading indicator
+          $('.pages-loading-container').removeClass('hidden');
           
+          // 需要单独请求每个页面然后合并内容，而不是通过逗号分隔的列表
           // Get skip lines parameters
-          const skipStart = document.getElementById('skip-start-input').value || 0;
-          const skipEnd = document.getElementById('skip-end-input').value || 0;
+          const skipStart = $('#skip-start-input').val() || 0;
+          const skipEnd = $('#skip-end-input').val() || 0;
           
-          // Build the URL with book_id and the concatenated name
-          const url = '{% url "text_by_page" book_id=book_id name="PLACEHOLDER" %}'.replace('PLACEHOLDER', nameParam) 
-                      + '?page=' + nameParam
-                      + '&head_cut=' + skipStart
-                      + '&tail_cut=' + skipEnd;
+          const allContents = [];
+          let completedRequests = 0;
           
-          // Trigger HTMX request
-          htmx.ajax('GET', url, {target: '#src-text', swap: 'innerHTML', indicator: '.pages-container .page-loading'});
+          // Show loading indicator with progress
+          $('.pages-loading-container').removeClass('hidden');
+          
+          // 对每个页面分别发起请求
+          checkedPages.forEach(function(page, index) {
+            // 替换斜杠为下划线，用于URL路径
+            const processedPage = page.replace(/\//g, '_');
+            
+            // 为单个页面构建URL
+            let url = '{% url "text_by_page" book_id=book_id name="PLACEHOLDER" %}';
+            url = url.replace('PLACEHOLDER', processedPage);
+            url += '?page=' + page; // 使用原始page作为查询参数
+            url += '&head_cut=' + skipStart;
+            url += '&tail_cut=' + skipEnd;
+            
+            console.log(`Requesting content for page ${index+1}/${checkedPages.length}: ${url}`);
+            
+            // 发起请求获取内容
+            $.ajax({
+              url: url,
+              type: 'GET',
+              success: function(response) {
+                console.log(`Content received for page ${index+1}, length: ${response.length}`);
+                allContents.push(response);
+              },
+              error: function(xhr, status, error) {
+                console.error(`Error loading content for page ${page}:`, error);
+                allContents.push(`[Error loading ${page}: ${error}]`);
+              },
+              complete: function() {
+                completedRequests++;
+                
+                // 所有请求完成后，合并内容并更新文本区域
+                if (completedRequests === checkedPages.length) {
+                  const combinedContent = allContents.join('\n\n');
+                  $('#src-text').val(combinedContent);
+                  
+                  // 隐藏加载指示器
+                  $('.pages-loading-container').addClass('hidden');
+                  
+                  // Log state change
+                  if (typeof logState === 'function') {
+                    logState('Batch content loaded with jQuery (multiple requests)');
+                  }
+                }
+              }
+            });
+          });
         } else {
           // Alert if no checkboxes selected
           alert('请先选择要提取的页面！');
@@ -130,12 +270,7 @@
   }
 
   // 初始化函数在页面加载和内容更新后都会执行
-  document.addEventListener('DOMContentLoaded', initPageFunctions);
-  
-  // 监听HTMX内容加载完成事件
-  document.body.addEventListener('htmx:afterOnLoad', function(event) {
-    if (event.detail.target.id === 'toc' || event.detail.target.querySelector('[data-pages-component]')) {
-      initPageFunctions();
-    }
+  $(document).ready(function() {
+    initPageFunctions();
   });
 </script>
