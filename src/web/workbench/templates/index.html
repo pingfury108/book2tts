@@ -23,7 +23,7 @@
           >页面 ({{ pages|length }} 页)</a>
         </div>
       </div>
-        <div class="container pt-2 h-full" id="toc" hx-get="{% url 'toc' book_id=book_id %}" hx-trigger="load">
+        <div class="container pt-2 overflow-y-auto" style="height: calc(100% - 5rem);" id="toc" hx-get="{% url 'toc' book_id=book_id %}" hx-trigger="load">
         </div>
     </div>
     <div class="divider divider-horizontal"></div>

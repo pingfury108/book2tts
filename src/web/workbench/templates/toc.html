@@ -1,7 +1,7 @@
 {% load custom_filters %}
 <!-- TOC navigation component - optimized for jQuery loading into #src-text -->
-<div class="toc-container">
-  <ul id="toc-list" class="menu menu-sm bg-base-100 rounded-box max-h-[calc(100vh-12rem)] overflow-y-auto overflow-x-hidden custom-scrollbar w-full flex flex-col single-column" style="column-count:1 !important; columns:1 !important; display:block !important;">
+<div class="toc-container h-full">
+  <ul id="toc-list" class="menu menu-sm bg-base-100 rounded-box overflow-y-visible overflow-x-hidden custom-scrollbar w-full flex flex-col single-column" style="column-count:1 !important; columns:1 !important; display:block !important;">
     {% for toc in tocs %}
     <li>
       <a class="flex items-center py-1.5 px-3 w-full toc-link transition-all duration-300 ease-in-out hover:bg-opacity-20 hover:bg-base-300{% if request.GET.toc == toc.href %} active{% endif %}"
@@ -22,6 +22,20 @@
 
 <script>
 $(document).ready(function() {
+  // Function to scroll active element into view
+  function scrollActiveIntoView() {
+    const activeElement = $('.toc-link.active, .toc-link.bg-base-300');
+    if (activeElement.length) {
+      const container = $('#toc-list');
+      // Ensure the container is scrollable
+      if (container.prop('scrollHeight') > container.height()) {
+        container.animate({
+          scrollTop: activeElement.offset().top - container.offset().top + container.scrollTop() - (container.height() / 2) + (activeElement.height() / 2)
+        }, 200);
+      }
+    }
+  }
+
   // Handle TOC link clicks
   $('.toc-container').on('click', '.toc-link', function(e) {
     e.preventDefault();
@@ -41,8 +55,11 @@ $(document).ready(function() {
         $('#src-text').val(response);
         
         // Highlight the clicked item
-        $('.toc-link').removeClass('bg-base-300');
-        $(e.currentTarget).addClass('bg-base-300');
+        $('.toc-link').removeClass('bg-base-300 active');
+        $(e.currentTarget).addClass('bg-base-300 active');
+        
+        // Scroll to the active item
+        scrollActiveIntoView();
         
         // Update page state (required for other functionality)
         window.currentPageName = $(e.currentTarget).find('span').text().trim();
@@ -72,5 +89,8 @@ $(document).ready(function() {
   
   // Auto-load the first TOC item
   $('.toc-link:first').trigger('click');
+  
+  // Scroll to active item on initial load
+  setTimeout(scrollActiveIntoView, 300);
 });
 </script>

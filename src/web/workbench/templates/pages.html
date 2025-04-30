@@ -51,8 +51,8 @@
     </div>
   </div>
   
-  <div class="single-column-container" style="width:100%; max-width:100%; overflow-x:hidden;">
-    <ul id="pages-list" class="menu menu-sm bg-base-100 rounded-box max-h-[calc(100vh-12rem)] overflow-y-auto overflow-x-hidden custom-scrollbar w-full flex flex-col single-column" style="column-count:1 !important; columns:1 !important; display:block !important;">
+  <div class="single-column-container h-full" style="width:100%; max-width:100%; overflow-x:hidden;">
+    <ul id="pages-list" class="menu menu-sm bg-base-100 rounded-box overflow-y-visible overflow-x-hidden custom-scrollbar w-full flex flex-col single-column" style="column-count:1 !important; columns:1 !important; display:block !important;">
       {% for page in pages %}
       <li class="flex items-center w-full hover:bg-base-200 transition-colors duration-200">
         <div class="flex items-center w-full py-1.5 px-3{% if request.GET.page == page.href|stringformat:"s" %} active{% endif %}">
@@ -120,6 +120,9 @@
           // Highlight the clicked item
           $('.page-link').parent().removeClass('active');
           $(e.currentTarget).parent().addClass('active');
+          
+          // Scroll to the active item
+          scrollActiveLinkIntoView();
           
           // Update page state (required for other functionality)
           window.currentPageName = $(e.currentTarget).find('span').text().trim();
@@ -271,6 +274,24 @@
 
   // 初始化函数在页面加载和内容更新后都会执行
   $(document).ready(function() {
+    // Function to scroll active page into view
+    function scrollActiveLinkIntoView() {
+      const activeElement = $('.page-link').parent('.active');
+      if (activeElement.length) {
+        const container = $('#pages-list');
+        // Ensure the container is scrollable
+        if (container.prop('scrollHeight') > container.height()) {
+          container.animate({
+            scrollTop: activeElement.offset().top - container.offset().top + container.scrollTop() - (container.height() / 2) + (activeElement.height() / 2)
+          }, 200);
+        }
+      }
+    }
+    
+    // Initialize page functions
     initPageFunctions();
+    
+    // Scroll to active page on initial load
+    setTimeout(scrollActiveLinkIntoView, 300);
   });
 </script>
