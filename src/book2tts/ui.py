@@ -7,6 +7,7 @@ import uuid
 import json
 import datetime
 from concurrent.futures import ThreadPoolExecutor
+import zipfile
 
 from dotenv import load_dotenv
 
@@ -249,6 +250,9 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                         col_count=(2, "fixed"),
                         label="已完成文件列表"
                     )
+                    
+                    # 添加下载结果显示
+                    download_status = gr.Markdown("点击文件行可下载单个文件")
                 
                 with gr.Column(scale=1):
                     # 添加音频预览组件
@@ -1094,6 +1098,36 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
         preview_audio_file,
         inputs=[completed_files_table],
         outputs=[batch_audio_preview]
+    )
+
+    # 保留download_selected_file函数
+    def download_selected_file(evt: gr.SelectData, files_data):
+        """下载选中的文件"""
+        try:
+            # 检查files_data是否为有效DataFrame且不为空
+            if files_data is not None and not files_data.empty:
+                # 获取选择的行索引
+                row_idx = evt.index[0]
+                
+                # 检查索引是否有效
+                if 0 <= row_idx < len(files_data):
+                    # 获取文件路径 (第二列)
+                    file_path = files_data.iloc[row_idx, 1]
+                    file_name = files_data.iloc[row_idx, 0]
+                    
+                    if file_path and os.path.exists(file_path):
+                        return file_path, f"准备下载: {file_name}"
+        except Exception as e:
+            error_msg = f"文件下载错误: {str(e)}"
+            print(error_msg)
+        
+        return None, "文件下载失败，请检查文件是否存在"
+
+    # 只保留文件选择下载事件
+    completed_files_table.select(
+        download_selected_file,
+        inputs=[completed_files_table],
+        outputs=[gr.File(label="下载文件"), download_status]
     )
 
 if __name__ == "__main__":
