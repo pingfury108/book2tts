@@ -232,6 +232,15 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                 label="任务队列"
             )
             
+            # Add batch input area for multiple tasks
+            with gr.Accordion("批量添加队列", open=True):
+                batch_input_text = gr.TextArea(
+                    label="批量添加任务 (每行一个任务)",
+                    placeholder="格式: 名称 || [开始页码,结束页码]\n例如: P1-01.Boy With a Wonderful Name || [10,11]",
+                    lines=5
+                )
+                batch_add_many_btn = gr.Button("批量添加")
+            
             with gr.Row():
                 start_batch_btn = gr.Button("开始处理队列")
                 clear_batch_btn = gr.Button("清空队列")
@@ -1128,6 +1137,142 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
         download_selected_file,
         inputs=[completed_files_table],
         outputs=[gr.File(label="下载文件"), download_status]
+    )
+
+    # Define a new function to handle batch input
+    def add_many_batch_tasks(
+        batch_input_text,
+        batch_file, 
+        batch_start_page, 
+        batch_end_page, 
+        batch_line_num_head, 
+        batch_line_num_tail,
+        batch_system_prompt,
+        batch_tts_provide,
+        batch_azure_key,
+        batch_azure_region,
+        batch_tts_mode,
+        batch_pdf_img,
+        batch_pdf_img_vector
+    ):
+        global batch_tasks
+        
+        if not batch_input_text or batch_file is None:
+            return update_batch_tasks_table(), "请选择文件并输入批量任务"
+        
+        lines = batch_input_text.strip().split("\n")
+        added_count = 0
+        error_lines = []
+        
+        # Handle file path consistently with single task
+        file_path = ""
+        if isinstance(batch_file, dict) and "name" in batch_file:
+            file_path = batch_file.get("path", "")
+        else:
+            file_path = batch_file
+        
+        for i, line in enumerate(lines):
+            if not line.strip():
+                continue
+                
+            try:
+                # Parse line in format: "名称 || [开始页码,结束页码]"
+                if "||" not in line:
+                    error_lines.append(f"行 {i+1}: 格式错误，缺少分隔符 '||'")
+                    continue
+                    
+                parts = line.split("||")
+                if len(parts) != 2:
+                    error_lines.append(f"行 {i+1}: 格式错误，分隔符 '||' 应该只有一个")
+                    continue
+                
+                # Extract title and page range
+                title = parts[0].strip()
+                
+                # Parse page range - should be in format [start,end]
+                page_range_str = parts[1].strip()
+                if not (page_range_str.startswith("[") and page_range_str.endswith("]")):
+                    error_lines.append(f"行 {i+1}: 页码范围格式错误，应为 [开始页码,结束页码]")
+                    continue
+                    
+                # Remove brackets and split by comma
+                page_nums = page_range_str[1:-1].split(",")
+                if len(page_nums) != 2:
+                    error_lines.append(f"行 {i+1}: 页码范围应包含开始和结束页码")
+                    continue
+                    
+                # Convert to integers
+                try:
+                    start_page = int(page_nums[0].strip())
+                    end_page = int(page_nums[1].strip())
+                    
+                    # Apply the +1 adjustment to end pages as requested
+                    start_page_adjusted = start_page
+                    end_page_adjusted = end_page + 1
+                except ValueError:
+                    error_lines.append(f"行 {i+1}: 页码必须是整数")
+                    continue
+                
+                # Generate task ID
+                task_id = str(uuid.uuid4())[:8]
+                
+                # Create task with the parsed info but using other settings from the UI
+                # Make sure to match the same format as in add_batch_task()
+                task = {
+                    "id": task_id,
+                    "file": file_path,
+                    "book_title": title,
+                    "start_page": start_page_adjusted,
+                    "end_page": end_page_adjusted,
+                    "line_num_head": int(batch_line_num_head),
+                    "line_num_tail": int(batch_line_num_tail),
+                    "system_prompt": batch_system_prompt,
+                    "tts_provide": batch_tts_provide,
+                    "azure_key": batch_azure_key,
+                    "azure_region": batch_azure_region,
+                    "tts_mode": batch_tts_mode,
+                    "pdf_img": batch_pdf_img,
+                    "pdf_img_vector": batch_pdf_img_vector,
+                    "status": "等待中",
+                    "output_file": "",
+                    "original_text": "",
+                    "processed_text": "",
+                    "logs": [f"{get_timestamp()} 任务已创建"],
+                    "attempt_count": 0
+                }
+                
+                batch_tasks.append(task)
+                added_count += 1
+                
+            except Exception as e:
+                error_lines.append(f"行 {i+1}: 处理错误 - {str(e)}")
+        
+        # Prepare result message
+        result_message = f"成功添加 {added_count} 个任务"
+        if error_lines:
+            result_message += f"\n错误 ({len(error_lines)}):\n" + "\n".join(error_lines)
+        
+        return update_batch_tasks_table(), result_message
+    
+    # 连接批量输入按钮
+    batch_add_many_btn.click(
+        add_many_batch_tasks,
+        inputs=[
+            batch_input_text,
+            batch_file,
+            batch_start_page,
+            batch_end_page,
+            batch_line_num_head,
+            batch_line_num_tail,
+            batch_system_prompt,
+            batch_tts_provide,
+            batch_azure_key,
+            batch_azure_region,
+            batch_tts_mode,
+            batch_pdf_img,
+            batch_pdf_img_vector
+        ],
+        outputs=[batch_tasks_table, batch_progress]
     )
 
 if __name__ == "__main__":
