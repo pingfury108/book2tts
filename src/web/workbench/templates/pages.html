@@ -95,6 +95,11 @@
       const skipStart = $('#skip-start-input').val() || 0;
       const skipEnd = $('#skip-end-input').val() || 0;
       
+      // Reset audio display if function exists
+      if (typeof resetAudioDisplay === 'function') {
+        resetAudioDisplay();
+      }
+      
       // 使用与原始HTMX请求相同的参数拼接方式
       const fullUrl = url + '&head_cut=' + skipStart + '&tail_cut=' + skipEnd;
       
@@ -147,6 +152,11 @@
       const skipStart = $('#skip-start-input').val() || 0;
       const skipEnd = $('#skip-end-input').val() || 0;
       
+      // Reset audio display if function exists
+      if (typeof resetAudioDisplay === 'function') {
+        resetAudioDisplay();
+      }
+      
       // 使用与原始HTMX请求相同的参数拼接方式
       const fullUrl = url + '&head_cut=' + skipStart + '&tail_cut=' + skipEnd;
       
@@ -178,6 +188,11 @@
     if (batchExtractBtn) {
       $(batchExtractBtn).off('click').on('click', function() {
         console.log('Batch extract button clicked');
+        
+        // Reset audio display if function exists
+        if (typeof resetAudioDisplay === 'function') {
+          resetAudioDisplay();
+        }
         
         // Get all checked checkboxes
         const checkedBoxes = document.querySelectorAll('.page-checkbox:checked');

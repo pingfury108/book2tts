@@ -46,6 +46,11 @@ $(document).ready(function() {
     // Get the URL from data attribute
     const url = $(this).data('text-url');
     
+    // Reset audio display if function exists
+    if (typeof resetAudioDisplay === 'function') {
+      resetAudioDisplay();
+    }
+    
     // Fetch the text content
     $.ajax({
       url: url,

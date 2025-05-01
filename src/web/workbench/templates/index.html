@@ -121,22 +121,69 @@
    evt.detail.headers['X-CSRFToken'] = '{{ csrf_token }}';
  });
 
+ // 重置音频显示功能
+ function resetAudioDisplay() {
+   // 隐藏音频播放器容器
+   const playerContainer = document.getElementById('audio-player-container');
+   if (playerContainer) {
+     playerContainer.classList.add('hidden');
+   }
+   
+   // 重置音频播放器源
+   const audioPlayer = document.getElementById('audio-player');
+   if (audioPlayer) {
+     audioPlayer.src = '';
+     audioPlayer.pause();
+   }
+   
+   // 重置相关状态和按钮
+   const audioTitle = document.getElementById('audio-title');
+   if (audioTitle) {
+     audioTitle.textContent = '';
+   }
+   
+   const audioStatus = document.getElementById('audio-status');
+   if (audioStatus) {
+     audioStatus.textContent = '';
+   }
+   
+   // 禁用下载和发布按钮
+   const downloadBtn = document.getElementById('download-btn');
+   if (downloadBtn) {
+     downloadBtn.disabled = true;
+   }
+   
+   const publishBtn = document.getElementById('publish-btn');
+   if (publishBtn) {
+     publishBtn.disabled = true;
+   }
+   
+   // 重置当前音频ID
+   window.currentAudioSegmentId = 0;
+ }
+
  // Font size adjustment with HTMX compatibility
  function setupFontSizeButtons() {
-   // 使用可选链操作符，防止元素不存在时出错
-   document.getElementById('increase-font-btn')?.addEventListener('click', function() {
-     const textarea = document.getElementById('src-text');
-     const currentSize = parseInt(window.getComputedStyle(textarea).fontSize);
-     textarea.style.fontSize = (currentSize + 2) + 'px';
-   });
+   // 去除可选链操作符，使用常规null检查
+   const increaseFontBtn = document.getElementById('increase-font-btn');
+   if (increaseFontBtn) {
+     increaseFontBtn.addEventListener('click', function() {
+       const textarea = document.getElementById('src-text');
+       const currentSize = parseInt(window.getComputedStyle(textarea).fontSize);
+       textarea.style.fontSize = (currentSize + 2) + 'px';
+     });
+   }
    
-   document.getElementById('decrease-font-btn')?.addEventListener('click', function() {
-     const textarea = document.getElementById('src-text');
-     const currentSize = parseInt(window.getComputedStyle(textarea).fontSize);
-     if (currentSize > 12) {
-       textarea.style.fontSize = (currentSize - 2) + 'px';
-     }
-   });
+   const decreaseFontBtn = document.getElementById('decrease-font-btn');
+   if (decreaseFontBtn) {
+     decreaseFontBtn.addEventListener('click', function() {
+       const textarea = document.getElementById('src-text');
+       const currentSize = parseInt(window.getComputedStyle(textarea).fontSize);
+       if (currentSize > 12) {
+         textarea.style.fontSize = (currentSize - 2) + 'px';
+       }
+     });
+   }
  }
 
  // 初始化字体调整按钮
@@ -166,6 +213,7 @@
      $(this).addClass('tab-active');
      $('#tab_page').removeClass('tab-active');
      window.activeTab = 'tab_toc';
+     resetAudioDisplay(); // 切换到目录选项卡时重置音频显示
      logState('Tab switched to TOC');
    });
 
@@ -173,94 +221,98 @@
      $(this).addClass('tab-active');
      $('#tab_toc').removeClass('tab-active');
      window.activeTab = 'tab_page';
+     resetAudioDisplay(); // 切换到页面选项卡时重置音频显示
      logState('Tab switched to Page');
    });
  });
 
  // 音频合成和管理
- document.getElementById('synthesize-btn')?.addEventListener('click', async function() {
-   const textContent = document.getElementById('src-text').value;
-   const voiceModel = document.getElementById('voice-model').value;
-   const audioTitle = document.getElementById('audio-title-input').value || window.currentPageName;
-   
-   if (!textContent || !voiceModel) {
-     alert('请先选择语音模型并输入文本');
-     return;
-   }
-   
-   // 显示加载状态
-   this.innerHTML = '<span class="loading loading-spinner loading-xs"></span> 合成中...';
-   this.disabled = true;
-   
-   try {
-     const response = await fetch(`{% url 'synthesize_audio' %}`, {
-       method: 'POST',
-       headers: {
-         'Content-Type': 'application/x-www-form-urlencoded',
-         'X-CSRFToken': '{{ csrf_token }}'
-       },
-       body: new URLSearchParams({
-         text: textContent,
-         voice_name: voiceModel,
-         book_id: '{{ book_id }}',
-         title: audioTitle || '未命名音频',
-         book_page: window.currentPageId || '',
-         page_display_name: window.currentPageName || '',
-         audio_title: audioTitle || ''
-       })
-     });
+ const synthesizeBtn = document.getElementById('synthesize-btn');
+ if (synthesizeBtn) {
+   synthesizeBtn.addEventListener('click', async function() {
+     const textContent = document.getElementById('src-text').value;
+     const voiceModel = document.getElementById('voice-model').value;
+     const audioTitle = document.getElementById('audio-title-input').value || window.currentPageName;
      
-     const data = await response.json();
-     console.log('Audio synthesis response:', data);
-     
-     if (data.status === 'success') {
-       // 显示音频播放器
-       document.getElementById('audio-player-container').classList.remove('hidden');
-       const audioPlayer = document.getElementById('audio-player');
-       audioPlayer.src = data.audio_url;
-       document.getElementById('audio-title').textContent = audioTitle || '未命名音频';
-       document.getElementById('audio-status').textContent = '合成成功！';
-       
-       // 启用下载和发布按钮
-       const downloadBtn = document.getElementById('download-btn');
-       downloadBtn.disabled = false;
-       downloadBtn.onclick = function() {
-         const a = document.createElement('a');
-         a.href = data.audio_url;
-         a.download = (audioTitle || '音频') + '.wav';
-         document.body.appendChild(a);
-         a.click();
-         document.body.removeChild(a);
-       };
-       
-       const publishBtn = document.getElementById('publish-btn');
-       publishBtn.disabled = false;
-       window.currentAudioSegmentId = data.audio_id;
-       console.log("Setting audio segment ID:", window.currentAudioSegmentId);
-       
-       // Update hx-post attribute and explicitly tell HTMX to process the element
-       const publishUrl = `/workbench/audio/publish/${window.currentAudioSegmentId}/`;
-       console.log("Setting publish URL to:", publishUrl);
-       publishBtn.setAttribute('hx-post', publishUrl);
-       
-       // Ensure HTMX processes the updated attributes
-       if (typeof htmx !== 'undefined') {
-         htmx.process(publishBtn);
-       }
-
-       logState('Audio synthesized');
-     } else {
-       document.getElementById('audio-status').textContent = '合成失败：' + data.message;
+     if (!textContent || !voiceModel) {
+       alert('请先选择语音模型并输入文本');
+       return;
      }
-   } catch (error) {
-     console.error('音频合成错误:', error);
-     document.getElementById('audio-status').textContent = '合成失败：' + error.message;
-   } finally {
-     // 恢复按钮状态
-     this.innerHTML = '合成音频';
-     this.disabled = false;
-   }
- });
+     
+     // 显示加载状态
+     this.innerHTML = '<span class="loading loading-spinner loading-xs"></span> 合成中...';
+     this.disabled = true;
+     
+     try {
+       const response = await fetch(`{% url 'synthesize_audio' %}`, {
+         method: 'POST',
+         headers: {
+           'Content-Type': 'application/x-www-form-urlencoded',
+           'X-CSRFToken': '{{ csrf_token }}'
+         },
+         body: new URLSearchParams({
+           text: textContent,
+           voice_name: voiceModel,
+           book_id: '{{ book_id }}',
+           title: audioTitle || '未命名音频',
+           book_page: window.currentPageId || '',
+           page_display_name: window.currentPageName || '',
+           audio_title: audioTitle || ''
+         })
+       });
+       
+       const data = await response.json();
+       console.log('Audio synthesis response:', data);
+       
+       if (data.status === 'success') {
+         // 显示音频播放器
+         document.getElementById('audio-player-container').classList.remove('hidden');
+         const audioPlayer = document.getElementById('audio-player');
+         audioPlayer.src = data.audio_url;
+         document.getElementById('audio-title').textContent = audioTitle || '未命名音频';
+         document.getElementById('audio-status').textContent = '合成成功！';
+         
+         // 启用下载和发布按钮
+         const downloadBtn = document.getElementById('download-btn');
+         downloadBtn.disabled = false;
+         downloadBtn.onclick = function() {
+           const a = document.createElement('a');
+           a.href = data.audio_url;
+           a.download = (audioTitle || '音频') + '.wav';
+           document.body.appendChild(a);
+           a.click();
+           document.body.removeChild(a);
+         };
+         
+         const publishBtn = document.getElementById('publish-btn');
+         publishBtn.disabled = false;
+         window.currentAudioSegmentId = data.audio_id;
+         console.log("Setting audio segment ID:", window.currentAudioSegmentId);
+         
+         // Update hx-post attribute and explicitly tell HTMX to process the element
+         const publishUrl = `/workbench/audio/publish/${window.currentAudioSegmentId}/`;
+         console.log("Setting publish URL to:", publishUrl);
+         publishBtn.setAttribute('hx-post', publishUrl);
+         
+         // Ensure HTMX processes the updated attributes
+         if (typeof htmx !== 'undefined') {
+           htmx.process(publishBtn);
+         }
+
+         logState('Audio synthesized');
+       } else {
+         document.getElementById('audio-status').textContent = '合成失败：' + data.message;
+       }
+     } catch (error) {
+       console.error('音频合成错误:', error);
+       document.getElementById('audio-status').textContent = '合成失败：' + error.message;
+     } finally {
+       // 恢复按钮状态
+       this.innerHTML = '合成音频';
+       this.disabled = false;
+     }
+   });
+ }
 
  // 添加 HTMX 请求和响应监听 (保留以兼容其他HTMX功能)
  document.body.addEventListener('htmx:beforeRequest', function(evt) {
@@ -307,153 +359,156 @@
  }
  
  // 自动排版按钮点击处理
- document.getElementById('format-text-btn')?.addEventListener('click', function() {
-   originalTextContent = document.getElementById('src-text').value;
-   const formatBtn = this;
-   
-   if (!originalTextContent.trim()) {
-     alert('请先输入或加载文本内容');
-     return;
-   }
-   
-   // 禁用按钮并显示加载状态
-   formatBtn.disabled = true;
-   formatBtn.innerHTML = '正在排版...';
-   
-   // 关闭任何已存在的连接
-   cleanupFormatting();
-   
-   // 重置文本累积变量和状态
-   formattedText = '';
-   isFormattingInProgress = true;
-   
-   // 清空文本框并显示初始提示
-   const textarea = document.getElementById('src-text');
-   if (textarea) {
-     textarea.value = '正在进行自动排版，请稍候...';
-     console.log('文本区域已清空');
-   }
+ const formatTextBtn = document.getElementById('format-text-btn');
+ if (formatTextBtn) {
+   formatTextBtn.addEventListener('click', function() {
+     originalTextContent = document.getElementById('src-text').value;
+     const formatBtn = this;
+     
+     if (!originalTextContent.trim()) {
+       alert('请先输入或加载文本内容');
+       return;
+     }
+     
+     // 禁用按钮并显示加载状态
+     formatBtn.disabled = true;
+     formatBtn.innerHTML = '正在排版...';
+     
+     // 关闭任何已存在的连接
+     cleanupFormatting();
+     
+     // 重置文本累积变量和状态
+     formattedText = '';
+     isFormattingInProgress = true;
+     
+     // 清空文本框并显示初始提示
+     const textarea = document.getElementById('src-text');
+     if (textarea) {
+       textarea.value = '正在进行自动排版，请稍候...';
+       console.log('文本区域已清空');
+     }
 
-   try {
-     // 建立SSE连接并发送POST请求
-     console.log('发送POST请求并建立SSE连接');
-     
-     // 添加进度显示变量
-     let progressCount = 0;
-     const progressInterval = setInterval(() => {
-       if (isFormattingInProgress) {
-         progressCount = (progressCount + 1) % 4;
-         const dots = '.'.repeat(progressCount);
-         formatBtn.innerHTML = `排版中${dots}`;
-         
-         // 如果没有收到任何格式化文本，继续显示等待消息
-         if (!formattedText && textarea) {
-           textarea.value = `正在进行自动排版，请稍候${dots}`;
-         }
-       } else {
-         clearInterval(progressInterval);
-       }
-     }, 500);
-     
-     // 首先创建POST请求发送文本内容
-     fetch('{% url "reformat" %}', {
-       method: 'POST',
-       headers: {
-         'Content-Type': 'application/x-www-form-urlencoded',
-         'X-CSRFToken': '{{ csrf_token }}'
-       },
-       body: new URLSearchParams({
-         texts: originalTextContent
-       })
-     }).then(response => {
-       // 检查响应是否成功
-       if (!response.ok) {
-         throw new Error('服务器响应错误');
-       }
+     try {
+       // 建立SSE连接并发送POST请求
+       console.log('发送POST请求并建立SSE连接');
        
-       // 创建一个新的事件源读取流式响应结果
-       const reader = response.body.getReader();
-       const decoder = new TextDecoder();
-       
-       // 读取响应流
-       function readStream() {
-         reader.read().then(({ done, value }) => {
-           if (done) {
-             console.log('流读取完成');
-             cleanupFormatting();
-             return;
+       // 添加进度显示变量
+       let progressCount = 0;
+       const progressInterval = setInterval(() => {
+         if (isFormattingInProgress) {
+           progressCount = (progressCount + 1) % 4;
+           const dots = '.'.repeat(progressCount);
+           formatBtn.innerHTML = `排版中${dots}`;
+           
+           // 如果没有收到任何格式化文本，继续显示等待消息
+           if (!formattedText && textarea) {
+             textarea.value = `正在进行自动排版，请稍候${dots}`;
            }
-           
-           // 处理收到的数据块
-           const chunk = decoder.decode(value, { stream: true });
-           // 简化日志，避免输出大量原始数据
-           console.log('接收到数据块...');
-           
-           // 分割SSE消息
-           const messages = chunk.split('\n\n');
-           for (const message of messages) {
-             if (!message.trim()) continue;
+         } else {
+           clearInterval(progressInterval);
+         }
+       }, 500);
+       
+       // 首先创建POST请求发送文本内容
+       fetch('{% url "reformat" %}', {
+         method: 'POST',
+         headers: {
+           'Content-Type': 'application/x-www-form-urlencoded',
+           'X-CSRFToken': '{{ csrf_token }}'
+         },
+         body: new URLSearchParams({
+           texts: originalTextContent
+         })
+       }).then(response => {
+         // 检查响应是否成功
+         if (!response.ok) {
+           throw new Error('服务器响应错误');
+         }
+         
+         // 创建一个新的事件源读取流式响应结果
+         const reader = response.body.getReader();
+         const decoder = new TextDecoder();
+         
+         // 读取响应流
+         function readStream() {
+           reader.read().then(({ done, value }) => {
+             if (done) {
+               console.log('流读取完成');
+               cleanupFormatting();
+               return;
+             }
              
-             // 提取事件类型和数据
-             const eventMatch = message.match(/^event: (.+)$/m);
+             // 处理收到的数据块
+             const chunk = decoder.decode(value, { stream: true });
+             // 简化日志，避免输出大量原始数据
+             console.log('接收到数据块...');
              
-             // 修改数据提取方式，支持多行内容
-             let dataContent = '';
-             
-             // 检查事件类型
-             if (eventMatch) {
-               const eventType = eventMatch[1];
-               console.log('处理事件类型:', eventType);
+             // 分割SSE消息
+             const messages = chunk.split('\n\n');
+             for (const message of messages) {
+               if (!message.trim()) continue;
                
-               // 提取所有data开头的行
-               const dataLines = message.split('\n').filter(line => line.startsWith('data: '));
+               // 提取事件类型和数据
+               const eventMatch = message.match(/^event: (.+)$/m);
                
-               // 从每行提取数据内容（去掉"data: "前缀）
-               if (dataLines.length > 0) {
-                 dataContent = dataLines.map(line => line.substring(6)).join('\n');
-               }
+               // 修改数据提取方式，支持多行内容
+               let dataContent = '';
                
-               if (dataContent) {
-                 if (eventType === 'message') {
-                   // 数据内容即为格式化后的文本，无需再解析JSON
-                   console.log('收到格式化文本:', dataContent.substring(0, 50) + '...');
-                   
-                   // 累积格式化后的文本
-                   formattedText += dataContent;
-                   if (textarea) {
-                     textarea.value = formattedText;
-                     textarea.scrollTop = textarea.scrollHeight;
+               // 检查事件类型
+               if (eventMatch) {
+                 const eventType = eventMatch[1];
+                 console.log('处理事件类型:', eventType);
+                 
+                 // 提取所有data开头的行
+                 const dataLines = message.split('\n').filter(line => line.startsWith('data: '));
+                 
+                 // 从每行提取数据内容（去掉"data: "前缀）
+                 if (dataLines.length > 0) {
+                   dataContent = dataLines.map(line => line.substring(6)).join('\n');
+                 }
+                 
+                 if (dataContent) {
+                   if (eventType === 'message') {
+                     // 数据内容即为格式化后的文本，无需再解析JSON
+                     console.log('收到格式化文本:', dataContent.substring(0, 50) + '...');
+                     
+                     // 累积格式化后的文本
+                     formattedText += dataContent;
+                     if (textarea) {
+                       textarea.value = formattedText;
+                       textarea.scrollTop = textarea.scrollHeight;
+                     }
+                   } else if (eventType === 'complete') {
+                     console.log('格式化完成');
+                   } else if (eventType === 'error') {
+                     console.error('格式化错误:', dataContent);
+                     alert('自动排版失败: ' + dataContent);
                    }
-                 } else if (eventType === 'complete') {
-                   console.log('格式化完成');
-                 } else if (eventType === 'error') {
-                   console.error('格式化错误:', dataContent);
-                   alert('自动排版失败: ' + dataContent);
                  }
                }
              }
-           }
-           
-           // 继续读取流
-           readStream();
-         }).catch(error => {
-           console.error('读取流错误:', error);
-           cleanupFormatting();
-         });
-       }
-       
-       // 开始读取流
-       readStream();
-     }).catch(error => {
-       console.error('发送文本错误:', error);
+             
+             // 继续读取流
+             readStream();
+           }).catch(error => {
+             console.error('读取流错误:', error);
+             cleanupFormatting();
+           });
+         }
+         
+         // 开始读取流
+         readStream();
+       }).catch(error => {
+         console.error('发送文本错误:', error);
+         cleanupFormatting();
+         alert('自动排版失败: ' + error.message);
+       });
+     } catch (error) {
+       console.error('捕获到的错误:', error);
        cleanupFormatting();
-       alert('自动排版失败: ' + error.message);
-     });
-   } catch (error) {
-     console.error('捕获到的错误:', error);
-     cleanupFormatting();
-   }
- });
+     }
+   });
+ }
 </script>
 
 {% endblock %}
