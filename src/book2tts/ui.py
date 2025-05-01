@@ -13,13 +13,6 @@ from book2tts.pdf import (
     save_img,
     extract_img_vector_by_page,
 )
-from book2tts.dify import (
-    llm_parse_text,
-    file_upload,
-    file_2_md,
-    BASE_API,
-    llm_parse_text_workflow,
-)
 from book2tts.tts import (
     edge_tts_volices,
     edge_text_to_speech,
@@ -55,13 +48,6 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
             btn_get_text = gr.Button("提取PDF区间页文本")
             pass
         with gr.Column():
-            dify_base_api = gr.Textbox(label="Dify BASE API", value=BASE_API)
-            dify_api_key = gr.Textbox(
-                label="Dify API Token",
-                value=os.getenv(
-                    "DIFY_APP_TOKEN",
-                ),
-            )
             with gr.Row():
                 line_num_head = gr.Slider(
                     label="掐头行数",
@@ -71,23 +57,22 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                 )
                 pass
             btn_clean = gr.Button("清理")
+            with gr.Row():
+                volc_ak = gr.Textbox(
+                    label="火山云AK",
+                    value=os.getenv(
+                        "VOLC_AK",
+                    ),
+                )
+                volc_sk = gr.Textbox(
+                    label="火山云SK",
+                    value=os.getenv(
+                        "VOLC_SK",
+                    ),
+                )
+                btn_ocr_volc = gr.Button("识别PDF图片(OCR)")
             pass
 
-    with gr.Row():
-        volc_ak = gr.Textbox(
-            label="火山云AK",
-            value=os.getenv(
-                "VOLC_AK",
-            ),
-        )
-        volc_sk = gr.Textbox(
-            label="火山云SK",
-            value=os.getenv(
-                "VOLC_SK",
-            ),
-        )
-        btn_ocr = gr.Button("识别PDF图片(LLM)")
-        btn_ocr_volc = gr.Button("识别PDF图片(OCR)")
     with gr.Row():
         system_prompt = gr.TextArea(
             label="系统提示词",
@@ -106,6 +91,16 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
         )
     with gr.Row():
         btn_llm = gr.Button("处理语言文本")
+
+    gr.Markdown("### 编辑文本")
+    with gr.Row():
+        with gr.Column():
+            text_content = gr.TextArea(label="章节内容")
+            pass
+        with gr.Column():
+            tts_content = gr.TextArea(label="语音文本")
+            pass
+        pass
 
     with gr.Row():
         tts_provide = gr.Dropdown(["edge_tts", "azure"], label="提供商", value="azure")
@@ -131,16 +126,6 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
 
     with gr.Row():
         outfile = gr.Textbox(label="输出文件名称")
-        pass
-
-    gr.Markdown("### 编辑文本")
-    with gr.Row():
-        with gr.Column():
-            text_content = gr.TextArea(label="章节内容")
-            pass
-        with gr.Column():
-            tts_content = gr.TextArea(label="语音文本")
-            pass
         pass
 
     gr.Markdown("### 音频播放")
@@ -193,37 +178,6 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
             )
             return dropdown, book.title
         pass
-
-    def ocr_content_llm(value, api_key, base_api, start_page: int, end_page: int):
-        if start_page > 0 and end_page > start_page:
-            value = [f"page-{i}" for i in range(start_page, end_page)]
-            pass
-        if book_type == "pdf":
-            if book_type_pdf_img:
-                results = []
-                for i in [int(s.split("-")[-1]) for s in value]:
-                    text = llm_parse_text(
-                        text="",
-                        api_key=api_key,
-                        files=[
-                            {
-                                "type": "image",
-                                "transfer_method": "local_file",
-                                "upload_file_id": file_upload(
-                                    api_key, files=file_2_md(save_img(book_toc[i]))
-                                ),
-                            }
-                        ],
-                        base_api=base_api,
-                    )
-                    """
-                    text = ocr_gemini(save_img(book_toc[i]))
-                    """
-                    results.append(text)
-                    yield "\n\n\n".join(results)
-                    pass
-            pass
-        return ""
 
     def ocr_content_volc(value, ak, sk, start_page: int, end_page: int):
         if start_page > 0 and end_page > start_page:
@@ -372,7 +326,7 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
             pass
         return "\n".join(lines[line_num_head:line_num_tail])
 
-    def llm_gen(text, api_key, base_api, line_num_head, line_num_tail, system_prompt):
+    def llm_gen(text, line_num_head, line_num_tail, system_prompt):
         results = []
         for sub_text in text.split("\n\n\n"):
             result = llm_service.process_text(
@@ -419,8 +373,6 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
         llm_gen,
         inputs=[
             text_content,
-            dify_api_key,
-            dify_base_api,
             line_num_head,
             line_num_tail,
             system_prompt,
@@ -429,11 +381,6 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
     )
     pdf_img.change(is_pdf_img, inputs=[pdf_img, pdf_img_vector])
     pdf_img_vector.change(is_pdf_img, inputs=[pdf_img, pdf_img_vector])
-    btn_ocr.click(
-        ocr_content_llm,
-        inputs=[dir_tree, dify_api_key, dify_base_api, start_page, end_page],
-        outputs=[text_content],
-    )
     btn_ocr_volc.click(
         ocr_content_volc,
         inputs=[dir_tree, volc_ak, volc_sk, start_page, end_page],
