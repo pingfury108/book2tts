@@ -590,7 +590,7 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
             "id": task_id,
             "file": file_path,
             "book_title": batch_book_title,
-            "start_page": int(batch_start_page),
+            "start_page": int(batch_start_page) + 1,
             "end_page": int(batch_end_page),
             "line_num_head": int(batch_line_num_head),
             "line_num_tail": int(batch_line_num_tail),
@@ -801,7 +801,7 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                     # Validate page range
                     if task["start_page"] >= len(local_book_toc) or task["end_page"] > len(local_book_toc):
                         set_error_detail(task, "页面范围超出PDF总页数", 
-                                        f"指定的页面范围 ({task['start_page']}-{task['end_page']}) 超出了PDF文件的总页数 ({len(local_book_toc)})。\n请调整页面范围重试。")
+                                        f"指定的页面范围 ({task['start_page']}-{task['end_page']}) 超出了PDF文件的总页数 ({len(local_book_toc)})。\n请调整页面范围重试。\n注意：起始页码和结束页码都已自动加1调整。")
                         if progress_callback:
                             progress_callback(f"任务 {task['id']} 错误: 页面范围超出PDF总页数 ({len(local_book_toc)})")
                         return False
@@ -984,21 +984,29 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
         # Process each task
         for task in waiting_tasks:
             process_batch_task(task, update_progress)
-            yield update_batch_tasks_table(), [], progress_text
+            
+            # 更新已完成文件列表 - 每完成一个任务就更新一次
+            completed_files_data = []
+            completed_tasks = [t for t in batch_tasks if t["status"] == "已完成"]
+            
+            for completed_task in completed_tasks:
+                if completed_task["output_file"] and os.path.exists(completed_task["output_file"]):
+                    # Prepare display name for each file
+                    label = f"{completed_task['book_title']} ({completed_task['start_page']}-{completed_task['end_page']})"
+                    # 添加到文件列表中，显示名称和文件路径
+                    completed_files_data.append([label, completed_task["output_file"]])
+            
+            yield update_batch_tasks_table(), completed_files_data, progress_text
         
-        # Collect completed tasks for the dataframe
-        completed_tasks = [task for task in batch_tasks if task["status"] == "已完成"]
+        # 最终更新
+        completed_tasks = [t for t in batch_tasks if t["status"] == "已完成"]
         completed_files_data = []
-        
-        for task in completed_tasks:
-            if task["output_file"] and os.path.exists(task["output_file"]):
-                # Prepare display name for each file
-                label = f"{task['book_title']} ({task['start_page']}-{task['end_page']})"
+        for completed_task in completed_tasks:
+            if completed_task["output_file"] and os.path.exists(completed_task["output_file"]):
+                label = f"{completed_task['book_title']} ({completed_task['start_page']}-{completed_task['end_page']})"
+                completed_files_data.append([label, completed_task["output_file"]])
                 
-                # 添加到文件列表中，显示名称和文件路径
-                completed_files_data.append([label, task["output_file"]])
-        
-        update_progress(f"队列处理完成，共 {len(completed_files_data)} 个文件")
+        update_progress(f"队列处理完成，共 {len(completed_tasks)} 个文件")
         yield update_batch_tasks_table(), completed_files_data, f"队列处理完成，共 {len(completed_files_data)} 个文件"
 
     def batch_parse_file(batch_file):
@@ -1206,8 +1214,8 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                     start_page = int(page_nums[0].strip())
                     end_page = int(page_nums[1].strip())
                     
-                    # Apply the +1 adjustment to end pages as requested
-                    start_page_adjusted = start_page
+                    # Apply the +1 adjustment to both start and end pages
+                    start_page_adjusted = start_page + 1
                     end_page_adjusted = end_page + 1
                 except ValueError:
                     error_lines.append(f"行 {i+1}: 页码必须是整数")
