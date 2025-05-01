@@ -237,13 +237,29 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                 retry_task_btn = gr.Button("重试选中任务")
             
             batch_progress = gr.Markdown("准备就绪")
-            batch_results = gr.Audio(
-                label="已完成音频", 
-                sources=[], 
-                autoplay=False,  
-                show_download_button=True,  
-                format="mp3"
-            )
+            
+            # 将Gallery和Audio放在同一行显示，各自使用Column
+            with gr.Row():
+                with gr.Column(scale=1):
+                    # 使用Dataframe显示完成的文件列表
+                    completed_files_table = gr.Dataframe(
+                        headers=["文件名", "路径"],
+                        datatype=["str", "str"],
+                        row_count=10,
+                        col_count=(2, "fixed"),
+                        label="已完成文件列表"
+                    )
+                
+                with gr.Column(scale=1):
+                    # 添加音频预览组件
+                    batch_audio_preview = gr.Audio(
+                        label="音频预览", 
+                        sources=[], 
+                        autoplay=False,  
+                        show_download_button=True,  
+                        format="mp3",
+                        visible=True
+                    )
             
             # Task details modal
             with gr.Accordion("任务详情", open=False, visible=False) as task_details:
@@ -948,33 +964,30 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
         # Find tasks that are waiting or marked for retry
         waiting_tasks = [task for task in batch_tasks if task["status"] == "等待中" or task["status"] == "等待重试"]
         if not waiting_tasks:
-            return update_batch_tasks_table(), None, "没有等待的任务"
+            return update_batch_tasks_table(), [], "没有等待的任务"
         
         update_progress("开始处理队列...")
         
         # Process each task
         for task in waiting_tasks:
             process_batch_task(task, update_progress)
-            yield update_batch_tasks_table(), None, progress_text
+            yield update_batch_tasks_table(), [], progress_text
         
-        # Collect completed tasks for the audio player
+        # Collect completed tasks for the dataframe
         completed_tasks = [task for task in batch_tasks if task["status"] == "已完成"]
+        completed_files_data = []
         
-        # 找到最近完成的任务，用于音频预览
-        latest_completed_task = None
-        if completed_tasks:
-            latest_completed_task = completed_tasks[-1]  # 获取最新完成的任务
-            if latest_completed_task["output_file"] and os.path.exists(latest_completed_task["output_file"]):
-                audio_file = latest_completed_task["output_file"]
-                update_progress(f"队列处理完成，最新生成的音频: {audio_file}")
-                yield update_batch_tasks_table(), audio_file, f"队列处理完成，最新生成的音频: {audio_file}"
-            else:
-                update_progress("队列处理完成，但无法找到生成的音频文件")
-                yield update_batch_tasks_table(), None, "队列处理完成，但无法找到生成的音频文件"
-        else:
-            update_progress("队列处理完成，但没有成功完成的任务")
-            yield update_batch_tasks_table(), None, "队列处理完成，但没有成功完成的任务"
-    
+        for task in completed_tasks:
+            if task["output_file"] and os.path.exists(task["output_file"]):
+                # Prepare display name for each file
+                label = f"{task['book_title']} ({task['start_page']}-{task['end_page']})"
+                
+                # 添加到文件列表中，显示名称和文件路径
+                completed_files_data.append([label, task["output_file"]])
+        
+        update_progress(f"队列处理完成，共 {len(completed_files_data)} 个文件")
+        yield update_batch_tasks_table(), completed_files_data, f"队列处理完成，共 {len(completed_files_data)} 个文件"
+
     def batch_parse_file(batch_file):
         if batch_file is None:
             return ""
@@ -1021,7 +1034,7 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
     start_batch_btn.click(
         start_batch_processing,
         inputs=[batch_progress],
-        outputs=[batch_tasks_table, batch_results, batch_progress]
+        outputs=[batch_tasks_table, completed_files_table, batch_progress]
     )
     
     # Connect the task details view
@@ -1053,6 +1066,34 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
         retry_current_task,
         inputs=None,
         outputs=[task_status_display, task_logs, batch_tasks_table]
+    )
+
+    # 修复点击文件列表时的处理函数
+    def preview_audio_file(evt: gr.SelectData, files_data):
+        """当用户点击文件列表中的文件时预览音频"""
+        try:
+            # 检查files_data是否为有效DataFrame且不为空
+            if files_data is not None and not files_data.empty:
+                # 获取选择的行索引
+                row_idx = evt.index[0]
+                
+                # 检查索引是否有效
+                if 0 <= row_idx < len(files_data):
+                    # 获取文件路径 (第二列)
+                    audio_file = files_data.iloc[row_idx, 1]
+                    if audio_file and os.path.exists(audio_file):
+                        return audio_file
+        except Exception as e:
+            print(f"音频预览错误: {str(e)}")
+        
+        # 如果有任何问题，返回None
+        return None
+
+    # 连接文件列表的选择事件
+    completed_files_table.select(
+        preview_audio_file,
+        inputs=[completed_files_table],
+        outputs=[batch_audio_preview]
     )
 
 if __name__ == "__main__":
