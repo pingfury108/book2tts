@@ -237,7 +237,13 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                 retry_task_btn = gr.Button("重试选中任务")
             
             batch_progress = gr.Markdown("准备就绪")
-            batch_results = gr.Gallery(label="已完成音频", columns=3, object_fit="contain")
+            batch_results = gr.Audio(
+                label="已完成音频", 
+                sources=[], 
+                autoplay=False,  
+                show_download_button=True,  
+                format="mp3"
+            )
             
             # Task details modal
             with gr.Accordion("任务详情", open=False, visible=False) as task_details:
@@ -665,32 +671,18 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                 task["logs"].append(f"{get_timestamp()} 任务标记为重试")
                 task["attempt_count"] += 1
                 
-                # Return updated task details
+                # Return updated task details and table
                 logs_text = "\n".join(task.get("logs", []))
                 return {
                     task_status_display: task["status"],
-                    task_logs: logs_text
+                    task_logs: logs_text,
+                    batch_tasks_table: update_batch_tasks_table()
                 }
         
-        return {}
+        return {
+            batch_tasks_table: update_batch_tasks_table()
+        }
         
-    def retry_selected_task(evt: gr.SelectData):
-        """Retry a specific task that was selected in the table"""
-        row_index = evt.index[0]
-        if row_index < len(batch_tasks):
-            task = batch_tasks[row_index]
-            
-            # Check if the task can be retried
-            if task["status"].startswith("错误") or task["status"] == "不支持的操作":
-                # Mark task for retry
-                task["status"] = "等待重试"
-                task["logs"].append(f"{get_timestamp()} 任务标记为重试")
-                task["attempt_count"] += 1
-                
-                return update_batch_tasks_table()
-        
-        return update_batch_tasks_table()
-    
     def add_task_log(task, message):
         """Add a log entry to the task"""
         if "logs" not in task:
@@ -898,9 +890,20 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
             # Generate output filename - use book name as directory
             try:
                 os.makedirs("/tmp/book2tts", exist_ok=True)
-                book_dir = f"/tmp/book2tts/{task['book_title']}"
+                
+                # 从文件路径中提取PDF文件名（不含扩展名）
+                pdf_filename = ""
+                if task["file"].endswith(".pdf"):
+                    pdf_filename = os.path.basename(task["file"]).split(".")[0].replace(" ", "_")
+                else:
+                    pdf_filename = "未知书籍"
+                    
+                # 确保书籍目录存在（使用PDF文件名）
+                book_dir = f"/tmp/book2tts/{pdf_filename}"
                 os.makedirs(book_dir, exist_ok=True)
-                output_file = f"{book_dir}/{task['start_page']}-{task['end_page']}.mp3"
+                
+                # 使用任务名称作为输出文件名
+                output_file = f"{book_dir}/{task['book_title']}.mp3"
                 
                 # Generate TTS
                 add_task_log(task, f"使用语音模型: {task['tts_mode']}")
@@ -945,27 +948,32 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
         # Find tasks that are waiting or marked for retry
         waiting_tasks = [task for task in batch_tasks if task["status"] == "等待中" or task["status"] == "等待重试"]
         if not waiting_tasks:
-            return update_batch_tasks_table(), [], "没有等待的任务"
+            return update_batch_tasks_table(), None, "没有等待的任务"
         
         update_progress("开始处理队列...")
         
         # Process each task
         for task in waiting_tasks:
             process_batch_task(task, update_progress)
-            yield update_batch_tasks_table(), [], progress_text
+            yield update_batch_tasks_table(), None, progress_text
         
-        # Collect completed tasks for the gallery
+        # Collect completed tasks for the audio player
         completed_tasks = [task for task in batch_tasks if task["status"] == "已完成"]
-        completed_files = []
         
-        for task in completed_tasks:
-            if task["output_file"] and os.path.exists(task["output_file"]):
-                # Prepare display name for each file
-                label = f"{task['book_title']} ({task['start_page']}-{task['end_page']})"
-                completed_files.append((task["output_file"], label))
-        
-        update_progress("队列处理完成")
-        yield update_batch_tasks_table(), completed_files, "队列处理完成"
+        # 找到最近完成的任务，用于音频预览
+        latest_completed_task = None
+        if completed_tasks:
+            latest_completed_task = completed_tasks[-1]  # 获取最新完成的任务
+            if latest_completed_task["output_file"] and os.path.exists(latest_completed_task["output_file"]):
+                audio_file = latest_completed_task["output_file"]
+                update_progress(f"队列处理完成，最新生成的音频: {audio_file}")
+                yield update_batch_tasks_table(), audio_file, f"队列处理完成，最新生成的音频: {audio_file}"
+            else:
+                update_progress("队列处理完成，但无法找到生成的音频文件")
+                yield update_batch_tasks_table(), None, "队列处理完成，但无法找到生成的音频文件"
+        else:
+            update_progress("队列处理完成，但没有成功完成的任务")
+            yield update_batch_tasks_table(), None, "队列处理完成，但没有成功完成的任务"
     
     def batch_parse_file(batch_file):
         if batch_file is None:
@@ -1016,9 +1024,6 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
         outputs=[batch_tasks_table, batch_results, batch_progress]
     )
     
-    # Retry button for selected task
-    retry_task_btn.click(lambda: None, inputs=None, outputs=None)
-    
     # Connect the task details view
     batch_tasks_table.select(
         view_task_details,
@@ -1040,14 +1045,14 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
     retry_button.click(
         retry_current_task,
         inputs=None,
-        outputs=[task_status_display, task_logs]
+        outputs=[task_status_display, task_logs, batch_tasks_table]
     )
     
-    # Connect retry task selection
-    batch_tasks_table.select(
-        retry_selected_task,
+    # 将重试任务按钮连接到retry_current_task函数
+    retry_task_btn.click(
+        retry_current_task,
         inputs=None,
-        outputs=[batch_tasks_table]
+        outputs=[task_status_display, task_logs, batch_tasks_table]
     )
 
 if __name__ == "__main__":
