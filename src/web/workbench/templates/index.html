@@ -271,6 +271,12 @@
    });
  });
 
+ // 自动排版相关的全局变量
+ let formattedText = '';
+ let formatEventSource = null;
+ let isFormattingInProgress = false;
+ let originalTextContent = '';
+
  // 安全地清理资源的函数
  function cleanupFormatting() {
    // 安全地关闭事件源
@@ -296,16 +302,16 @@
    // 如果文本框是空的，但过程中没收到任何内容，恢复原文本
    const textarea = document.getElementById('src-text');
    if (textarea && !formattedText && textarea.value.startsWith('正在进行自动排版')) {
-     textarea.value = textContent || '';
+     textarea.value = originalTextContent || '';
    }
  }
  
  // 自动排版按钮点击处理
  document.getElementById('format-text-btn')?.addEventListener('click', function() {
-   const textContent = document.getElementById('src-text').value;
+   originalTextContent = document.getElementById('src-text').value;
    const formatBtn = this;
    
-   if (!textContent.trim()) {
+   if (!originalTextContent.trim()) {
      alert('请先输入或加载文本内容');
      return;
    }
@@ -357,7 +363,7 @@
          'X-CSRFToken': '{{ csrf_token }}'
        },
        body: new URLSearchParams({
-         texts: textContent
+         texts: originalTextContent
        })
      }).then(response => {
        // 检查响应是否成功
