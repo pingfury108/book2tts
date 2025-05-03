@@ -239,7 +239,13 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                     placeholder="格式: 名称 || [开始页码,结束页码]\n例如: P1-01.Boy With a Wonderful Name || [10,11]",
                     lines=5
                 )
-                batch_add_many_btn = gr.Button("批量添加")
+                with gr.Row():
+                    batch_page_offset = gr.Number(
+                        label="页码偏移量",
+                        value=1,
+                        info="页码将自动加上这个偏移量，通常设为1来处理从0开始的页码"
+                    )
+                    batch_add_many_btn = gr.Button("批量添加")
             
             with gr.Row():
                 start_batch_btn = gr.Button("开始处理队列")
@@ -1161,7 +1167,8 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
         batch_azure_region,
         batch_tts_mode,
         batch_pdf_img,
-        batch_pdf_img_vector
+        batch_pdf_img_vector,
+        batch_page_offset
     ):
         global batch_tasks
         
@@ -1214,9 +1221,9 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                     start_page = int(page_nums[0].strip())
                     end_page = int(page_nums[1].strip())
                     
-                    # Apply the +1 adjustment to both start and end pages
-                    start_page_adjusted = start_page + 1
-                    end_page_adjusted = end_page + 1
+                    # Apply the page offset adjustment to both start and end pages
+                    start_page_adjusted = start_page + int(batch_page_offset)
+                    end_page_adjusted = end_page + int(batch_page_offset)
                 except ValueError:
                     error_lines.append(f"行 {i+1}: 页码必须是整数")
                     continue
@@ -1278,7 +1285,8 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
             batch_azure_region,
             batch_tts_mode,
             batch_pdf_img,
-            batch_pdf_img_vector
+            batch_pdf_img_vector,
+            batch_page_offset
         ],
         outputs=[batch_tasks_table, batch_progress]
     )
