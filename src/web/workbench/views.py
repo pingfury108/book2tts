@@ -169,7 +169,13 @@ def text_by_toc(request, book_id, name):
     elif book.file_type == ".epub":
         try:
             ebook = open_ebook(book.file.path)
-            texts = get_content_with_href(ebook, name)
+            # 检查是否有 toc 查询参数，如果有就使用它而不是 name
+            toc_param = request.GET.get('toc')
+            if toc_param:
+                href_to_use = toc_param
+            else:
+                href_to_use = name
+            texts = get_content_with_href(ebook, href_to_use)
         except Exception as e:
             texts = f"Error extracting text: {str(e)}"
 
