@@ -11,8 +11,13 @@ from io import BytesIO
 def extract_text_by_page(pdf_path):
     doc = pymupdf.open(pdf_path)
     print("pdf text page")
-    print(doc.get_toc())
-    return [page.get_text() for page in doc]
+    toc = doc.get_toc()
+    print(toc)
+    # 返回目录和页面内容
+    return {
+        "toc": toc if toc else None,  # 如果没有目录，返回None
+        "pages": [page.get_text() for page in doc]
+    }
 
 
 def clean_text(text):

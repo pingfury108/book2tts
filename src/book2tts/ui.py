@@ -42,6 +42,24 @@ task_text_contents = {}
 # Global variable to store current task index for retry button
 current_task_index = None
 
+# Global system prompt for text processing
+DEFAULT_SYSTEM_PROMPT = """
+# Role: 我是一个专门用于排版文本内容的 AI 角色
+
+## Constrains: 
+- 严格保持原有语言，不进行任何语言转换（如中文保持中文，英文保持英文）
+- 输出纯文本
+- 去除页码(数字）之后行的文字
+- 去页首，页尾不相关的文字
+- 去除引文标注（如[1]、[2]、(1)、(2)等数字标注）
+- 去除文本末尾的注释说明（如[1] 弗朗西斯·鲍蒙特...这类详细的注释说明）
+- 缺失的标点符号补全
+
+## outputs
+- 只输出排版后的文本，不要输出任何解释说明
+- 纯文本格式，不适用 markdown 格式
+"""
+
 with gr.Blocks(title="Book 2 TTS") as book2tts:
     gr.Markdown("# Book 2 TTS")
     
@@ -93,17 +111,7 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
             with gr.Row():
                 system_prompt = gr.TextArea(
                     label="系统提示词",
-                    value="""
-# Role: 我是一个专门用于排版文本内容的 AI 角色
-
-## Constrains: 
-- 保持原有语言
-- 输出纯文本
-- 去除页码(数字）之后行的文字
-- 去页首，页尾这些文字，e.g: THE BIBLE STORY, BACK TO THE BEGINNING, PART ONE , STORY 2，BIRTHDAY OF A WORLD, THE BIBLE STORY
-- 使用小写字母
-- 缺失的标点符号补全
-                    """,
+                    value=DEFAULT_SYSTEM_PROMPT,
                     lines=10
                 )
             with gr.Row():
@@ -177,17 +185,7 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                 with gr.Column():
                     batch_system_prompt = gr.TextArea(
                         label="系统提示词",
-                        value="""
-# Role: 我是一个专门用于排版文本内容的 AI 角色
-
-## Constrains: 
-- 保持原有语言
-- 输出纯文本
-- 去除页码(数字）之后行的文字
-- 去页首，页尾这些文字，e.g: THE BIBLE STORY, BACK TO THE BEGINNING, PART ONE , STORY 2，BIRTHDAY OF A WORLD, THE BIBLE STORY
-- 使用小写字母
-- 缺失的标点符号补全
-                        """,
+                        value=DEFAULT_SYSTEM_PROMPT,
                         lines=10
                     )
                     
@@ -243,7 +241,9 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                     batch_page_offset = gr.Number(
                         label="页码偏移量",
                         value=1,
-                        info="页码将自动加上这个偏移量，通常设为1来处理从0开始的页码"
+                        minimum=-100,  # 允许负数偏移
+                        maximum=100,   # 设置一个合理的上限
+                        info="页码将自动加上这个偏移量，可以为负数。例如：\n- 设为1来处理从0开始的页码\n- 设为-1来处理从1开始的页码"
                     )
                     batch_add_many_btn = gr.Button("批量添加")
             
@@ -317,18 +317,50 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
             return None, None
         if file.endswith(".pdf"):
             book_type = "pdf"
-            # book = open_pdf_reader(file)
             if book_type_pdf_img:
                 if book_type_pdf_img_vector:
                     book_toc = extract_img_vector_by_page(file)
+                    dropdown = gr.Dropdown(
+                        choices=[f"page-{i}" for i, _ in enumerate(book_toc)], multiselect=True
+                    )
                 else:
                     book_toc = extract_img_by_page(file)
+                    dropdown = gr.Dropdown(
+                        choices=[f"page-{i}" for i, _ in enumerate(book_toc)], multiselect=True
+                    )
             else:
-                book_toc = extract_text_by_page(file)
-                pass
-            dropdown = gr.Dropdown(
-                choices=[f"page-{i}" for i, _ in enumerate(book_toc)], multiselect=True
-            )
+                result = extract_text_by_page(file)
+                book_toc = result["pages"]
+                
+                # 检查是否有目录
+                if result["toc"]:
+                    # 使用目录结构创建下拉列表选项
+                    toc_choices = []
+                    # 对目录按页码排序
+                    sorted_toc = sorted(result["toc"], key=lambda x: x[2])  # 按页码排序
+                    
+                    # 处理每个章节的页码范围
+                    for i, (level, title, page) in enumerate(sorted_toc):
+                        # 计算章节的结束页码
+                        end_page = page
+                        if i < len(sorted_toc) - 1:
+                            # 如果不是最后一个章节，结束页码是下一个章节的开始页码减1
+                            end_page = sorted_toc[i + 1][2] - 1
+                        
+                        # 根据层级添加缩进，页码减1以匹配从0开始的PDF页面索引
+                        indent = "  " * (level - 1)
+                        # 添加页码范围信息
+                        if end_page > page:
+                            toc_choices.append(f"{indent}{title} (p.{page-1}-{end_page-1})")
+                        else:
+                            toc_choices.append(f"{indent}{title} (p.{page-1})")
+                            
+                    dropdown = gr.Dropdown(choices=toc_choices, multiselect=True)
+                else:
+                    # 如果没有目录，使用原来的页码方式
+                    dropdown = gr.Dropdown(
+                        choices=[f"page-{i}" for i, _ in enumerate(book_toc)], multiselect=True
+                    )
             return dropdown, file.split("/")[-1].split(".")[0].replace(" ", "_")
         elif file.endswith(".epub"):
             book_type = "epub"
@@ -385,9 +417,7 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
             pass
         return ""
 
-    def parse_content(
-        value, book_title, line_num_head: int = 0, line_num_tail: int = 0
-    ):
+    def parse_content(value, book_title, line_num_head: int = 0, line_num_tail: int = 0):
         if value is None or book_title is None:
             return None, None
         if book_type == "pdf":
@@ -395,16 +425,46 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                 return "", gen_out_file(book_title, value)
             else:
                 texts = []
-                for i in [int(s.split("-")[-1]) for s in value]:
-                    text = str(book_toc[i])
-                    # Apply line number trimming
-                    text_lines = text.split("\n")
-                    if len(text_lines) > 1:
-                        end_idx = (
-                            len(text_lines) if line_num_tail == 0 else -line_num_tail
-                        )
-                        text = "\n".join(text_lines[line_num_head:end_idx])
-                    texts.append(text)
+                for selection in value:
+                    # 检查是否是目录格式 (包含 "p.") 还是页码格式
+                    if "(p." in selection:
+                        # 从目录格式中提取页码范围
+                        page_range = selection.split("(p.")[-1].rstrip(")")
+                        if "-" in page_range:
+                            # 处理页码范围
+                            start_page, end_page = map(int, page_range.split("-"))
+                            # 提取这个区间的所有页面
+                            for page_num in range(start_page, end_page + 1):
+                                if page_num < len(book_toc):
+                                    text = str(book_toc[page_num])
+                                    # Apply line number trimming
+                                    text_lines = text.split("\n")
+                                    if len(text_lines) > 1:
+                                        end_idx = len(text_lines) if line_num_tail == 0 else -line_num_tail
+                                        text = "\n".join(text_lines[line_num_head:end_idx])
+                                    texts.append(text)
+                        else:
+                            # 处理单个页码
+                            page_num = int(page_range)
+                            if page_num < len(book_toc):
+                                text = str(book_toc[page_num])
+                                # Apply line number trimming
+                                text_lines = text.split("\n")
+                                if len(text_lines) > 1:
+                                    end_idx = len(text_lines) if line_num_tail == 0 else -line_num_tail
+                                    text = "\n".join(text_lines[line_num_head:end_idx])
+                                texts.append(text)
+                    else:
+                        # 从页码格式中提取页码
+                        page_num = int(selection.split("-")[-1])
+                        if page_num < len(book_toc):
+                            text = str(book_toc[page_num])
+                            # Apply line number trimming
+                            text_lines = text.split("\n")
+                            if len(text_lines) > 1:
+                                end_idx = len(text_lines) if line_num_tail == 0 else -line_num_tail
+                                text = "\n".join(text_lines[line_num_head:end_idx])
+                            texts.append(text)
                 return "\n\n\n".join(texts), gen_out_file(book_title, value)
 
         hrefs = [
@@ -596,7 +656,7 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
             "id": task_id,
             "file": file_path,
             "book_title": batch_book_title,
-            "start_page": int(batch_start_page) + 1,
+            "start_page": int(batch_start_page),
             "end_page": int(batch_end_page),
             "line_num_head": int(batch_line_num_head),
             "line_num_tail": int(batch_line_num_tail),
@@ -782,7 +842,13 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                             local_book_toc = extract_img_by_page(file_path)
                     else:
                         add_task_log(task, "提取文本PDF页面")
-                        local_book_toc = extract_text_by_page(file_path)
+                        result = extract_text_by_page(file_path)
+                        local_book_toc = result["pages"]
+                        add_task_log(task, f"成功读取PDF文件，总页数: {len(local_book_toc)}")
+                        
+                        # 如果有目录，记录目录信息
+                        if result["toc"]:
+                            add_task_log(task, f"PDF文件包含目录，共 {len(result['toc'])} 个章节")
                 except Exception as e:
                     set_error_detail(task, f"PDF解析失败", f"解析PDF文件时出错: {str(e)}\n\n这可能是由于PDF文件格式问题或权限问题导致的。")
                     if progress_callback:
@@ -1224,6 +1290,11 @@ with gr.Blocks(title="Book 2 TTS") as book2tts:
                     # Apply the page offset adjustment to both start and end pages
                     start_page_adjusted = start_page + int(batch_page_offset)
                     end_page_adjusted = end_page + int(batch_page_offset)
+                    
+                    # 确保结束页码大于等于起始页码
+                    if end_page_adjusted < start_page_adjusted:
+                        error_lines.append(f"行 {i+1}: 结束页码必须大于等于起始页码")
+                        continue
                 except ValueError:
                     error_lines.append(f"行 {i+1}: 页码必须是整数")
                     continue
