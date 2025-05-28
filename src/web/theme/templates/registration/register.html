@@ -8,17 +8,17 @@
     <div class="card-body">
       <h2 class="card-title justify-center mb-4">注册</h2>
       
-      <form method="post">
+      <form method="post" id="register-form">
         {% csrf_token %}
         
         <div class="form-control w-full mb-4">
           <label class="label">
             <span class="label-text">用户名</span>
           </label>
-          <input type="text" name="username" class="input input-bordered w-full" placeholder="输入用户名" required />
+          {{ form.username }}
           {% if form.username.errors %}
           <label class="label">
-            <span class="label-text-alt text-error">{{ form.username.errors }}</span>
+            <span class="label-text-alt text-error">{{ form.username.errors.0 }}</span>
           </label>
           {% endif %}
         </div>
@@ -27,10 +27,10 @@
           <label class="label">
             <span class="label-text">邮箱</span>
           </label>
-          <input type="email" name="email" class="input input-bordered w-full" placeholder="输入邮箱" required />
+          {{ form.email }}
           {% if form.email.errors %}
           <label class="label">
-            <span class="label-text-alt text-error">{{ form.email.errors }}</span>
+            <span class="label-text-alt text-error">{{ form.email.errors.0 }}</span>
           </label>
           {% endif %}
         </div>
@@ -39,34 +39,48 @@
           <label class="label">
             <span class="label-text">密码</span>
           </label>
-          <input type="password" name="password1" class="input input-bordered w-full" placeholder="输入密码" required />
+          {{ form.password1 }}
           {% if form.password1.errors %}
           <label class="label">
-            <span class="label-text-alt text-error">{{ form.password1.errors }}</span>
+            <span class="label-text-alt text-error">{{ form.password1.errors.0 }}</span>
           </label>
           {% endif %}
         </div>
         
-        <div class="form-control w-full mb-6">
+        <div class="form-control w-full mb-4">
           <label class="label">
             <span class="label-text">确认密码</span>
           </label>
-          <input type="password" name="password2" class="input input-bordered w-full" placeholder="再次输入密码" required />
+          {{ form.password2 }}
           {% if form.password2.errors %}
           <label class="label">
-            <span class="label-text-alt text-error">{{ form.password2.errors }}</span>
+            <span class="label-text-alt text-error">{{ form.password2.errors.0 }}</span>
           </label>
           {% endif %}
         </div>
         
+        <!-- Turnstile 验证码 -->
+        {% if turnstile_site_key %}
+        <div class="form-control w-full mb-4">
+          <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-callback="onTurnstileSuccess"></div>
+        </div>
+        {% endif %}
+        
+        <!-- 隐藏的 Turnstile token 字段 -->
+        {{ form.cf_turnstile_response }}
+        
         {% if form.non_field_errors %}
         <div class="alert alert-error mb-4">
-          <div>{{ form.non_field_errors }}</div>
+          <div>
+            {% for error in form.non_field_errors %}
+              {{ error }}
+            {% endfor %}
+          </div>
         </div>
         {% endif %}
         
         <div class="card-actions justify-center">
-          <button type="submit" class="btn btn-primary w-full">注册</button>
+          <button type="submit" class="btn btn-primary w-full" id="register-btn">注册</button>
         </div>
       </form>
       
@@ -78,4 +92,26 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block script %}
+{% if turnstile_site_key %}
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<script>
+function onTurnstileSuccess(token) {
+    // 将 token 设置到隐藏字段中
+    document.querySelector('input[name="cf_turnstile_response"]').value = token;
+}
+
+// 表单提交时检查 Turnstile
+document.getElementById('register-form').addEventListener('submit', function(e) {
+    const turnstileToken = document.querySelector('input[name="cf_turnstile_response"]').value;
+    if (!turnstileToken && '{{ turnstile_site_key }}') {
+        e.preventDefault();
+        alert('请完成人机验证');
+        return false;
+    }
+});
+</script>
+{% endif %}
 {% endblock %} 

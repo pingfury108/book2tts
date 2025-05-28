@@ -271,6 +271,7 @@ referencing==0.36.2
 regex==2024.11.6
     # via tiktoken
 requests==2.32.3
+    # via book2tts
     # via dify-client
     # via google-api-core
     # via huggingface-hub

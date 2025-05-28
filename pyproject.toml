@@ -28,6 +28,7 @@ dependencies = [
     "feedgen>=1.0.0",
     "gunicorn>=23.0.0",
     "litellm>=1.67.4.post1",
+    "requests>=2.31.0",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"

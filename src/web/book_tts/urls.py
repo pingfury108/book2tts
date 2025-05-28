@@ -12,22 +12,9 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from django.contrib.auth import views as auth_views
-from django.contrib.auth.forms import UserCreationForm
-from django.views.generic.edit import CreateView
-from django.shortcuts import render, redirect
 from django.contrib.auth import logout
-
-# Custom registration view
-def register(request):
-    if request.method == 'POST':
-        form = UserCreationForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return redirect('login')
-    else:
-        form = UserCreationForm()
-    return render(request, 'registration/register.html', {'form': form})
+from django.shortcuts import render
+from .views import TurnstileLoginView, TurnstileRegisterView
 
 # Custom logout view to ensure proper session cleanup
 def logout_view(request):
@@ -44,10 +31,10 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("__reload__/", include("django_browser_reload.urls")),
     
-    # Authentication URLs
-    path('login/', auth_views.LoginView.as_view(), name='login'),
+    # Authentication URLs with Turnstile
+    path('login/', TurnstileLoginView.as_view(), name='login'),
     path('logout/', logout_view, name='logout'),
-    path('register/', register, name='register'),
+    path('register/', TurnstileRegisterView.as_view(), name='register'),
 ]
 
 # Serve media files in development

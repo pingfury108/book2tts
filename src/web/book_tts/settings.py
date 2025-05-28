@@ -160,3 +160,8 @@ LOGOUT_TEMPLATE = "logged_out.html"
 
 # Add CSS version for cache busting in production
 CSS_VERSION = os.getenv("CSS_VERSION", "1")
+
+# Cloudflare Turnstile settings
+TURNSTILE_SITE_KEY = os.getenv("TURNSTILE_SITE_KEY", "")
+TURNSTILE_SECRET_KEY = os.getenv("TURNSTILE_SECRET_KEY", "")
+TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
