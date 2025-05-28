@@ -82,6 +82,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "book_tts.context_processors.css_version",
             ],
         },
     },
@@ -156,3 +157,6 @@ LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 LOGOUT_TEMPLATE = "logged_out.html"
+
+# Add CSS version for cache busting in production
+CSS_VERSION = os.getenv("CSS_VERSION", "1")

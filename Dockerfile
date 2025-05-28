@@ -21,6 +21,9 @@ COPY --chown=book2tts:book2tts . .
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV DEBUG=0
+# Set CSS version using build timestamp for cache busting
+ARG CSS_VERSION=1
+ENV CSS_VERSION=${CSS_VERSION}
 
 # Install dependencies from lock file
 RUN uv pip install --no-cache --system -r requirements.lock
