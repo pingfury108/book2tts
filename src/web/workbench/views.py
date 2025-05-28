@@ -20,6 +20,8 @@ from django.contrib.auth.decorators import login_required
 
 from book2tts.tts import edge_tts_volices, edge_text_to_speech
 from book2tts.edgetts import EdgeTTS
+from book2tts.audio_utils import get_audio_duration, estimate_audio_duration_from_text
+from home.models import UserQuota
 
 # Create your views here.
 from .forms import UploadFileForm
@@ -472,6 +474,19 @@ def synthesize_audio(request):
     # Get book
     book = get_object_or_404(Books, pk=book_id)
     
+    # Get or create user quota
+    user_quota, created = UserQuota.objects.get_or_create(user=request.user)
+    
+    # Estimate audio duration from text BEFORE synthesis
+    estimated_duration_seconds = estimate_audio_duration_from_text(text)
+    
+    # Check if user has enough quota BEFORE synthesis
+    if not user_quota.can_create_audio(estimated_duration_seconds):
+        return JsonResponse({
+            "status": "error", 
+            "message": f"配额不足。预估需要 {estimated_duration_seconds} 秒，剩余 {user_quota.remaining_audio_duration} 秒"
+        }, status=400)
+    
     # Create a temporary file for the audio
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
         temp_path = temp_file.name
@@ -483,6 +498,9 @@ def synthesize_audio(request):
         
         if not success:
             return JsonResponse({"status": "error", "message": "Failed to synthesize audio"}, status=500)
+        
+        # Get actual audio duration using utility function
+        actual_duration_seconds = get_audio_duration(temp_path, text)
         
         # Use custom audio title if provided, otherwise use page display name or default title
         segment_title = audio_title if audio_title else (page_display_name if page_display_name else title)
@@ -512,11 +530,19 @@ def synthesize_audio(request):
         # Save the AudioSegment
         audio_segment.save()
         
+        # Refresh user quota to get latest data before deduction
+        user_quota.refresh_from_db()
+        
+        # Force deduct user quota (consume actual audio duration, reduce to 0 if insufficient)
+        user_quota.force_consume_audio_duration(actual_duration_seconds)
+        
         return JsonResponse({
             "status": "success", 
             "message": "Audio synthesized successfully",
             "audio_url": audio_segment.file.url,
-            "audio_id": audio_segment.id
+            "audio_id": audio_segment.id,
+            "audio_duration": actual_duration_seconds,
+            "remaining_quota": user_quota.remaining_audio_duration
         })
     
     except Exception as e:
@@ -584,20 +610,31 @@ def delete_audio_segment(request, segment_id):
         return JsonResponse({"status": "error", "message": "You don't have permission to delete this audio segment"}, status=403)
     
     try:
-        # Get the file path to delete the file from storage
-        file_path = segment.file.path
+        # Get the file path and calculate audio duration before deletion
+        file_path = segment.file.path if segment.file else None
         
-        # Delete the audio segment from the database
+        # Get audio duration to return quota using utility function
+        # Must do this BEFORE deleting the file
+        audio_duration_seconds = get_audio_duration(file_path, segment.text)
+        
+        # Store book reference before deletion
+        book = segment.book
+        
+        # Delete the audio segment from the database first
         segment.delete()
         
         # Delete the file from storage if it exists
-        if os.path.exists(file_path):
+        if file_path and os.path.exists(file_path):
             os.remove(file_path)
+        
+        # Return quota to user
+        if audio_duration_seconds > 0:
+            user_quota, created = UserQuota.objects.get_or_create(user=request.user)
+            user_quota.add_audio_duration(audio_duration_seconds)
         
         # 检查是否是HTMX请求
         if request.headers.get('HX-Request') == 'true':
             # 检查是否是该书籍的最后一个音频片段
-            book = segment.book
             remaining_segments = AudioSegment.objects.filter(book=book, user=request.user).count()
             
             if remaining_segments == 0:
@@ -616,7 +653,11 @@ def delete_audio_segment(request, segment_id):
                 return HttpResponse(status=200)
         else:
             # 对于非HTMX请求，返回JSON响应
-            return JsonResponse({"status": "success", "message": "Audio segment deleted successfully"})
+            return JsonResponse({
+                "status": "success", 
+                "message": "Audio segment deleted successfully",
+                "returned_quota": audio_duration_seconds
+            })
     
     except Exception as e:
         print(f"Error in delete_audio_segment: {str(e)}")

@@ -81,6 +81,16 @@ class UserQuota(models.Model):
             return True
         return False
     
+    def force_consume_audio_duration(self, duration_seconds):
+        """强制消耗音频时长，即使配额不足也会扣减到0"""
+        if self.remaining_audio_duration >= duration_seconds:
+            self.remaining_audio_duration -= duration_seconds
+        else:
+            # 配额不足时，将配额减到0
+            self.remaining_audio_duration = 0
+        self.save()
+        return True
+    
     def consume_storage(self, file_size_bytes):
         """消耗存储空间"""
         if self.can_store_file(file_size_bytes):
