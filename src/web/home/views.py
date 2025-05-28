@@ -12,6 +12,7 @@ from home.utils.rss_utils import (
     add_podcast_entry, 
     postprocess_rss
 )
+from django.contrib.auth.decorators import login_required
 
 # Create your views here.
 
@@ -398,6 +399,104 @@ def audio_rss_feed_by_token(request, token, book_id=None):
     
     response = HttpResponse(cleaned_xml, content_type='application/xml')
     return response
+
+
+@login_required
+def profile(request):
+    """用户个人资料页面"""
+    from home.models import UserQuota
+    from workbench.models import UserProfile
+    
+    # 确保用户有一个有效的RSS token
+    ensure_rss_token(request.user)
+    
+    # 获取或创建用户配额
+    user_quota, created = UserQuota.objects.get_or_create(user=request.user)
+    
+    # 获取用户profile
+    user_profile, profile_created = UserProfile.objects.get_or_create(user=request.user)
+    
+    # 计算配额显示信息
+    remaining_seconds = user_quota.remaining_audio_duration
+    hours = remaining_seconds // 3600
+    minutes = (remaining_seconds % 3600) // 60
+    seconds = remaining_seconds % 60
+    
+    # 计算百分比（基于默认3600秒 = 1小时）
+    default_quota = 3600
+    percentage = min(100, (remaining_seconds * 100) / default_quota)
+    
+    # 确定配额状态和颜色
+    if remaining_seconds > 1800:  # 超过30分钟
+        status_class = "text-success"
+        status_icon = "✅"
+        progress_class = "bg-success"
+        status_text = "充足"
+    elif remaining_seconds > 300:  # 超过5分钟
+        status_class = "text-warning"
+        status_icon = "⚠️"
+        progress_class = "bg-warning"
+        status_text = "一般"
+    else:  # 少于5分钟
+        status_class = "text-error"
+        status_icon = "❌"
+        progress_class = "bg-error"
+        status_text = "不足"
+    
+    # 存储空间信息
+    storage_bytes = user_quota.available_storage_bytes
+    storage_display = user_quota.get_storage_display()
+    
+    # 统计用户数据
+    from workbench.models import Books, AudioSegment
+    total_books = Books.objects.filter(user=request.user).count()
+    total_audio_segments = AudioSegment.objects.filter(book__user=request.user).count()
+    published_audio_segments = AudioSegment.objects.filter(book__user=request.user, published=True).count()
+    unpublished_audio_segments = total_audio_segments - published_audio_segments
+    
+    context = {
+        'user_quota': user_quota,
+        'user_profile': user_profile,
+        'remaining_seconds': remaining_seconds,
+        'hours': hours,
+        'minutes': minutes,
+        'seconds': seconds,
+        'status_class': status_class,
+        'status_icon': status_icon,
+        'progress_class': progress_class,
+        'percentage': round(percentage, 1),
+        'status_text': status_text,
+        'storage_display': storage_display,
+        'storage_bytes': storage_bytes,
+        'total_books': total_books,
+        'total_audio_segments': total_audio_segments,
+        'published_audio_segments': published_audio_segments,
+        'unpublished_audio_segments': unpublished_audio_segments,
+    }
+    
+    return render(request, "home/profile.html", context)
+
+
+@login_required
+def operation_records(request):
+    """用户操作记录页面"""
+    from home.models import OperationRecord
+    from django.core.paginator import Paginator
+    
+    # 获取用户的操作记录，按时间倒序排列
+    records = OperationRecord.objects.filter(user=request.user).order_by('-created_at')
+    
+    # 分页处理
+    paginator = Paginator(records, 20)  # 每页显示20条记录
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'records': page_obj.object_list,
+    }
+    
+    return render(request, "home/operation_records.html", context)
 
 # 创建RSS Feed的助手函数
 def create_podcast_feed(title, link, description, language, author_name, image_url=None, author_email=None):

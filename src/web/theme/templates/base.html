@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Book2TTS</title>
+    <title>{% block title %}Book2TTS{% endblock %}</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
@@ -79,7 +79,7 @@
             class="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow">
           {% if user.is_authenticated %}
           <li>
-            <a class="justify-between">
+            <a href="{% url 'profile' %}" class="justify-between">
               个人资料
               <span class="badge">{{ user.username }}</span>
             </a>

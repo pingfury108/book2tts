@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}操作记录 - Book2TTS{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <div class="max-w-6xl mx-auto">
+        <!-- 页面标题 -->
+        <div class="mb-6 flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-base-content">操作记录</h1>
+                <p class="text-base-content/70 mt-2">查看您的详细操作历史记录</p>
+            </div>
+            <a href="{% url 'profile' %}" class="btn btn-outline">
+                返回个人资料
+            </a>
+        </div>
+
+        <!-- 操作记录列表 -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                {% if records %}
+                <div class="overflow-x-auto">
+                    <table class="table table-zebra w-full">
+                        <thead>
+                            <tr>
+                                <th class="w-40">操作时间</th>
+                                <th class="w-32">操作类型</th>
+                                <th class="w-80">操作对象</th>
+                                <th class="w-24">状态</th>
+                                <th>详细描述</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in records %}
+                            <tr>
+                                <td class="font-mono text-sm">
+                                    {{ record.created_at|date:"Y-m-d H:i:s" }}
+                                </td>
+                                <td>
+                                    <span class="badge badge-outline whitespace-nowrap">
+                                        {{ record.get_operation_type_display }}
+                                    </span>
+                                </td>
+                                <td class="max-w-xs truncate">
+                                    {% if record.operation_object %}
+                                        <span class="block truncate" title="{{ record.operation_object }}">
+                                            {{ record.operation_object }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-base-content/50">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if record.status == 'success' %}
+                                        <span class="badge badge-success whitespace-nowrap">成功</span>
+                                    {% elif record.status == 'failed' %}
+                                        <span class="badge badge-error whitespace-nowrap">失败</span>
+                                    {% elif record.status == 'pending' %}
+                                        <span class="badge badge-warning whitespace-nowrap">进行中</span>
+                                    {% elif record.status == 'cancelled' %}
+                                        <span class="badge badge-neutral whitespace-nowrap">已取消</span>
+                                    {% else %}
+                                        <span class="badge badge-outline whitespace-nowrap">{{ record.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="max-w-md">
+                                    {% if record.operation_detail %}
+                                        <div class="tooltip tooltip-left" data-tip="{{ record.operation_detail }}">
+                                            <span class="truncate block">{{ record.operation_detail|truncatechars:50 }}</span>
+                                        </div>
+                                    {% else %}
+                                        <span class="text-base-content/50">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 分页 -->
+                {% if page_obj.has_other_pages %}
+                <div class="mt-6 flex justify-center">
+                    <div class="join">
+                        {% if page_obj.has_previous %}
+                            <a href="?page=1" class="join-item btn">第一页</a>
+                            <a href="?page={{ page_obj.previous_page_number }}" class="join-item btn">上一页</a>
+                        {% endif %}
+                        
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                                <span class="join-item btn btn-active">{{ num }}</span>
+                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                <a href="?page={{ num }}" class="join-item btn">{{ num }}</a>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}" class="join-item btn">下一页</a>
+                            <a href="?page={{ page_obj.paginator.num_pages }}" class="join-item btn">最后一页</a>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="mt-4 text-center text-sm text-base-content/70">
+                    显示第 {{ page_obj.start_index }} - {{ page_obj.end_index }} 条记录，
+                    共 {{ page_obj.paginator.count }} 条
+                </div>
+                {% endif %}
+
+                {% else %}
+                <!-- 空状态 -->
+                <div class="text-center py-12">
+                    <div class="text-6xl mb-4">📋</div>
+                    <h3 class="text-xl font-semibold mb-2">暂无操作记录</h3>
+                    <p class="text-base-content/70">
+                        您还没有任何操作记录。开始使用系统功能后，操作记录将会出现在这里。
+                    </p>
+                    <div class="mt-6">
+                        <a href="{% url 'home' %}" class="btn btn-primary">
+                            开始使用
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 说明信息 -->
+        <div class="mt-6">
+            <div class="alert alert-info">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <div>
+                    <h3 class="font-bold">关于操作记录</h3>
+                    <div class="text-xs">
+                        操作记录包含您在系统中执行的所有重要操作，如音频创建、删除、文件上传等。
+                        记录保留用于审计和问题排查，确保系统使用的透明性和可追溯性。
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

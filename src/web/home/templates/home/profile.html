@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}个人资料 - Book2TTS{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <div class="max-w-4xl mx-auto">
+        <!-- 页面标题 -->
+        <div class="mb-6">
+            <h1 class="text-3xl font-bold text-base-content">个人资料</h1>
+            <p class="text-base-content/70 mt-2">查看您的账户信息和使用情况</p>
+        </div>
+
+        <!-- 用户基本信息 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- 用户信息卡片 -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title flex items-center gap-2">
+                        <div class="avatar placeholder">
+                            <div class="bg-primary text-primary-content rounded-full w-12">
+                                <span class="text-xl font-bold">{{ user.username|slice:":2"|upper }}</span>
+                            </div>
+                        </div>
+                        用户信息
+                    </h2>
+                    
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="font-medium">用户名:</span>
+                            <span>{{ user.username }}</span>
+                        </div>
+                        
+                        {% if user.email %}
+                        <div class="flex justify-between">
+                            <span class="font-medium">邮箱:</span>
+                            <span>{{ user.email }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="flex justify-between">
+                            <span class="font-medium">注册时间:</span>
+                            <span>{{ user.date_joined|date:"Y-m-d" }}</span>
+                        </div>
+                        
+                        <div class="flex justify-between">
+                            <span class="font-medium">RSS Token:</span>
+                            <span class="font-mono text-sm">{{ user_profile.rss_token|truncatechars:12 }}...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 数据统计卡片 -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">📊 数据统计</h2>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="stat bg-base-200 rounded-lg p-4">
+                            <div class="stat-title">书籍总数</div>
+                            <div class="stat-value text-primary">{{ total_books }}</div>
+                        </div>
+                        
+                        <div class="stat bg-base-200 rounded-lg p-4">
+                            <div class="stat-title">音频总数</div>
+                            <div class="stat-value text-secondary">{{ total_audio_segments }}</div>
+                        </div>
+                        
+                        <div class="stat bg-base-200 rounded-lg p-4">
+                            <div class="stat-title">已发布</div>
+                            <div class="stat-value text-accent">{{ published_audio_segments }}</div>
+                        </div>
+                        
+                        <div class="stat bg-base-200 rounded-lg p-4">
+                            <div class="stat-title">未发布</div>
+                            <div class="stat-value text-neutral">{{ unpublished_audio_segments }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 配额信息 -->
+        <div class="mt-6">
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">⚡ 配额信息</h2>
+                    
+                    <!-- 音频时长配额 -->
+                    <div class="mb-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-lg font-semibold flex items-center gap-2">
+                                🎵 音频时长配额
+                                <span class="badge {{ status_class }}">{{ status_text }}</span>
+                            </h3>
+                            <span class="{{ status_class }} font-mono">
+                                {{ status_icon }} 
+                                {% if hours > 0 %}{{ hours }}小时{% endif %}
+                                {% if minutes > 0 %}{{ minutes }}分钟{% endif %}
+                                {% if seconds > 0 %}{{ seconds }}秒{% endif %}
+                                {% if remaining_seconds == 0 %}0秒{% endif %}
+                            </span>
+                        </div>
+                        
+                        <div class="w-full bg-base-200 rounded-full h-4 mb-2">
+                            <div class="h-4 {{ progress_class }} rounded-full transition-all duration-300" 
+                                 style="width: {{ percentage }}%"></div>
+                        </div>
+                        
+                        <div class="flex justify-between text-sm text-base-content/70">
+                            <span>剩余: {{ remaining_seconds }} 秒</span>
+                            <span>{{ percentage }}%</span>
+                        </div>
+                    </div>
+
+                    <!-- 存储空间配额 -->
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-lg font-semibold flex items-center gap-2">
+                                💾 存储空间配额
+                            </h3>
+                            <span class="font-mono text-info">
+                                💿 {{ storage_display }}
+                            </span>
+                        </div>
+                        
+                        <div class="text-sm text-base-content/70">
+                            <span>可用存储: {{ storage_bytes|floatformat:0 }} 字节</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 操作记录 -->
+        <div class="mt-6">
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <div class="flex items-center justify-between">
+                        <h2 class="card-title">📋 操作记录</h2>
+                        <a href="{% url 'operation_records' %}" class="btn btn-primary">
+                            查看详细记录
+                        </a>
+                    </div>
+                    
+                    <p class="text-base-content/70">
+                        点击上方按钮查看您的详细操作记录，包括音频创建、删除等所有操作的历史记录。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
