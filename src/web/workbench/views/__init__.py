@@ -1,0 +1,55 @@
+# Import all views to maintain backward compatibility
+from .book_views import (
+    index,
+    upload,
+    my_upload_list,
+    toc,
+    pages,
+    text_by_toc,
+    text_by_page,
+    update_book_name,
+)
+
+from .audio_views import (
+    aggregated_audio_segments,
+    get_voice_list,
+    synthesize_audio,
+    delete_audio_segment,
+    toggle_publish_audio_segment,
+)
+
+from .text_views import (
+    reformat,
+    format_text_stream,
+)
+
+from .htmx_views import (
+    book_details_htmx,
+)
+
+# Export all views for easy import
+__all__ = [
+    # Book views
+    'index',
+    'upload',
+    'my_upload_list',
+    'toc',
+    'pages',
+    'text_by_toc',
+    'text_by_page',
+    'update_book_name',
+    
+    # Audio views
+    'aggregated_audio_segments',
+    'get_voice_list',
+    'synthesize_audio',
+    'delete_audio_segment',
+    'toggle_publish_audio_segment',
+    
+    # Text views
+    'reformat',
+    'format_text_stream',
+    
+    # HTMX views
+    'book_details_htmx',
+] 
