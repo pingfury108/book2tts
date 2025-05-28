@@ -64,6 +64,21 @@
             </div>
             <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow duration-200">
                 <div class="card-body p-4">
+                    <h3 class="card-title text-lg font-bold">⏱️ 配额信息</h3>
+                    <div class="space-y-2" id="quota-info"
+                         hx-get="{% url 'get_user_quota' %}"
+                         hx-trigger="load, refresh"
+                         hx-target="this"
+                         hx-swap="innerHTML">
+                        <div class="flex items-center justify-center">
+                            <span class="loading loading-spinner loading-sm"></span>
+                            <span class="ml-2 text-sm">加载中...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow duration-200">
+                <div class="card-body p-4">
                     <h3 class="card-title text-lg font-bold">🔊 音频处理</h3>
                     <div class="space-y-1">
                         <select class="select select-bordered w-full" id="tts-provider">
@@ -129,11 +144,12 @@
      playerContainer.classList.add('hidden');
    }
    
-   // 重置音频播放器源
+   // 重置音频播放器源和显示
    const audioPlayer = document.getElementById('audio-player');
    if (audioPlayer) {
      audioPlayer.src = '';
      audioPlayer.pause();
+     audioPlayer.style.display = ''; // 恢复显示
    }
    
    // 重置相关状态和按钮
@@ -145,6 +161,8 @@
    const audioStatus = document.getElementById('audio-status');
    if (audioStatus) {
      audioStatus.textContent = '';
+     audioStatus.innerHTML = ''; // 清除所有HTML内容
+     audioStatus.className = 'text-sm mt-1 text-center font-medium text-success'; // 重置为默认样式
    }
    
    // 禁用下载和发布按钮
@@ -270,7 +288,25 @@
          const audioPlayer = document.getElementById('audio-player');
          audioPlayer.src = data.audio_url;
          document.getElementById('audio-title').textContent = audioTitle || '未命名音频';
-         document.getElementById('audio-status').textContent = '合成成功！';
+         
+         // 显示成功状态和配额信息
+         const audioStatus = document.getElementById('audio-status');
+         audioStatus.className = 'text-sm mt-1 text-center font-medium text-success';
+         audioStatus.textContent = '合成成功！';
+         
+         // 如果返回了配额信息，显示剩余配额
+         if (data.remaining_quota !== undefined) {
+           const quotaInfo = document.createElement('div');
+           quotaInfo.className = 'text-xs mt-1 text-center text-info';
+           quotaInfo.textContent = `剩余配额: ${Math.round(data.remaining_quota)} 秒`;
+           audioStatus.appendChild(quotaInfo);
+           
+           // 刷新配额显示区域
+           const quotaInfoElement = document.getElementById('quota-info');
+           if (quotaInfoElement && typeof htmx !== 'undefined') {
+             htmx.trigger(quotaInfoElement, 'refresh');
+           }
+         }
          
          // 启用下载和发布按钮
          const downloadBtn = document.getElementById('download-btn');
@@ -301,11 +337,63 @@
 
          logState('Audio synthesized');
        } else {
-         document.getElementById('audio-status').textContent = '合成失败：' + data.message;
+         // 显示错误状态
+         const audioStatus = document.getElementById('audio-status');
+         audioStatus.className = 'text-sm mt-1 text-center font-medium text-error';
+         audioStatus.innerHTML = '';
+         
+         // 创建错误消息容器
+         const errorContainer = document.createElement('div');
+         errorContainer.className = 'alert alert-error shadow-lg mt-2 p-2';
+         
+         // 添加错误图标和消息
+         errorContainer.innerHTML = `
+           <div class="flex items-center">
+             <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24">
+               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+             </svg>
+             <span class="text-sm">${data.message}</span>
+           </div>
+         `;
+         
+         // 将错误容器添加到音频状态区域
+         audioStatus.appendChild(errorContainer);
+         
+         // 如果是配额不足错误，显示音频播放器容器以便用户看到错误信息
+         if (data.message && data.message.includes('配额不足')) {
+           document.getElementById('audio-player-container').classList.remove('hidden');
+           // 隐藏音频播放器本身，只显示错误信息
+           const audioPlayer = document.getElementById('audio-player');
+           audioPlayer.style.display = 'none';
+           document.getElementById('audio-title').textContent = '配额不足';
+         }
        }
      } catch (error) {
        console.error('音频合成错误:', error);
-       document.getElementById('audio-status').textContent = '合成失败：' + error.message;
+       
+       // 显示网络或其他错误
+       const audioStatus = document.getElementById('audio-status');
+       audioStatus.className = 'text-sm mt-1 text-center font-medium text-error';
+       audioStatus.innerHTML = '';
+       
+       const errorContainer = document.createElement('div');
+       errorContainer.className = 'alert alert-error shadow-lg mt-2 p-2';
+       errorContainer.innerHTML = `
+         <div class="flex items-center">
+           <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24">
+             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+           </svg>
+           <span class="text-sm">网络错误或服务器异常: ${error.message}</span>
+         </div>
+       `;
+       
+       audioStatus.appendChild(errorContainer);
+       document.getElementById('audio-player-container').classList.remove('hidden');
+       
+       // 隐藏音频播放器本身
+       const audioPlayer = document.getElementById('audio-player');
+       audioPlayer.style.display = 'none';
+       document.getElementById('audio-title').textContent = '合成失败';
      } finally {
        // 恢复按钮状态
        this.innerHTML = '合成音频';

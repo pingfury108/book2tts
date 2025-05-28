@@ -13,6 +13,7 @@ from .book_views import (
 from .audio_views import (
     aggregated_audio_segments,
     get_voice_list,
+    get_user_quota,
     synthesize_audio,
     delete_audio_segment,
     toggle_publish_audio_segment,
@@ -42,6 +43,7 @@ __all__ = [
     # Audio views
     'aggregated_audio_segments',
     'get_voice_list',
+    'get_user_quota',
     'synthesize_audio',
     'delete_audio_segment',
     'toggle_publish_audio_segment',

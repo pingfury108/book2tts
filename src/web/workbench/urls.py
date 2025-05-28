@@ -4,6 +4,7 @@ from . import views
 from .views import (
     aggregated_audio_segments,
     get_voice_list,
+    get_user_quota,
     synthesize_audio,
     delete_audio_segment,
     book_details_htmx,
@@ -31,6 +32,7 @@ urlpatterns = [
         "audio/book-details/<int:book_id>/", book_details_htmx, name="book_details_htmx"
     ),
     path("voices/", get_voice_list, name="voice_list"),
+    path("quota/", get_user_quota, name="get_user_quota"),
     path("synthesize-audio/", synthesize_audio, name="synthesize_audio"),
     path(
         "audio/delete/<int:segment_id>/",

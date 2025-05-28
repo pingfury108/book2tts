@@ -65,6 +65,51 @@ def get_voice_list(request):
 
 
 @login_required
+def get_user_quota(request):
+    """Get user quota information"""
+    user_quota, created = UserQuota.objects.get_or_create(user=request.user)
+    
+    # Calculate quota display information
+    remaining_seconds = user_quota.remaining_audio_duration
+    hours = remaining_seconds // 3600
+    minutes = (remaining_seconds % 3600) // 60
+    seconds = remaining_seconds % 60
+    
+    # Calculate percentage (based on default 3600 seconds = 1 hour)
+    default_quota = 3600
+    percentage = min(100, (remaining_seconds * 100) / default_quota)
+    
+    # Determine quota status and color
+    if remaining_seconds > 1800:  # More than 30 minutes
+        status_class = "text-success"
+        status_icon = "✅"
+        progress_class = "bg-success"
+    elif remaining_seconds > 300:  # More than 5 minutes
+        status_class = "text-warning"
+        status_icon = "⚠️"
+        progress_class = "bg-warning"
+    else:  # Less than 5 minutes
+        status_class = "text-error"
+        status_icon = "❌"
+        progress_class = "bg-error"
+    
+    context = {
+        "user_quota": user_quota,
+        "remaining_seconds": remaining_seconds,
+        "hours": hours,
+        "minutes": minutes,
+        "seconds": seconds,
+        "status_class": status_class,
+        "status_icon": status_icon,
+        "progress_class": progress_class,
+        "percentage": round(percentage, 1),
+        "is_over_quota": remaining_seconds > default_quota,
+    }
+    
+    return render(request, "quota_info.html", context)
+
+
+@login_required
 @require_http_methods(["POST"])
 def synthesize_audio(request):
     """Synthesize audio using EdgeTTS and save to AudioSegment"""
