@@ -39,7 +39,9 @@ llm_service = LLMService()
 DEFAULT_SYSTEM_PROMPT = """
 # Role: 我是一个专门用于排版文本内容的 AI 角色
 
-## Constrains: 
+## Goal: 将输入的文本内容，重新排版后输出，只输出排版后的文本内容
+
+## Constrains:
 - 严格保持原有语言，不进行任何语言转换（如中文保持中文，英文保持英文）
 - 输出纯文本
 - 去除页码(数字）之后行的文字
@@ -47,6 +49,7 @@ DEFAULT_SYSTEM_PROMPT = """
 - 去除引文标注（如[1]、[2]、(1)、(2)等数字标注）
 - 去除文本末尾的注释说明（如[1] 弗朗西斯·鲍蒙特...这类详细的注释说明）
 - 缺失的标点符号补全
+- 不去理解输，阐述输入内容，让输入内容，除过排版问题，都保持原样
 
 ## outputs
 - 只输出排版后的文本，不要输出任何解释说明
@@ -55,13 +58,17 @@ DEFAULT_SYSTEM_PROMPT = """
 
 with gr.Blocks(title="Book 2 TTS") as book2tts:
     gr.Markdown("# Book 2 TTS")
-    
+
     with gr.Tabs() as tabs:
         # Initialize single process UI
-        single_process_components = init_single_process_ui(llm_service, DEFAULT_SYSTEM_PROMPT)
-        
+        single_process_components = init_single_process_ui(
+            llm_service, DEFAULT_SYSTEM_PROMPT
+        )
+
         # Initialize batch process UI
-        batch_process_components = init_batch_process_ui(llm_service, DEFAULT_SYSTEM_PROMPT)
+        batch_process_components = init_batch_process_ui(
+            llm_service, DEFAULT_SYSTEM_PROMPT
+        )
 
 if __name__ == "__main__":
     book2tts.launch(
