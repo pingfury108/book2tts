@@ -19,7 +19,9 @@ class TurnstileLoginView(LoginView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['turnstile_site_key'] = settings.TURNSTILE_SITE_KEY
+        # 只在非 debug 模式下添加 Turnstile
+        if not settings.DEBUG:
+            context['turnstile_site_key'] = settings.TURNSTILE_SITE_KEY
         return context
 
 
@@ -36,7 +38,9 @@ class TurnstileRegisterView(CreateView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['turnstile_site_key'] = settings.TURNSTILE_SITE_KEY
+        # 只在非 debug 模式下添加 Turnstile
+        if not settings.DEBUG:
+            context['turnstile_site_key'] = settings.TURNSTILE_SITE_KEY
         return context
     
     def form_valid(self, form):

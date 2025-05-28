@@ -35,7 +35,7 @@
           {% endif %}
         </div>
         
-        <!-- Turnstile 验证码 -->
+        <!-- Turnstile 验证码 - 只在非 debug 模式下显示 -->
         {% if turnstile_site_key %}
         <div class="form-control w-full mb-4">
           <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-callback="onTurnstileSuccess"></div>
@@ -82,13 +82,17 @@ function onTurnstileSuccess(token) {
     document.querySelector('input[name="cf_turnstile_response"]').value = token;
 }
 
-// 表单提交时检查 Turnstile
+// 表单提交时检查 Turnstile - 只在启用时检查
 document.getElementById('login-form').addEventListener('submit', function(e) {
-    const turnstileToken = document.querySelector('input[name="cf_turnstile_response"]').value;
-    if (!turnstileToken && '{{ turnstile_site_key }}') {
-        e.preventDefault();
-        alert('请完成人机验证');
-        return false;
+    // 只有当 Turnstile 启用时才进行验证
+    const turnstileElement = document.querySelector('.cf-turnstile');
+    if (turnstileElement) {
+        const turnstileToken = document.querySelector('input[name="cf_turnstile_response"]').value;
+        if (!turnstileToken) {
+            e.preventDefault();
+            alert('请完成人机验证');
+            return false;
+        }
     }
 });
 </script>

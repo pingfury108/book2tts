@@ -16,6 +16,11 @@ def verify_turnstile(token, remote_ip=None):
     Returns:
         dict: 包含验证结果的字典
     """
+    # 在 debug 模式下跳过验证
+    if settings.DEBUG:
+        logger.debug("Skipping Turnstile verification in DEBUG mode")
+        return {"success": True, "message": "Verification skipped in DEBUG mode"}
+    
     if not settings.TURNSTILE_SECRET_KEY:
         logger.warning("TURNSTILE_SECRET_KEY not configured")
         return {"success": True, "message": "Turnstile not configured"}

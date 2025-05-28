@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth.models import User
+from django.conf import settings
 from .turnstile import verify_turnstile, get_client_ip
 
 
@@ -29,14 +30,17 @@ class TurnstileAuthenticationForm(AuthenticationForm):
     def clean(self):
         cleaned_data = super().clean()
         
-        # 验证 Turnstile
-        turnstile_token = cleaned_data.get('cf_turnstile_response')
-        if turnstile_token and self.request:
-            client_ip = get_client_ip(self.request)
-            verification_result = verify_turnstile(turnstile_token, client_ip)
-            
-            if not verification_result['success']:
-                raise forms.ValidationError("人机验证失败，请重试")
+        # 只在非 debug 模式下验证 Turnstile
+        if not settings.DEBUG:
+            turnstile_token = cleaned_data.get('cf_turnstile_response')
+            if turnstile_token and self.request:
+                client_ip = get_client_ip(self.request)
+                verification_result = verify_turnstile(turnstile_token, client_ip)
+                
+                if not verification_result['success']:
+                    raise forms.ValidationError("人机验证失败，请重试")
+            elif settings.TURNSTILE_SITE_KEY:  # 如果配置了 Turnstile 但没有 token
+                raise forms.ValidationError("请完成人机验证")
         
         return cleaned_data
 
@@ -82,14 +86,17 @@ class TurnstileUserCreationForm(UserCreationForm):
     def clean(self):
         cleaned_data = super().clean()
         
-        # 验证 Turnstile
-        turnstile_token = cleaned_data.get('cf_turnstile_response')
-        if turnstile_token and self.request:
-            client_ip = get_client_ip(self.request)
-            verification_result = verify_turnstile(turnstile_token, client_ip)
-            
-            if not verification_result['success']:
-                raise forms.ValidationError("人机验证失败，请重试")
+        # 只在非 debug 模式下验证 Turnstile
+        if not settings.DEBUG:
+            turnstile_token = cleaned_data.get('cf_turnstile_response')
+            if turnstile_token and self.request:
+                client_ip = get_client_ip(self.request)
+                verification_result = verify_turnstile(turnstile_token, client_ip)
+                
+                if not verification_result['success']:
+                    raise forms.ValidationError("人机验证失败，请重试")
+            elif settings.TURNSTILE_SITE_KEY:  # 如果配置了 Turnstile 但没有 token
+                raise forms.ValidationError("请完成人机验证")
         
         return cleaned_data
     
