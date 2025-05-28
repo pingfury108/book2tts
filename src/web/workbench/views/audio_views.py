@@ -15,7 +15,22 @@ from ..models import Books, AudioSegment
 from book2tts.tts import edge_tts_volices
 from book2tts.edgetts import EdgeTTS
 from book2tts.audio_utils import get_audio_duration, estimate_audio_duration_from_text
-from home.models import UserQuota
+from home.models import UserQuota, OperationRecord
+
+
+def get_client_ip(request):
+    """获取客户端IP地址"""
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
+
+def get_user_agent(request):
+    """获取用户代理"""
+    return request.META.get('HTTP_USER_AGENT', '')
 
 
 @login_required
@@ -136,6 +151,25 @@ def synthesize_audio(request):
     
     # Check if user has enough quota BEFORE synthesis
     if not user_quota.can_create_audio(estimated_duration_seconds):
+        # 记录配额不足的操作
+        OperationRecord.objects.create(
+            user=request.user,
+            operation_type='audio_create',
+            operation_object=f'{book.name} - {title or page_display_name}',
+            operation_detail=f'音频合成失败：配额不足。预估需要 {estimated_duration_seconds} 秒，剩余 {user_quota.remaining_audio_duration} 秒',
+            status='failed',
+            metadata={
+                'book_id': book_id,
+                'book_name': book.name,
+                'estimated_duration': estimated_duration_seconds,
+                'remaining_quota': user_quota.remaining_audio_duration,
+                'text_length': len(text),
+                'voice_name': voice_name,
+                'error_reason': 'insufficient_quota'
+            },
+            ip_address=get_client_ip(request),
+            user_agent=get_user_agent(request)
+        )
         return JsonResponse({
             "status": "error", 
             "message": f"配额不足。预估需要 {estimated_duration_seconds} 秒，剩余 {user_quota.remaining_audio_duration} 秒"
@@ -151,6 +185,24 @@ def synthesize_audio(request):
         success = tts.synthesize_long_text(text=text, output_file=temp_path)
         
         if not success:
+            # 记录合成失败的操作
+            OperationRecord.objects.create(
+                user=request.user,
+                operation_type='audio_create',
+                operation_object=f'{book.name} - {title or page_display_name}',
+                operation_detail=f'音频合成失败：EdgeTTS合成失败',
+                status='failed',
+                metadata={
+                    'book_id': book_id,
+                    'book_name': book.name,
+                    'estimated_duration': estimated_duration_seconds,
+                    'text_length': len(text),
+                    'voice_name': voice_name,
+                    'error_reason': 'tts_synthesis_failed'
+                },
+                ip_address=get_client_ip(request),
+                user_agent=get_user_agent(request)
+            )
             return JsonResponse({"status": "error", "message": "Failed to synthesize audio"}, status=500)
         
         # Get actual audio duration using utility function
@@ -190,6 +242,30 @@ def synthesize_audio(request):
         # Force deduct user quota (consume actual audio duration, reduce to 0 if insufficient)
         user_quota.force_consume_audio_duration(actual_duration_seconds)
         
+        # 记录成功的音频创建操作
+        OperationRecord.objects.create(
+            user=request.user,
+            operation_type='audio_create',
+            operation_object=f'{book.name} - {segment_title}',
+            operation_detail=f'成功创建音频片段：{segment_title}，时长 {actual_duration_seconds} 秒，消耗配额 {actual_duration_seconds} 秒',
+            status='success',
+            metadata={
+                'book_id': book_id,
+                'book_name': book.name,
+                'audio_segment_id': audio_segment.id,
+                'actual_duration': actual_duration_seconds,
+                'estimated_duration': estimated_duration_seconds,
+                'consumed_quota': actual_duration_seconds,
+                'remaining_quota_after': user_quota.remaining_audio_duration,
+                'text_length': len(text),
+                'voice_name': voice_name,
+                'file_path': audio_segment.file.name,
+                'file_size': os.path.getsize(temp_path) if os.path.exists(temp_path) else 0
+            },
+            ip_address=get_client_ip(request),
+            user_agent=get_user_agent(request)
+        )
+        
         return JsonResponse({
             "status": "success", 
             "message": "Audio synthesized successfully",
@@ -200,6 +276,25 @@ def synthesize_audio(request):
         })
     
     except Exception as e:
+        # 记录异常的操作
+        OperationRecord.objects.create(
+            user=request.user,
+            operation_type='audio_create',
+            operation_object=f'{book.name} - {title or page_display_name}',
+            operation_detail=f'音频合成异常：{str(e)}',
+            status='failed',
+            metadata={
+                'book_id': book_id,
+                'book_name': book.name,
+                'estimated_duration': estimated_duration_seconds,
+                'text_length': len(text),
+                'voice_name': voice_name,
+                'error_reason': 'exception',
+                'exception_message': str(e)
+            },
+            ip_address=get_client_ip(request),
+            user_agent=get_user_agent(request)
+        )
         print(f"Error in synthesize_audio: {str(e)}")
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
     
@@ -219,7 +314,27 @@ def delete_audio_segment(request, segment_id):
     
     # Check if the user owns this audio segment
     if segment.user != request.user:
+        # 记录权限不足的操作
+        OperationRecord.objects.create(
+            user=request.user,
+            operation_type='audio_delete',
+            operation_object=f'音频片段ID: {segment_id}',
+            operation_detail=f'删除音频片段失败：权限不足，尝试删除不属于自己的音频片段',
+            status='failed',
+            metadata={
+                'segment_id': segment_id,
+                'segment_owner': segment.user.username,
+                'error_reason': 'permission_denied'
+            },
+            ip_address=get_client_ip(request),
+            user_agent=get_user_agent(request)
+        )
         return JsonResponse({"status": "error", "message": "You don't have permission to delete this audio segment"}, status=403)
+    
+    # 保存删除前的信息用于记录
+    segment_title = segment.title
+    book_name = segment.book.name
+    book_id = segment.book.id
     
     try:
         # Get the file path and calculate audio duration before deletion
@@ -243,6 +358,26 @@ def delete_audio_segment(request, segment_id):
         if audio_duration_seconds > 0:
             user_quota, created = UserQuota.objects.get_or_create(user=request.user)
             user_quota.add_audio_duration(audio_duration_seconds)
+        
+        # 记录成功的删除操作
+        OperationRecord.objects.create(
+            user=request.user,
+            operation_type='audio_delete',
+            operation_object=f'{book_name} - {segment_title}',
+            operation_detail=f'成功删除音频片段：{segment_title}，时长 {audio_duration_seconds} 秒，返还配额 {audio_duration_seconds} 秒',
+            status='success',
+            metadata={
+                'segment_id': segment_id,
+                'book_id': book_id,
+                'book_name': book_name,
+                'segment_title': segment_title,
+                'audio_duration': audio_duration_seconds,
+                'returned_quota': audio_duration_seconds,
+                'file_path': file_path
+            },
+            ip_address=get_client_ip(request),
+            user_agent=get_user_agent(request)
+        )
         
         # 检查是否是HTMX请求
         if request.headers.get('HX-Request') == 'true':
@@ -272,6 +407,24 @@ def delete_audio_segment(request, segment_id):
             })
     
     except Exception as e:
+        # 记录删除失败的操作
+        OperationRecord.objects.create(
+            user=request.user,
+            operation_type='audio_delete',
+            operation_object=f'{book_name} - {segment_title}',
+            operation_detail=f'删除音频片段异常：{str(e)}',
+            status='failed',
+            metadata={
+                'segment_id': segment_id,
+                'book_id': book_id,
+                'book_name': book_name,
+                'segment_title': segment_title,
+                'error_reason': 'exception',
+                'exception_message': str(e)
+            },
+            ip_address=get_client_ip(request),
+            user_agent=get_user_agent(request)
+        )
         print(f"Error in delete_audio_segment: {str(e)}")
         if request.headers.get('HX-Request') == 'true':
             # 对于HTMX请求，返回错误消息

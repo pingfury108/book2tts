@@ -3,7 +3,7 @@ from django import forms
 from django.utils.html import format_html
 from django.core.exceptions import ValidationError
 import re
-from .models import UserQuota
+from .models import UserQuota, OperationRecord
 
 # Register your models here.
 
@@ -306,3 +306,141 @@ class UserQuotaAdmin(admin.ModelAdmin):
             quota.add_storage(1073741824)
         self.message_user(request, f'成功为 {queryset.count()} 个用户增加1GB存储配额')
     add_one_gb_storage.short_description = '增加1GB存储配额'
+
+
+class OperationRecordAdmin(admin.ModelAdmin):
+    """操作记录管理 - 只读模式"""
+    
+    # 列表显示字段
+    list_display = (
+        'user',
+        'get_operation_summary',
+        'get_status_display_colored',
+        'operation_object',
+        'ip_address',
+        'created_at'
+    )
+    
+    # 列表过滤器
+    list_filter = (
+        'operation_type',
+        'status',
+        'created_at',
+        ('user', admin.RelatedOnlyFieldListFilter),
+    )
+    
+    # 搜索字段
+    search_fields = (
+        'user__username',
+        'user__email',
+        'operation_object',
+        'operation_detail',
+        'ip_address'
+    )
+    
+    # 只读字段 - 所有字段都设为只读
+    readonly_fields = (
+        'user',
+        'operation_type',
+        'operation_object',
+        'operation_detail',
+        'status',
+        'metadata',
+        'ip_address',
+        'user_agent',
+        'created_at',
+        'get_metadata_display',
+        'get_user_agent_display'
+    )
+    
+    # 字段集
+    fieldsets = (
+        ('基本信息', {
+            'fields': (
+                'user',
+                'operation_type',
+                'operation_object',
+                'status',
+                'created_at'
+            )
+        }),
+        ('详细信息', {
+            'fields': (
+                'operation_detail',
+                'get_metadata_display',
+            ),
+            'classes': ('collapse',)
+        }),
+        ('技术信息', {
+            'fields': (
+                'ip_address',
+                'get_user_agent_display',
+            ),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    # 排序
+    ordering = ['-created_at']
+    
+    # 每页显示数量
+    list_per_page = 50
+    
+    # 禁用添加权限
+    def has_add_permission(self, request):
+        return False
+    
+    # 禁用修改权限
+    def has_change_permission(self, request, obj=None):
+        return False
+    
+    # 禁用删除权限
+    def has_delete_permission(self, request, obj=None):
+        return False
+    
+    def get_operation_summary(self, obj):
+        """获取操作摘要"""
+        return obj.get_operation_summary()
+    get_operation_summary.short_description = '操作摘要'
+    
+    def get_status_display_colored(self, obj):
+        """获取带颜色的状态显示"""
+        return format_html(obj.get_status_display_with_color())
+    get_status_display_colored.short_description = '状态'
+    
+    def get_metadata_display(self, obj):
+        """格式化显示元数据"""
+        if not obj.metadata:
+            return '无'
+        
+        html_parts = ['<div style="background: #f8f9fa; padding: 10px; border-radius: 4px;">']
+        for key, value in obj.metadata.items():
+            html_parts.append(f'<p style="margin: 2px 0;"><strong>{key}:</strong> {value}</p>')
+        html_parts.append('</div>')
+        
+        return format_html(''.join(html_parts))
+    get_metadata_display.short_description = '元数据'
+    
+    def get_user_agent_display(self, obj):
+        """格式化显示用户代理"""
+        if not obj.user_agent:
+            return '无'
+        
+        # 截断过长的用户代理字符串
+        if len(obj.user_agent) > 100:
+            truncated = obj.user_agent[:100] + '...'
+            return format_html(
+                '<div style="word-break: break-all; max-width: 400px;" title="{}">{}</div>',
+                obj.user_agent,
+                truncated
+            )
+        else:
+            return format_html(
+                '<div style="word-break: break-all; max-width: 400px;">{}</div>',
+                obj.user_agent
+            )
+    get_user_agent_display.short_description = '用户代理'
+
+
+# 注册操作记录管理
+admin.site.register(OperationRecord, OperationRecordAdmin)

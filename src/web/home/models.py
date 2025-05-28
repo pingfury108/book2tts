@@ -110,6 +110,130 @@ class UserQuota(models.Model):
         self.save()
 
 
+class OperationRecord(models.Model):
+    """操作记录模型"""
+    
+    # 操作类型选择
+    OPERATION_TYPES = [
+        ('audio_create', '音频创建'),
+        ('audio_delete', '音频删除'),
+        ('file_upload', '文件上传'),
+        ('file_delete', '文件删除'),
+        ('quota_consume', '配额消耗'),
+        ('quota_add', '配额增加'),
+        ('user_login', '用户登录'),
+        ('user_logout', '用户登出'),
+        ('system_operation', '系统操作'),
+        ('other', '其他操作'),
+    ]
+    
+    # 操作状态
+    STATUS_CHOICES = [
+        ('success', '成功'),
+        ('failed', '失败'),
+        ('pending', '进行中'),
+        ('cancelled', '已取消'),
+    ]
+    
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='operation_records',
+        verbose_name='用户',
+        help_text='执行操作的用户'
+    )
+    
+    operation_type = models.CharField(
+        max_length=50,
+        choices=OPERATION_TYPES,
+        verbose_name='操作类型',
+        help_text='操作的类型分类'
+    )
+    
+    operation_object = models.CharField(
+        max_length=200,
+        verbose_name='操作对象',
+        help_text='操作的目标对象，如文件名、音频ID等',
+        blank=True,
+        null=True
+    )
+    
+    operation_detail = models.TextField(
+        verbose_name='详细描述',
+        help_text='操作的详细描述信息',
+        blank=True,
+        null=True
+    )
+    
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='success',
+        verbose_name='操作状态'
+    )
+    
+    # 额外的元数据信息（JSON格式）
+    metadata = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name='元数据',
+        help_text='操作相关的额外信息，如文件大小、音频时长等'
+    )
+    
+    # IP地址
+    ip_address = models.GenericIPAddressField(
+        verbose_name='IP地址',
+        blank=True,
+        null=True,
+        help_text='操作时的IP地址'
+    )
+    
+    # 用户代理
+    user_agent = models.TextField(
+        verbose_name='用户代理',
+        blank=True,
+        null=True,
+        help_text='操作时的浏览器信息'
+    )
+    
+    # 创建时间
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='操作时间'
+    )
+    
+    class Meta:
+        verbose_name = '操作记录'
+        verbose_name_plural = '操作记录'
+        ordering = ['-created_at']  # 按时间倒序排列
+        indexes = [
+            models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['operation_type', '-created_at']),
+            models.Index(fields=['status', '-created_at']),
+        ]
+    
+    def __str__(self):
+        return f'{self.user.username} - {self.get_operation_type_display()} - {self.operation_object or "无对象"} - {self.created_at.strftime("%Y-%m-%d %H:%M:%S")}'
+    
+    def get_operation_summary(self):
+        """获取操作摘要"""
+        summary = f'{self.get_operation_type_display()}'
+        if self.operation_object:
+            summary += f' - {self.operation_object}'
+        return summary
+    
+    def get_status_display_with_color(self):
+        """获取带颜色的状态显示"""
+        status_colors = {
+            'success': '#28a745',
+            'failed': '#dc3545',
+            'pending': '#ffc107',
+            'cancelled': '#6c757d',
+        }
+        color = status_colors.get(self.status, '#6c757d')
+        return f'<span style="color: {color}; font-weight: bold;">{self.get_status_display()}</span>'
+
+
 # 信号处理器：当用户创建时自动创建对应的配额记录
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_user_quota(sender, instance, created, **kwargs):
