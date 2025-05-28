@@ -498,6 +498,14 @@ def operation_records(request):
     
     return render(request, "home/operation_records.html", context)
 
+
+def about(request):
+    """关于页面"""
+    context = {
+        'title': '关于 Book2TTS',
+    }
+    return render(request, "home/about.html", context)
+
 # 创建RSS Feed的助手函数
 def create_podcast_feed(title, link, description, language, author_name, image_url=None, author_email=None):
     """
