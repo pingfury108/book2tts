@@ -10,8 +10,86 @@
         返回书籍列表
     </a>
     <h2 class="text-xl font-bold bg-primary text-primary-content p-2 rounded-lg">📚 {{ book_name }}</h2>
-    <div class="badge badge-lg">{{ segments|length }} 个音频</div>
+    <div class="badge badge-lg">{{ total_segments }} 个音频</div>
 </div>
+
+<!-- 分页统计信息 -->
+{% if paginator.count > 0 %}
+<div class="flex justify-between items-center mb-4 text-sm text-base-content opacity-70">
+    <div class="flex items-center space-x-4">
+        <div class="flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span>显示 {{ page_obj.start_index }}-{{ page_obj.end_index }} 项，共 {{ paginator.count }} 项</span>
+        </div>
+        
+        <!-- 页面大小选择器 -->
+        <div class="flex items-center space-x-2">
+            <span>每页显示:</span>
+            <select 
+                class="select select-xs select-bordered"
+                onchange="changePageSize(this.value)"
+                id="page-size-selector">
+                {% for size in page_size_options %}
+                    <option value="{{ size }}" {% if size == page_size %}selected{% endif %}>{{ size }}</option>
+                {% endfor %}
+            </select>
+            <span>项</span>
+        </div>
+    </div>
+    <div class="flex items-center">
+        <span>第 {{ page_obj.number }} 页，共 {{ paginator.num_pages }} 页</span>
+    </div>
+</div>
+
+<script>
+function changePageSize(newSize) {
+    const bookId = parseInt('{{ book_id }}');
+    const url = '/workbench/audio/book-details/' + bookId + '/?page=1&page_size=' + newSize;
+    htmx.ajax('GET', url, {
+        target: '#main-content', 
+        swap: 'innerHTML', 
+        pushURL: true
+    });
+}
+
+function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function jumpToPage() {
+    const input = document.getElementById('page-jump-input');
+    const pageNum = parseInt(input.value);
+    const maxPages = parseInt('{{ paginator.num_pages }}');
+    const currentPage = parseInt('{{ page_obj.number }}');
+    const bookId = parseInt('{{ book_id }}');
+    const pageSize = parseInt('{{ page_size }}');
+    
+    if (pageNum >= 1 && pageNum <= maxPages) {
+        const url = '/workbench/audio/book-details/' + bookId + '/?page=' + pageNum + '&page_size=' + pageSize;
+        htmx.ajax('GET', url, {
+            target: '#main-content', 
+            swap: 'innerHTML', 
+            pushURL: true
+        });
+    } else {
+        input.value = currentPage;
+        alert('请输入有效的页码（1-' + maxPages + '）');
+    }
+}
+
+// 在HTMX请求完成后自动滚动到顶部
+document.body.addEventListener('htmx:afterSwap', function(evt) {
+    if (evt.detail.target && evt.detail.target.id === 'main-content') {
+        // 小延迟确保内容完全渲染
+        setTimeout(() => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 100);
+    }
+});
+</script>
+{% endif %}
 
 <div class="divider"></div>
 
@@ -45,7 +123,7 @@
                             hx-trigger="click"
                             onclick="document.getElementById('modal-{{ segment.id }}').showModal()"
                             title="点击查看页面内容">
-                            {{ forloop.counter }}
+                            {{ forloop.counter|add:page_obj.start_index|add:"-1" }}
                         </button>
                         {% else %}
                         <div class="ml-2 bg-base-300 text-base-content rounded-full w-6 h-6 flex items-center justify-center">
@@ -93,9 +171,9 @@
             
             <!-- Text Content Section - Collapsible -->
             <div class="bg-base-100 rounded-lg mb-3 border border-base-300">
-                <div class="collapse collapse-plus" id="text-content-{{ forloop.counter }}">
-                    <input type="checkbox" id="text-checkbox-{{ forloop.counter }}" /> 
-                    <label for="text-checkbox-{{ forloop.counter }}" class="collapse-title font-medium flex items-center cursor-pointer">
+                <div class="collapse collapse-plus" id="text-content-{{ segment.id }}">
+                    <input type="checkbox" id="text-checkbox-{{ segment.id }}" /> 
+                    <label for="text-checkbox-{{ segment.id }}" class="collapse-title font-medium flex items-center cursor-pointer">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
@@ -177,3 +255,173 @@
     </div>
     {% endfor %}
 </div>
+
+<!-- 分页导航 -->
+{% if paginator.num_pages > 1 %}
+<div class="flex justify-center mt-8">
+    <div class="join">
+        <!-- 上一页按钮 -->
+        {% if page_obj.has_previous %}
+            <button 
+                class="join-item btn btn-sm btn-outline"
+                hx-get="{% url 'book_details_htmx' book_id=book_id %}?page={{ page_obj.previous_page_number }}&page_size={{ page_size }}"
+                hx-target="#main-content"
+                hx-swap="innerHTML"
+                hx-push-url="true"
+                hx-indicator="#loading-indicator">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+                上一页
+            </button>
+        {% else %}
+            <button class="join-item btn btn-sm btn-outline btn-disabled">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+                上一页
+            </button>
+        {% endif %}
+        
+        <!-- 页码按钮 -->
+        {% for page_num in paginator.page_range %}
+            {% if page_num == page_obj.number %}
+                <button class="join-item btn btn-sm btn-active">{{ page_num }}</button>
+            {% elif page_num > page_obj.number|add:'-3' and page_num < page_obj.number|add:'3' %}
+                <button 
+                    class="join-item btn btn-sm btn-outline"
+                    hx-get="{% url 'book_details_htmx' book_id=book_id %}?page={{ page_num }}&page_size={{ page_size }}"
+                    hx-target="#main-content"
+                    hx-swap="innerHTML"
+                    hx-push-url="true"
+                    hx-indicator="#loading-indicator">
+                    {{ page_num }}
+                </button>
+            {% elif page_num == 1 or page_num == paginator.num_pages %}
+                {% if page_num == 1 and page_obj.number > 4 %}
+                    <button 
+                        class="join-item btn btn-sm btn-outline"
+                        hx-get="{% url 'book_details_htmx' book_id=book_id %}?page=1&page_size={{ page_size }}"
+                        hx-target="#main-content"
+                        hx-swap="innerHTML"
+                        hx-push-url="true"
+                        hx-indicator="#loading-indicator">
+                        1
+                    </button>
+                    {% if page_obj.number > 5 %}
+                        <button class="join-item btn btn-sm btn-outline btn-disabled">...</button>
+                    {% endif %}
+                {% elif page_num == paginator.num_pages and page_obj.number < paginator.num_pages|add:'-3' %}
+                    {% if page_obj.number < paginator.num_pages|add:'-4' %}
+                        <button class="join-item btn btn-sm btn-outline btn-disabled">...</button>
+                    {% endif %}
+                    <button 
+                        class="join-item btn btn-sm btn-outline"
+                        hx-get="{% url 'book_details_htmx' book_id=book_id %}?page={{ paginator.num_pages }}&page_size={{ page_size }}"
+                        hx-target="#main-content"
+                        hx-swap="innerHTML"
+                        hx-push-url="true"
+                        hx-indicator="#loading-indicator">
+                        {{ paginator.num_pages }}
+                    </button>
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+        
+        <!-- 下一页按钮 -->
+        {% if page_obj.has_next %}
+            <button 
+                class="join-item btn btn-sm  btn-outline"
+                hx-get="{% url 'book_details_htmx' book_id=book_id %}?page={{ page_obj.next_page_number }}&page_size={{ page_size }}"
+                hx-target="#main-content"
+                hx-swap="innerHTML"
+                hx-push-url="true"
+                hx-indicator="#loading-indicator">
+                下一页
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </button>
+        {% else %}
+            <button class="join-item btn btn-sm  btn-outline btn-disabled">
+                下一页
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 回到顶部和加载指示器 -->
+<div class="flex justify-center items-center mt-4 space-x-4">
+    <!-- 加载指示器 -->
+    <div id="loading-indicator" class="htmx-indicator">
+        <div class="flex items-center space-x-2">
+            <div class="loading loading-spinner loading-sm"></div>
+            <span class="text-sm">加载中...</span>
+        </div>
+    </div>
+</div>
+
+<!-- 分页跳转输入框 -->
+{% if paginator.num_pages > 5 %}
+<div class="flex justify-center mt-4">
+    <div class="flex items-center space-x-2">
+        <span class="text-sm">跳转到第</span>
+        <input 
+            type="number" 
+            min="1" 
+            max="{{ paginator.num_pages }}" 
+            value="{{ page_obj.number }}"
+            class="input input-sm input-bordered w-16 text-center"
+            id="page-jump-input"
+            onkeypress="if(event.key==='Enter') jumpToPage()"
+        />
+        <span class="text-sm">页</span>
+        <button 
+            class="btn btn-sm btn-primary"
+            onclick="jumpToPage()">
+            跳转
+        </button>
+    </div>
+</div>
+{% endif %}
+
+<script>
+function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function jumpToPage() {
+    const input = document.getElementById('page-jump-input');
+    const pageNum = parseInt(input.value);
+    const maxPages = parseInt('{{ paginator.num_pages }}');
+    const currentPage = parseInt('{{ page_obj.number }}');
+    const bookId = parseInt('{{ book_id }}');
+    const pageSize = parseInt('{{ page_size }}');
+    
+    if (pageNum >= 1 && pageNum <= maxPages) {
+        const url = '/workbench/audio/book-details/' + bookId + '/?page=' + pageNum + '&page_size=' + pageSize;
+        htmx.ajax('GET', url, {
+            target: '#main-content', 
+            swap: 'innerHTML', 
+            pushURL: true
+        });
+    } else {
+        input.value = currentPage;
+        alert('请输入有效的页码（1-' + maxPages + '）');
+    }
+}
+
+// 在HTMX请求完成后自动滚动到顶部
+document.body.addEventListener('htmx:afterSwap', function(evt) {
+    if (evt.detail.target && evt.detail.target.id === 'main-content') {
+        // 小延迟确保内容完全渲染
+        setTimeout(() => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 100);
+    }
+});
+</script>
+{% endif %}
