@@ -13,6 +13,7 @@ from home.utils.rss_utils import (
     postprocess_rss
 )
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 # Create your views here.
 
@@ -25,12 +26,38 @@ def index(request):
         # 确保用户有一个有效的RSS token
         ensure_rss_token(request.user)
         
-        published_audio_segments = AudioSegment.objects.filter(
+        published_audio_segments_qs = AudioSegment.objects.filter(
             book__user=request.user,
             published=True
         ).order_by('-id')  # 按ID降序排列（最新的在前）
         
-        context['audio_segments'] = published_audio_segments
+        # 添加分页
+        page = request.GET.get('page', 1)
+        try:
+            page_size = int(request.GET.get('page_size', 10))
+            page_size = min(max(page_size, 5), 50)  # 限制在5-50之间
+        except (ValueError, TypeError):
+            page_size = 10
+            
+        # 创建分页器，即使没有数据也要创建
+        paginator = Paginator(published_audio_segments_qs, page_size)
+        
+        try:
+            audio_segments = paginator.page(page)
+        except PageNotAnInteger:
+            audio_segments = paginator.page(1)
+        except EmptyPage:
+            # 如果页面超出范围，显示最后一页
+            if paginator.num_pages > 0:
+                audio_segments = paginator.page(paginator.num_pages)
+            else:
+                audio_segments = paginator.page(1)
+        
+        # 始终传递分页相关的上下文
+        context['audio_segments'] = audio_segments
+        context['paginator'] = paginator
+        context['page_size'] = page_size
+        context['page_size_options'] = [5, 10, 20, 50]
     
     return render(request, "home/index.html", context)
 
@@ -71,15 +98,40 @@ def book_audio_list(request, book_id):
         ensure_rss_token(book.user)
     
     # 获取该书籍下已发布的音频片段
-    book_audio_segments = AudioSegment.objects.filter(
+    book_audio_segments_qs = AudioSegment.objects.filter(
         book=book,
         published=True
     ).order_by('-id')  # 按ID降序排列（最新的在前）
     
+    # 添加分页
+    page = request.GET.get('page', 1)
+    try:
+        page_size = int(request.GET.get('page_size', 10))
+        page_size = min(max(page_size, 5), 50)  # 限制在5-50之间
+    except (ValueError, TypeError):
+        page_size = 10
+        
+    # 创建分页器，即使没有数据也要创建
+    paginator = Paginator(book_audio_segments_qs, page_size)
+    
+    try:
+        audio_segments = paginator.page(page)
+    except PageNotAnInteger:
+        audio_segments = paginator.page(1)
+    except EmptyPage:
+        # 如果页面超出范围，显示最后一页
+        if paginator.num_pages > 0:
+            audio_segments = paginator.page(paginator.num_pages)
+        else:
+            audio_segments = paginator.page(1)
+    
     context = {
         'book': book,
-        'audio_segments': book_audio_segments,
-        'display_title': f'《{book.name}》的音频列表'
+        'audio_segments': audio_segments,
+        'display_title': f'《{book.name}》的音频列表',
+        'paginator': paginator,
+        'page_size': page_size,
+        'page_size_options': [5, 10, 20, 50]
     }
     
     return render(request, "home/index.html", context)
