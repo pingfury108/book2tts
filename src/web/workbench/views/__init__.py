@@ -8,6 +8,7 @@ from .book_views import (
     text_by_toc,
     text_by_page,
     update_book_name,
+    delete_book,
 )
 
 from .audio_views import (
@@ -39,6 +40,7 @@ __all__ = [
     'text_by_toc',
     'text_by_page',
     'update_book_name',
+    'delete_book',
     
     # Audio views
     'aggregated_audio_segments',

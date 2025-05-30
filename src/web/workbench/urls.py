@@ -9,6 +9,7 @@ from .views import (
     delete_audio_segment,
     book_details_htmx,
     update_book_name,
+    delete_book,
     toggle_publish_audio_segment,
 )
 
@@ -45,4 +46,5 @@ urlpatterns = [
         name="toggle_publish_audio_segment",
     ),
     path("book/<int:book_id>/update-name/", update_book_name, name="update_book_name"),
+    path("book/<int:book_id>/delete/", delete_book, name="delete_book"),
 ]

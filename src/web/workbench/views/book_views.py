@@ -306,4 +306,45 @@ def update_book_name(request, book_id):
             return HttpResponse(f"更新失败: {str(e)}", status=500)
         else:
             # For non-HTMX requests, return JSON
-            return JsonResponse({"status": "error", "message": str(e)}, status=500) 
+            return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
+
+@login_required
+@csrf_exempt
+@require_http_methods(["POST"])
+def delete_book(request, book_id):
+    """Delete a book and all its associated data"""
+    # Get the book or return 404 if not found
+    book = get_object_or_404(Books, pk=book_id)
+    
+    # Check if the user owns this book
+    if book.user != request.user:
+        return JsonResponse({"status": "error", "message": "You don't have permission to delete this book"}, status=403)
+    
+    try:
+        # Get book name for response before deletion
+        book_name = book.name
+        
+        # Delete the physical file if it exists
+        try:
+            if book.file and hasattr(book.file, 'path'):
+                import os
+                if os.path.exists(book.file.path):
+                    os.remove(book.file.path)
+        except Exception as file_error:
+            # Log the error but don't stop the deletion process
+            print(f"Warning: Could not delete file {book.file.path}: {str(file_error)}")
+        
+        # Delete the book (cascade will delete related AudioSegments)
+        book.delete()
+        
+        # Return success response
+        return JsonResponse({
+            "status": "success", 
+            "message": f"书籍 '{book_name}' 已成功删除",
+            "book_id": book_id
+        })
+    
+    except Exception as e:
+        print(f"Error in delete_book: {str(e)}")
+        return JsonResponse({"status": "error", "message": f"删除失败: {str(e)}"}, status=500) 
