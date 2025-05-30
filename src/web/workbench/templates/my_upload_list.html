@@ -24,7 +24,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
                             </svg>
                         </button>
-                        <button class="btn btn-sm btn-ghost btn-circle hover:bg-error hover:text-error-content" 
+                        <button class="btn btn-sm btn-ghost btn-circle hover:bg-error hover:text-error-content transition-colors duration-200" 
                                 onclick="confirmDeleteBook('{{ book.id }}', '{{ book.name }}')"
                                 title="删除书籍">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
@@ -43,9 +43,7 @@
                                placeholder="输入书名"/>
                         <div class="flex flex-row gap-2">
                             <button type="submit" class="btn btn-sm btn-primary btn-square">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 loading-icon" style="display:none;">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                                </svg>
+                                <span class="loading loading-spinner loading-xs" style="display:none;"></span>
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 save-icon">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                                 </svg>
@@ -191,7 +189,7 @@ function updateBookName(event, bookId) {
     const form = document.getElementById(`book-form-${bookId}`);
     const input = form.querySelector('input[name="name"]');
     const saveIcon = form.querySelector('.save-icon');
-    const loadingIcon = form.querySelector('.loading-icon');
+    const loadingSpinner = form.querySelector('.loading');
     
     // Validation: don't allow empty names
     if (!input.value.trim()) {
@@ -208,7 +206,7 @@ function updateBookName(event, bookId) {
     
     // Show loading state
     if (saveIcon) saveIcon.style.display = 'none';
-    if (loadingIcon) loadingIcon.style.display = 'inline';
+    if (loadingSpinner) loadingSpinner.style.display = 'inline-block';
     
     // Create form data
     const formData = new FormData(form);
@@ -225,7 +223,7 @@ function updateBookName(event, bookId) {
     .then(data => {
         // Reset loading state
         if (saveIcon) saveIcon.style.display = 'inline';
-        if (loadingIcon) loadingIcon.style.display = 'none';
+        if (loadingSpinner) loadingSpinner.style.display = 'none';
         
         if (data.status === 'success') {
             // Update the displayed book name
@@ -268,7 +266,7 @@ function updateBookName(event, bookId) {
     .catch(error => {
         // Reset loading state
         if (saveIcon) saveIcon.style.display = 'inline';
-        if (loadingIcon) loadingIcon.style.display = 'none';
+        if (loadingSpinner) loadingSpinner.style.display = 'none';
         
         // Show error message
         showToast('更新失败: ' + error, 'error');
@@ -301,9 +299,7 @@ function confirmDeleteBook(bookId, bookName) {
                 <div class="modal-action">
                     <button class="btn btn-ghost" onclick="closeDeleteModal('${bookId}')">取消</button>
                     <button class="btn btn-error" onclick="deleteBook('${bookId}', '${bookName}')">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 loading-icon" style="display:none;">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                        </svg>
+                        <span class="loading loading-spinner loading-sm" style="display:none;"></span>
                         <span class="delete-text">确认删除</span>
                     </button>
                 </div>
@@ -342,12 +338,12 @@ function closeDeleteModal(bookId) {
 function deleteBook(bookId, bookName) {
     const modal = document.getElementById(`delete-modal-${bookId}`);
     const deleteButton = modal.querySelector('.btn-error');
-    const loadingIcon = deleteButton.querySelector('.loading-icon');
+    const loadingSpinner = deleteButton.querySelector('.loading');
     const deleteText = deleteButton.querySelector('.delete-text');
     
     // Show loading state
     deleteButton.disabled = true;
-    if (loadingIcon) loadingIcon.style.display = 'inline';
+    if (loadingSpinner) loadingSpinner.style.display = 'inline-block';
     if (deleteText) deleteText.textContent = '删除中...';
     
     // Send delete request
@@ -367,7 +363,7 @@ function deleteBook(bookId, bookName) {
             // Remove the book item from the list with animation
             const bookItem = document.querySelector(`li:has(#view-mode-${bookId})`);
             if (bookItem) {
-                bookItem.style.transition = 'all 0.3s ease-out';
+                bookItem.classList.add('transition-all', 'duration-300', 'ease-out');
                 bookItem.style.transform = 'translateX(-100%)';
                 bookItem.style.opacity = '0';
                 
@@ -402,7 +398,7 @@ function deleteBook(bookId, bookName) {
         } else {
             // Reset button state
             deleteButton.disabled = false;
-            if (loadingIcon) loadingIcon.style.display = 'none';
+            if (loadingSpinner) loadingSpinner.style.display = 'none';
             if (deleteText) deleteText.textContent = '确认删除';
             
             // Show error message
@@ -412,7 +408,7 @@ function deleteBook(bookId, bookName) {
     .catch(error => {
         // Reset button state
         deleteButton.disabled = false;
-        if (loadingIcon) loadingIcon.style.display = 'none';
+        if (loadingSpinner) loadingSpinner.style.display = 'none';
         if (deleteText) deleteText.textContent = '确认删除';
         
         // Show error message
@@ -439,7 +435,7 @@ function showToast(message, type = 'info') {
     if (!toastContainer) {
         toastContainer = document.createElement('div');
         toastContainer.id = 'toast-container';
-        toastContainer.className = 'fixed bottom-4 right-4 z-50 flex flex-col gap-2';
+        toastContainer.className = 'toast toast-end';
         document.body.appendChild(toastContainer);
     }
     
@@ -451,24 +447,20 @@ function showToast(message, type = 'info') {
     toast.className = `alert ${alertClass} shadow-lg max-w-xs opacity-0 transition-opacity duration-300`;
     
     // Select appropriate icon based on type
-    let iconPath;
+    let iconSvg;
     if (type === 'error') {
-        iconPath = 'M6 18L18 6M6 6l12 12';
+        iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`;
     } else if (type === 'success') {
-        iconPath = 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z';
+        iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`;
     } else if (type === 'warning') {
-        iconPath = 'M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z';
+        iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>`;
     } else {
-        iconPath = 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z';
+        iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
     }
     
     toast.innerHTML = `
-        <div>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${iconPath}"></path>
-            </svg>
-            <span>${message}</span>
-        </div>
+        ${iconSvg}
+        <span>${message}</span>
     `;
     
     // Add to container
@@ -516,42 +508,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .highlight-update {
     animation: highlight 1.5s ease-in-out;
-}
-
-/* Delete animation styles */
-.book-item-removing {
-    transition: all 0.3s ease-out;
-    transform: translateX(-100%);
-    opacity: 0;
-}
-
-/* Modal backdrop blur effect */
-.modal {
-    backdrop-filter: blur(4px);
-}
-
-/* Enhanced delete button hover effects */
-.btn-circle:hover.hover\:bg-error {
-    transition: all 0.2s ease-in-out;
-}
-
-/* Custom modal styling */
-.modal-box .text-error {
-    color: rgb(var(--er));
-}
-
-.modal-box .text-warning {
-    color: rgb(var(--wa));
-}
-
-/* Loading spinner animation for delete button */
-.loading-icon {
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
 }
 </style>
 {% endblock %}
