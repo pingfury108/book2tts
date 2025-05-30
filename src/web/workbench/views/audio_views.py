@@ -36,8 +36,8 @@ def get_user_agent(request):
 @login_required
 def aggregated_audio_segments(request):
     """Display aggregated audio segments grouped by book"""
-    # Get the current user's audio segments
-    audio_segments = AudioSegment.objects.filter(user=request.user)
+    # Get the current user's audio segments, ordered by created_at descending
+    audio_segments = AudioSegment.objects.filter(user=request.user).order_by('-created_at')
 
     # Aggregate by book
     aggregated_data = defaultdict(list)

@@ -28,12 +28,12 @@ def book_details_htmx(request, book_id):
     except (ValueError, TypeError):
         page_size = 10
     
-    # Get segments for this specific book, ordered by updated_at descending
+    # Get segments for this specific book, ordered by created_at descending
     # Use select_related to optimize database queries
     book_segments_qs = AudioSegment.objects.filter(
         user=request.user,
         book=target_book
-    ).select_related('book').order_by('-updated_at')
+    ).select_related('book').order_by('-created_at')
     
     # Create paginator
     paginator = Paginator(book_segments_qs, page_size)

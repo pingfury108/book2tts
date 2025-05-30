@@ -29,7 +29,7 @@ def index(request):
         published_audio_segments_qs = AudioSegment.objects.filter(
             book__user=request.user,
             published=True
-        ).order_by('-id')  # 按ID降序排列（最新的在前）
+        ).order_by('-created_at')  # 按创建时间降序排列（最新的在前）
         
         # 添加分页
         page = request.GET.get('page', 1)
@@ -101,7 +101,7 @@ def book_audio_list(request, book_id):
     book_audio_segments_qs = AudioSegment.objects.filter(
         book=book,
         published=True
-    ).order_by('-id')  # 按ID降序排列（最新的在前）
+    ).order_by('-created_at')  # 按创建时间降序排列（最新的在前）
     
     # 添加分页
     page = request.GET.get('page', 1)
