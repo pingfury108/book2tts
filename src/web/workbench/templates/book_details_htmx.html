@@ -98,7 +98,7 @@ document.body.addEventListener('htmx:afterSwap', function(evt) {
         <div class="collapse collapse-plus">
             <input type="checkbox" id="segment-checkbox-{{ segment.id }}" />
             <!-- 标题作为折叠触发器 -->
-            <label for="segment-checkbox-{{ segment.id }}" class="collapse-title bg-primary text-primary-content p-2 rounded-t-lg cursor-pointer min-h-0">
+            <label for="segment-checkbox-{{ segment.id }}" class="collapse-title bg-base-300 text-base-content p-2 rounded-t-lg cursor-pointer min-h-0 hover:bg-base-200 transition-colors">
                 <h3 class="text-base font-semibold">🔖 {{ segment.title }}</h3>
             </label>
             
