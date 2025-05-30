@@ -5893,6 +5893,10 @@ details.collapse summary::-webkit-details-marker {
   padding: 1.25rem;
 }
 
+.p-0 {
+  padding: 0px;
+}
+
 .px-1 {
   padding-left: 0.25rem;
   padding-right: 0.25rem;
