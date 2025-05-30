@@ -1,7 +1,4 @@
 {% load custom_filters %}
-<!-- 书籍详情HTMX模板 -->
-<h1 class="text-2xl font-bold mb-6 text-center bg-primary text-primary-content p-3 rounded-lg shadow-lg">📚 我的音频库</h1>
-
 <div class="flex justify-between items-center mb-4">
     <a href="{% url 'aggregated_audio_segments' %}" class="btn btn-sm btn-outline">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -15,31 +12,31 @@
 
 <!-- 分页统计信息 -->
 {% if paginator.count > 0 %}
-<div class="flex justify-between items-center mb-4 text-sm text-base-content opacity-70">
+<div class="flex justify-between items-center mb-4 text-base-content opacity-70">
     <div class="flex items-center space-x-4">
         <div class="flex items-center">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            <span>显示 {{ page_obj.start_index }}-{{ page_obj.end_index }} 项，共 {{ paginator.count }} 项</span>
+            <span class="text-sm">显示 {{ page_obj.start_index }}-{{ page_obj.end_index }} 项，共 {{ paginator.count }} 项</span>
         </div>
         
         <!-- 页面大小选择器 -->
         <div class="flex items-center space-x-2">
-            <span>每页显示:</span>
+            <span class="text-sm">每页显示:</span>
             <select 
-                class="select select-xs select-bordered"
+                class="select"
                 onchange="changePageSize(this.value)"
                 id="page-size-selector">
                 {% for size in page_size_options %}
                     <option value="{{ size }}" {% if size == page_size %}selected{% endif %}>{{ size }}</option>
                 {% endfor %}
             </select>
-            <span>项</span>
+            <span class="text-sm">项</span>
         </div>
     </div>
     <div class="flex items-center">
-        <span>第 {{ page_obj.number }} 页，共 {{ paginator.num_pages }} 页</span>
+        <span class="text-sm">第 {{ page_obj.number }} 页，共 {{ paginator.num_pages }} 页</span>
     </div>
 </div>
 

@@ -4696,6 +4696,20 @@ details.collapse summary::-webkit-details-marker {
   position: absolute;
 }
 
+.select-sm {
+  height: 2rem;
+  min-height: 2rem;
+  padding-left: 0.75rem;
+  padding-right: 2rem;
+  font-size: 0.875rem;
+  line-height: 2rem;
+}
+
+[dir="rtl"] .select-sm {
+  padding-left: 2rem;
+  padding-right: 0.75rem;
+}
+
 .select-xs {
   height: 1.5rem;
   min-height: 1.5rem;
@@ -5375,6 +5389,10 @@ details.collapse summary::-webkit-details-marker {
   height: 100vh;
 }
 
+.h-10 {
+  height: 2.5rem;
+}
+
 .max-h-40 {
   max-height: 10rem;
 }
@@ -5389,6 +5407,10 @@ details.collapse summary::-webkit-details-marker {
 
 .min-h-screen {
   min-height: 100vh;
+}
+
+.min-h-0 {
+  min-height: 0px;
 }
 
 .w-1\/5 {
