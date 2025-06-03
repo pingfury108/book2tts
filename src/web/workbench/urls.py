@@ -13,6 +13,11 @@ from .views import (
     delete_book,
     toggle_publish_audio_segment,
 )
+from .views.audio_views import (
+    task_queue,
+    cancel_task,
+    delete_task_record,
+)
 
 urlpatterns = [
     path("", views.upload, name="index"),
@@ -49,4 +54,8 @@ urlpatterns = [
     ),
     path("book/<int:book_id>/update-name/", update_book_name, name="update_book_name"),
     path("book/<int:book_id>/delete/", delete_book, name="delete_book"),
+    # 任务队列相关路由
+    path("tasks/", task_queue, name="task_queue"),
+    path("task/cancel/<str:task_id>/", cancel_task, name="cancel_task"),
+    path("task/delete/<str:task_id>/", delete_task_record, name="delete_task_record"),
 ]

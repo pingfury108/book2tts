@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+
+{% block title %}任务队列 - Book2TTS{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold">任务队列</h1>
+        <div class="text-sm text-gray-600">
+            共 {{ stats.total }} 个任务
+        </div>
+    </div>
+    
+    <!-- 统计信息卡片 -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="stat bg-base-200 rounded-lg p-4">
+            <div class="stat-title">总任务数</div>
+            <div class="stat-value text-primary">{{ stats.total }}</div>
+        </div>
+        <div class="stat bg-base-200 rounded-lg p-4">
+            <div class="stat-title">进行中</div>
+            <div class="stat-value text-warning">{{ stats.processing }}</div>
+        </div>
+        <div class="stat bg-base-200 rounded-lg p-4">
+            <div class="stat-title">已完成</div>
+            <div class="stat-value text-success">{{ stats.success }}</div>
+        </div>
+        <div class="stat bg-base-200 rounded-lg p-4">
+            <div class="stat-title">失败</div>
+            <div class="stat-value text-error">{{ stats.failure }}</div>
+        </div>
+    </div>
+    
+    <!-- 标签页 -->
+    <div class="tabs tabs-boxed mb-6">
+        <a class="tab {% if current_status == 'all' %}tab-active{% endif %}" href="?status=all">
+            全部 ({{ stats.total }})
+        </a>
+        <a class="tab {% if current_status == 'processing' %}tab-active{% endif %}" href="?status=processing">
+            进行中 ({{ stats.processing }})
+        </a>
+        <a class="tab {% if current_status == 'success' %}tab-active{% endif %}" href="?status=success">
+            已完成 ({{ stats.success }})
+        </a>
+        <a class="tab {% if current_status == 'failure' %}tab-active{% endif %}" href="?status=failure">
+            失败 ({{ stats.failure }})
+        </a>
+    </div>
+    
+    <!-- 任务列表 -->
+    <div class="space-y-4">
+        {% for task in tasks %}
+        <div class="card bg-base-100 shadow-md border" data-task-id="{{ task.task_id }}">
+            <div class="card-body">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <h3 class="card-title text-lg">
+                            {% if task.book %}
+                                <span class="text-primary">{{ task.book.name }}</span>
+                                {% if task.title %} - {{ task.title }}{% endif %}
+                            {% else %}
+                                {{ task.title|default:"音频合成任务" }}
+                            {% endif %}
+                        </h3>
+                        
+                        <div class="text-sm text-gray-600 mt-2">
+                            <div class="flex items-center gap-4">
+                                <span>任务ID: {{ task.task_id }}</span>
+                                <span>创建时间: {{ task.created_at|date:"Y-m-d H:i:s" }}</span>
+                                {% if task.completed_at %}
+                                    <span>完成时间: {{ task.completed_at|date:"Y-m-d H:i:s" }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- 任务详情 -->
+                        {% if task.metadata %}
+                        <div class="mt-3">
+                            <details class="collapse collapse-arrow bg-base-200">
+                                <summary class="collapse-title text-sm font-medium">任务详情</summary>
+                                <div class="collapse-content text-sm">
+                                    <div class="grid grid-cols-2 gap-2 mt-2">
+                                        {% if task.metadata.voice_name %}
+                                            <div><strong>语音:</strong> {{ task.metadata.voice_name }}</div>
+                                        {% endif %}
+                                        {% if task.metadata.text_length %}
+                                            <div><strong>文本长度:</strong> {{ task.metadata.text_length }} 字符</div>
+                                        {% endif %}
+                                        {% if task.metadata.estimated_duration %}
+                                            <div><strong>预估时长:</strong> {{ task.metadata.estimated_duration }} 秒</div>
+                                        {% endif %}
+                                        {% if task.metadata.book_page %}
+                                            <div><strong>页面:</strong> {{ task.metadata.book_page }}</div>
+                                        {% endif %}
+                                    </div>
+                                    {% if task.metadata.text %}
+                                        <div class="mt-2">
+                                            <strong>文本内容:</strong>
+                                            <div class="bg-base-300 p-2 rounded mt-1 max-h-32 overflow-y-auto text-xs">
+                                                {{ task.metadata.text|truncatechars:200 }}
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </details>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- 进度信息 -->
+                        {% if task.progress_message %}
+                        <div class="mt-3 p-3 bg-base-200 rounded text-sm">
+                            <strong>状态:</strong> {{ task.progress_message }}
+                        </div>
+                        {% endif %}
+                        
+                        <!-- 错误信息 -->
+                        {% if task.error_message %}
+                        <div class="mt-3 p-3 bg-error bg-opacity-10 border border-error rounded text-sm">
+                            <strong class="text-error">错误:</strong> {{ task.error_message }}
+                        </div>
+                        {% endif %}
+                        
+                        <!-- 结果信息 -->
+                        {% if task.result_data and task.status == 'success' %}
+                        <div class="mt-3 p-3 bg-success bg-opacity-10 border border-success rounded text-sm">
+                            <strong class="text-success">结果:</strong>
+                            <div class="mt-1">
+                                {% if task.result_data.audio_url %}
+                                    <a href="{{ task.result_data.audio_url }}" class="link link-primary" target="_blank">
+                                        🎵 播放音频
+                                    </a>
+                                {% endif %}
+                                {% if task.result_data.audio_duration %}
+                                    <span class="ml-4">时长: {{ task.result_data.audio_duration }} 秒</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- 状态和操作按钮 -->
+                    <div class="flex flex-col items-end gap-3">
+                        <!-- 状态标签 -->
+                        <div class="badge 
+                            {% if task.status == 'pending' %}badge-warning
+                            {% elif task.status == 'processing' %}badge-info
+                            {% elif task.status == 'success' %}badge-success
+                            {% elif task.status == 'failure' %}badge-error
+                            {% elif task.status == 'revoked' %}badge-neutral
+                            {% else %}badge-ghost{% endif %}">
+                            {% if task.status == 'pending' %}等待中
+                            {% elif task.status == 'processing' %}处理中
+                            {% elif task.status == 'success' %}已完成
+                            {% elif task.status == 'failure' %}失败
+                            {% elif task.status == 'revoked' %}已取消
+                            {% else %}{{ task.status }}{% endif %}
+                        </div>
+                        
+                        <!-- 操作按钮 -->
+                        <div class="flex gap-2">
+                            {% if task.status in 'pending,processing' %}
+                                <button class="btn btn-warning btn-sm" 
+                                        onclick="cancelTask('{{ task.task_id }}')"
+                                        title="取消任务">
+                                    ✕ 取消
+                                </button>
+                            {% endif %}
+                            
+                            {% if task.status in 'pending,processing' %}
+                                <button class="btn btn-info btn-sm" 
+                                        onclick="refreshTask('{{ task.task_id }}')"
+                                        title="刷新状态">
+                                    🔄 刷新
+                                </button>
+                            {% endif %}
+                            
+                            {% if task.is_finished %}
+                                <button class="btn btn-error btn-sm" 
+                                        onclick="deleteTask('{{ task.task_id }}')"
+                                        title="删除记录">
+                                    🗑️ 删除
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center py-12">
+            <div class="text-6xl mb-4">📋</div>
+            <h3 class="text-xl font-medium mb-2">暂无任务</h3>
+            <p class="text-gray-600">
+                {% if current_status == 'all' %}
+                    您还没有创建任何任务
+                {% elif current_status == 'processing' %}
+                    当前没有进行中的任务
+                {% elif current_status == 'success' %}
+                    没有已完成的任务
+                {% elif current_status == 'failure' %}
+                    没有失败的任务
+                {% endif %}
+            </p>
+            <a href="{% url 'index' %}" class="btn btn-primary mt-4">开始制作音频</a>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- 分页 -->
+    {% if page_obj.has_other_pages %}
+    <div class="flex justify-center mt-8">
+        <div class="join">
+            {% if page_obj.has_previous %}
+                <a href="?status={{ current_status }}&page={{ page_obj.previous_page_number }}" 
+                   class="join-item btn">«</a>
+            {% endif %}
+            
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <span class="join-item btn btn-active">{{ num }}</span>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?status={{ current_status }}&page={{ num }}" 
+                       class="join-item btn">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+            
+            {% if page_obj.has_next %}
+                <a href="?status={{ current_status }}&page={{ page_obj.next_page_number }}" 
+                   class="join-item btn">»</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function cancelTask(taskId) {
+    if (!confirm('确定要取消这个任务吗？')) return;
+    
+    fetch(`/workbench/task/cancel/${taskId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            location.reload();
+        } else {
+            alert('取消任务失败: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('取消任务失败');
+    });
+}
+
+function deleteTask(taskId) {
+    if (!confirm('确定要删除这个任务记录吗？')) return;
+    
+    fetch(`/workbench/task/delete/${taskId}/`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // 移除DOM元素
+            const taskElement = document.querySelector(`[data-task-id="${taskId}"]`);
+            if (taskElement) {
+                taskElement.remove();
+            }
+        } else {
+            alert('删除失败: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('删除失败');
+    });
+}
+
+function refreshTask(taskId) {
+    const button = event.target;
+    const originalText = button.innerHTML;
+    button.innerHTML = '🔄 刷新中...';
+    button.disabled = true;
+    
+    fetch(`/workbench/task-status/${taskId}/`)
+    .then(response => response.json())
+    .then(data => {
+        // 刷新页面以显示最新状态
+        location.reload();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('刷新失败');
+    })
+    .finally(() => {
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %} 

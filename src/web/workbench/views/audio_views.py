@@ -11,8 +11,10 @@ from django.http import JsonResponse, HttpResponse
 from django.core.files.base import ContentFile
 from django.conf import settings
 from django.db import transaction
+from django.core.paginator import Paginator
+from django.utils import timezone
 
-from ..models import Books, AudioSegment
+from ..models import Books, AudioSegment, UserTask
 from ..tasks import synthesize_audio_task
 from book2tts.tts import edge_tts_volices
 from book2tts.edgetts import EdgeTTS
@@ -192,6 +194,29 @@ def synthesize_audio(request):
             user_agent=get_user_agent(request)
         )
         
+        # 创建UserTask记录
+        user_task = UserTask.objects.create(
+            user=request.user,
+            task_id=task.id,
+            task_type='audio_synthesis',
+            book=book,
+            title=audio_title or title or page_display_name,
+            status='pending',
+            metadata={
+                'text': text,
+                'voice_name': voice_name,
+                'book_id': book_id,
+                'title': title,
+                'book_page': book_page,
+                'page_display_name': page_display_name,
+                'audio_title': audio_title,
+                'estimated_duration': estimated_duration_seconds,
+                'text_length': len(text),
+                'ip_address': get_client_ip(request),
+                'user_agent': get_user_agent(request)
+            }
+        )
+        
         # 返回任务ID供前端轮询状态
         return JsonResponse({
             "status": "started", 
@@ -233,21 +258,39 @@ def check_task_status(request, task_id):
         # 获取任务结果
         task_result = AsyncResult(task_id)
         
+        # 获取对应的UserTask记录
+        try:
+            user_task = UserTask.objects.get(task_id=task_id, user=request.user)
+        except UserTask.DoesNotExist:
+            return JsonResponse({
+                'status': 'error',
+                'message': '任务不存在或无权限访问'
+            }, status=404)
+        
         if task_result.state == 'PENDING':
             # 任务还在等待执行
+            user_task.status = 'pending'
+            user_task.progress_message = '任务等待执行中...'
             response = {
                 'status': 'pending',
                 'message': '任务等待执行中...'
             }
         elif task_result.state == 'PROCESSING':
             # 任务正在执行
+            progress_msg = task_result.info.get('message', '正在处理...')
+            user_task.status = 'processing'
+            user_task.progress_message = progress_msg
             response = {
                 'status': 'processing',
-                'message': task_result.info.get('message', '正在处理...')
+                'message': progress_msg
             }
         elif task_result.state == 'SUCCESS':
             # 任务成功完成
             result = task_result.info
+            user_task.status = 'success'
+            user_task.progress_message = result.get('message', '音频合成完成')
+            user_task.result_data = result
+            user_task.completed_at = timezone.now()
             response = {
                 'status': 'success',
                 'message': result.get('message', '音频合成完成'),
@@ -259,17 +302,27 @@ def check_task_status(request, task_id):
         elif task_result.state == 'FAILURE':
             # 任务失败
             error_info = task_result.info or {}
+            error_msg = error_info.get('message', '音频合成失败')
+            user_task.status = 'failure'
+            user_task.error_message = error_info.get('error', str(task_result.info))
+            user_task.progress_message = error_msg
+            user_task.completed_at = timezone.now()
             response = {
                 'status': 'failure',
-                'message': error_info.get('message', '音频合成失败'),
+                'message': error_msg,
                 'error': error_info.get('error', str(task_result.info))
             }
         else:
             # 其他状态
+            user_task.status = task_result.state.lower()
+            user_task.progress_message = f'任务状态：{task_result.state}'
             response = {
                 'status': task_result.state.lower(),
                 'message': f'任务状态：{task_result.state}'
             }
+        
+        # 保存UserTask更新
+        user_task.save()
         
         return JsonResponse(response)
     
@@ -474,4 +527,114 @@ def toggle_publish_audio_segment(request, segment_id):
             return HttpResponse(f"操作失败: {str(e)}", status=500)
         else:
             # For non-HTMX requests, return JSON
-            return JsonResponse({"status": "error", "message": str(e)}, status=500) 
+            return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
+
+@login_required
+def task_queue(request):
+    """显示用户的任务队列列表"""
+    # 获取查询参数
+    status_filter = request.GET.get('status', 'all')
+    page = request.GET.get('page', 1)
+    
+    # 基础查询
+    tasks = UserTask.objects.filter(user=request.user)
+    
+    # 状态过滤
+    if status_filter == 'processing':
+        tasks = tasks.filter(status__in=['pending', 'processing'])
+    elif status_filter == 'success':
+        tasks = tasks.filter(status='success')
+    elif status_filter == 'failure':
+        tasks = tasks.filter(status='failure')
+    
+    # 分页
+    paginator = Paginator(tasks, 20)  # 每页20个任务
+    try:
+        tasks_page = paginator.page(page)
+    except:
+        tasks_page = paginator.page(1)
+    
+    # 统计信息
+    stats = {
+        'total': UserTask.objects.filter(user=request.user).count(),
+        'processing': UserTask.objects.filter(user=request.user, status__in=['pending', 'processing']).count(),
+        'success': UserTask.objects.filter(user=request.user, status='success').count(),
+        'failure': UserTask.objects.filter(user=request.user, status='failure').count(),
+    }
+    
+    context = {
+        'tasks': tasks_page,
+        'stats': stats,
+        'current_status': status_filter,
+        'page_obj': tasks_page,
+    }
+    
+    return render(request, 'task_queue.html', context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def cancel_task(request, task_id):
+    """取消用户的任务"""
+    try:
+        # 获取用户的任务
+        user_task = get_object_or_404(UserTask, task_id=task_id, user=request.user)
+        
+        # 只能取消未完成的任务
+        if user_task.status in ['pending', 'processing']:
+            from celery import current_app
+            
+            # 取消Celery任务
+            current_app.control.revoke(task_id, terminate=True)
+            
+            # 更新任务状态
+            user_task.status = 'revoked'
+            user_task.progress_message = '任务已被用户取消'
+            user_task.completed_at = timezone.now()
+            user_task.save()
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': '任务已取消'
+            })
+        else:
+            return JsonResponse({
+                'status': 'error',
+                'message': '只能取消进行中的任务'
+            }, status=400)
+            
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': f'取消任务失败：{str(e)}'
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["DELETE"])
+def delete_task_record(request, task_id):
+    """删除任务记录（仅删除记录，不影响实际任务）"""
+    try:
+        # 获取用户的任务
+        user_task = get_object_or_404(UserTask, task_id=task_id, user=request.user)
+        
+        # 只能删除已完成或已取消的任务记录
+        if user_task.is_finished:
+            user_task.delete()
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': '任务记录已删除'
+            })
+        else:
+            return JsonResponse({
+                'status': 'error',
+                'message': '只能删除已完成的任务记录'
+            }, status=400)
+            
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': f'删除任务记录失败：{str(e)}'
+        }, status=500) 
