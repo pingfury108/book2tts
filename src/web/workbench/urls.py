@@ -6,6 +6,7 @@ from .views import (
     get_voice_list,
     get_user_quota,
     synthesize_audio,
+    check_task_status,
     delete_audio_segment,
     book_details_htmx,
     update_book_name,
@@ -35,6 +36,7 @@ urlpatterns = [
     path("voices/", get_voice_list, name="voice_list"),
     path("quota/", get_user_quota, name="get_user_quota"),
     path("synthesize-audio/", synthesize_audio, name="synthesize_audio"),
+    path("task-status/<str:task_id>/", check_task_status, name="check_task_status"),
     path(
         "audio/delete/<int:segment_id>/",
         delete_audio_segment,

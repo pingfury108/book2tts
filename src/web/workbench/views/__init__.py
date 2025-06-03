@@ -16,6 +16,7 @@ from .audio_views import (
     get_voice_list,
     get_user_quota,
     synthesize_audio,
+    check_task_status,
     delete_audio_segment,
     toggle_publish_audio_segment,
 )
@@ -47,6 +48,7 @@ __all__ = [
     'get_voice_list',
     'get_user_quota',
     'synthesize_audio',
+    'check_task_status',
     'delete_audio_segment',
     'toggle_publish_audio_segment',
     

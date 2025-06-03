@@ -10,8 +10,10 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, HttpResponse
 from django.core.files.base import ContentFile
 from django.conf import settings
+from django.db import transaction
 
 from ..models import Books, AudioSegment
+from ..tasks import synthesize_audio_task
 from book2tts.tts import edge_tts_volices
 from book2tts.edgetts import EdgeTTS
 from book2tts.audio_utils import get_audio_duration, estimate_audio_duration_from_text
@@ -127,8 +129,8 @@ def get_user_quota(request):
 @login_required
 @require_http_methods(["POST"])
 def synthesize_audio(request):
-    """Synthesize audio using EdgeTTS and save to AudioSegment"""
-    # Get data from request
+    """使用异步任务合成音频"""
+    # 获取请求数据
     text = request.POST.get("text")
     voice_name = request.POST.get("voice_name")
     book_id = request.POST.get("book_id")
@@ -140,16 +142,16 @@ def synthesize_audio(request):
     if not text or not voice_name or not book_id:
         return JsonResponse({"status": "error", "message": "Missing required parameters"}, status=400)
     
-    # Get book
+    # 验证书籍存在
     book = get_object_or_404(Books, pk=book_id)
     
-    # Get or create user quota
+    # 获取或创建用户配额
     user_quota, created = UserQuota.objects.get_or_create(user=request.user)
     
-    # Estimate audio duration from text BEFORE synthesis
+    # 估算音频时长来进行前置检查
     estimated_duration_seconds = estimate_audio_duration_from_text(text)
     
-    # Check if user has enough quota BEFORE synthesis
+    # 预检查配额（提前告知用户配额不足）
     if not user_quota.can_create_audio(estimated_duration_seconds):
         # 记录配额不足的操作
         OperationRecord.objects.create(
@@ -175,113 +177,35 @@ def synthesize_audio(request):
             "message": f"配额不足。预估需要 {estimated_duration_seconds} 秒，剩余 {user_quota.remaining_audio_duration} 秒"
         }, status=400)
     
-    # Create a temporary file for the audio
-    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
-        temp_path = temp_file.name
-    
     try:
-        # Use EdgeTTS to synthesize the audio
-        tts = EdgeTTS(voice_name=voice_name)
-        success = tts.synthesize_long_text(text=text, output_file=temp_path)
-        
-        if not success:
-            # 记录合成失败的操作
-            OperationRecord.objects.create(
-                user=request.user,
-                operation_type='audio_create',
-                operation_object=f'{book.name} - {title or page_display_name}',
-                operation_detail=f'音频合成失败：EdgeTTS合成失败',
-                status='failed',
-                metadata={
-                    'book_id': book_id,
-                    'book_name': book.name,
-                    'estimated_duration': estimated_duration_seconds,
-                    'text_length': len(text),
-                    'voice_name': voice_name,
-                    'error_reason': 'tts_synthesis_failed'
-                },
-                ip_address=get_client_ip(request),
-                user_agent=get_user_agent(request)
-            )
-            return JsonResponse({"status": "error", "message": "Failed to synthesize audio"}, status=500)
-        
-        # Get actual audio duration using utility function
-        actual_duration_seconds = get_audio_duration(temp_path, text)
-        
-        # Use custom audio title if provided, otherwise use page display name or default title
-        segment_title = audio_title if audio_title else (page_display_name if page_display_name else title)
-        
-        # Create an AudioSegment instance
-        audio_segment = AudioSegment(
-            book=book,
-            user=request.user,
-            title=segment_title,
+        # 启动异步任务
+        task = synthesize_audio_task.delay(
+            user_id=request.user.id,
             text=text,
+            voice_name=voice_name,
+            book_id=book_id,
+            title=title,
             book_page=book_page,
-            published=False
-        )
-        
-        # Ensure media directory exists
-        media_root = settings.MEDIA_ROOT
-        upload_dir = os.path.join(media_root, 'audio_segments', time.strftime('%Y/%m/%d'))
-        os.makedirs(upload_dir, exist_ok=True)
-        
-        # Generate a unique filename
-        filename = f"audio_{book_id}_{int(time.time())}.wav"
-        
-        # Save the audio file to the AudioSegment
-        with open(temp_path, "rb") as f:
-            audio_segment.file.save(filename, ContentFile(f.read()))
-        
-        # Save the AudioSegment
-        audio_segment.save()
-        
-        # Refresh user quota to get latest data before deduction
-        user_quota.refresh_from_db()
-        
-        # Force deduct user quota (consume actual audio duration, reduce to 0 if insufficient)
-        user_quota.force_consume_audio_duration(actual_duration_seconds)
-        
-        # 记录成功的音频创建操作
-        OperationRecord.objects.create(
-            user=request.user,
-            operation_type='audio_create',
-            operation_object=f'{book.name} - {segment_title}',
-            operation_detail=f'成功创建音频片段：{segment_title}，时长 {actual_duration_seconds} 秒，消耗配额 {actual_duration_seconds} 秒',
-            status='success',
-            metadata={
-                'book_id': book_id,
-                'book_name': book.name,
-                'audio_segment_id': audio_segment.id,
-                'actual_duration': actual_duration_seconds,
-                'estimated_duration': estimated_duration_seconds,
-                'consumed_quota': actual_duration_seconds,
-                'remaining_quota_after': user_quota.remaining_audio_duration,
-                'text_length': len(text),
-                'voice_name': voice_name,
-                'file_path': audio_segment.file.name,
-                'file_size': os.path.getsize(temp_path) if os.path.exists(temp_path) else 0
-            },
+            page_display_name=page_display_name,
+            audio_title=audio_title,
             ip_address=get_client_ip(request),
             user_agent=get_user_agent(request)
         )
         
+        # 返回任务ID供前端轮询状态
         return JsonResponse({
-            "status": "success", 
-            "message": "Audio synthesized successfully",
-            "audio_url": audio_segment.file.url,
-            "audio_id": audio_segment.id,
-            "audio_duration": actual_duration_seconds,
-            "remaining_quota": user_quota.remaining_audio_duration
+            "status": "started", 
+            "message": "音频合成任务已启动",
+            "task_id": task.id
         })
     
     except Exception as e:
-        # 记录异常的操作
+        # 记录启动任务失败的操作
         OperationRecord.objects.create(
             user=request.user,
             operation_type='audio_create',
             operation_object=f'{book.name} - {title or page_display_name}',
-            operation_detail=f'音频合成异常：{str(e)}',
+            operation_detail=f'启动音频合成任务失败：{str(e)}',
             status='failed',
             metadata={
                 'book_id': book_id,
@@ -289,19 +213,72 @@ def synthesize_audio(request):
                 'estimated_duration': estimated_duration_seconds,
                 'text_length': len(text),
                 'voice_name': voice_name,
-                'error_reason': 'exception',
+                'error_reason': 'task_start_failed',
                 'exception_message': str(e)
             },
             ip_address=get_client_ip(request),
             user_agent=get_user_agent(request)
         )
-        print(f"Error in synthesize_audio: {str(e)}")
-        return JsonResponse({"status": "error", "message": str(e)}, status=500)
+        print(f"Error starting synthesize_audio task: {str(e)}")
+        return JsonResponse({"status": "error", "message": f"启动音频合成任务失败：{str(e)}"}, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def check_task_status(request, task_id):
+    """检查Celery任务状态"""
+    from celery.result import AsyncResult
     
-    finally:
-        # Clean up the temporary file
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
+    try:
+        # 获取任务结果
+        task_result = AsyncResult(task_id)
+        
+        if task_result.state == 'PENDING':
+            # 任务还在等待执行
+            response = {
+                'status': 'pending',
+                'message': '任务等待执行中...'
+            }
+        elif task_result.state == 'PROCESSING':
+            # 任务正在执行
+            response = {
+                'status': 'processing',
+                'message': task_result.info.get('message', '正在处理...')
+            }
+        elif task_result.state == 'SUCCESS':
+            # 任务成功完成
+            result = task_result.info
+            response = {
+                'status': 'success',
+                'message': result.get('message', '音频合成完成'),
+                'audio_url': result.get('audio_url'),
+                'audio_id': result.get('audio_id'),
+                'audio_duration': result.get('audio_duration'),
+                'remaining_quota': result.get('remaining_quota')
+            }
+        elif task_result.state == 'FAILURE':
+            # 任务失败
+            error_info = task_result.info or {}
+            response = {
+                'status': 'failure',
+                'message': error_info.get('message', '音频合成失败'),
+                'error': error_info.get('error', str(task_result.info))
+            }
+        else:
+            # 其他状态
+            response = {
+                'status': task_result.state.lower(),
+                'message': f'任务状态：{task_result.state}'
+            }
+        
+        return JsonResponse(response)
+    
+    except Exception as e:
+        print(f"Error checking task status: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': f'检查任务状态失败：{str(e)}'
+        }, status=500)
 
 
 @login_required
