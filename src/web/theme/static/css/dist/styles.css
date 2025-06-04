@@ -5900,8 +5900,17 @@ details.collapse summary::-webkit-details-marker {
   white-space: pre-wrap;
 }
 
+.break-normal {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
 .break-words {
   overflow-wrap: break-word;
+}
+
+.break-all {
+  word-break: break-all;
 }
 
 .rounded-box {
@@ -6945,6 +6954,10 @@ details.collapse summary::-webkit-details-marker {
     margin-top: 1.5rem;
   }
 
+  .sm\:block {
+    display: block;
+  }
+
   .sm\:inline {
     display: inline;
   }
@@ -7049,6 +7062,18 @@ details.collapse summary::-webkit-details-marker {
     flex-direction: row;
   }
 
+  .sm\:flex-col {
+    flex-direction: column;
+  }
+
+  .sm\:items-start {
+    align-items: flex-start;
+  }
+
+  .sm\:items-end {
+    align-items: flex-end;
+  }
+
   .sm\:items-center {
     align-items: center;
   }
@@ -7101,6 +7126,11 @@ details.collapse summary::-webkit-details-marker {
 
   .sm\:self-auto {
     align-self: auto;
+  }
+
+  .sm\:break-normal {
+    overflow-wrap: normal;
+    word-break: normal;
   }
 
   .sm\:p-0 {

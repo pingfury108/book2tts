@@ -31,20 +31,43 @@
         </div>
     </div>
     
-    <!-- 标签页 -->
-    <div class="tabs tabs-boxed mb-6">
-        <a class="tab {% if current_status == 'all' %}tab-active{% endif %}" href="?status=all">
-            全部 ({{ stats.total }})
-        </a>
-        <a class="tab {% if current_status == 'processing' %}tab-active{% endif %}" href="?status=processing">
-            进行中 ({{ stats.processing }})
-        </a>
-        <a class="tab {% if current_status == 'success' %}tab-active{% endif %}" href="?status=success">
-            已完成 ({{ stats.success }})
-        </a>
-        <a class="tab {% if current_status == 'failure' %}tab-active{% endif %}" href="?status=failure">
-            失败 ({{ stats.failure }})
-        </a>
+    <!-- 标签页 - 优化移动端响应式 -->
+    <div class="mb-6">
+        <!-- 桌面端：横向标签页 -->
+        <div class="hidden sm:block">
+            <div class="tabs tabs-boxed">
+                <a class="tab {% if current_status == 'all' %}tab-active{% endif %}" href="?status=all">
+                    全部 ({{ stats.total }})
+                </a>
+                <a class="tab {% if current_status == 'processing' %}tab-active{% endif %}" href="?status=processing">
+                    进行中 ({{ stats.processing }})
+                </a>
+                <a class="tab {% if current_status == 'success' %}tab-active{% endif %}" href="?status=success">
+                    已完成 ({{ stats.success }})
+                </a>
+                <a class="tab {% if current_status == 'failure' %}tab-active{% endif %}" href="?status=failure">
+                    失败 ({{ stats.failure }})
+                </a>
+            </div>
+        </div>
+        
+        <!-- 移动端：网格布局 -->
+        <div class="block sm:hidden">
+            <div class="grid grid-cols-2 gap-2">
+                <a class="btn btn-sm {% if current_status == 'all' %}btn-primary{% else %}btn-outline{% endif %}" href="?status=all">
+                    全部 ({{ stats.total }})
+                </a>
+                <a class="btn btn-sm {% if current_status == 'processing' %}btn-primary{% else %}btn-outline{% endif %}" href="?status=processing">
+                    进行中 ({{ stats.processing }})
+                </a>
+                <a class="btn btn-sm {% if current_status == 'success' %}btn-primary{% else %}btn-outline{% endif %}" href="?status=success">
+                    已完成 ({{ stats.success }})
+                </a>
+                <a class="btn btn-sm {% if current_status == 'failure' %}btn-primary{% else %}btn-outline{% endif %}" href="?status=failure">
+                    失败 ({{ stats.failure }})
+                </a>
+            </div>
+        </div>
     </div>
     
     <!-- 任务列表 -->
@@ -52,7 +75,8 @@
         {% for task in tasks %}
         <div class="card bg-base-100 shadow-md border" data-task-id="{{ task.task_id }}">
             <div class="card-body">
-                <div class="flex items-start justify-between">
+                <!-- 移动端：上下布局，桌面端：左右布局 -->
+                <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                     <div class="flex-1">
                         <h3 class="card-title text-lg">
                             {% if task.book %}
@@ -64,11 +88,12 @@
                         </h3>
                         
                         <div class="text-sm text-gray-600 mt-2">
-                            <div class="flex items-center gap-4">
-                                <span>任务ID: {{ task.task_id }}</span>
-                                <span>创建时间: {{ task.created_at|date:"Y-m-d H:i:s" }}</span>
+                            <!-- 移动端：垂直布局，桌面端：水平布局 -->
+                            <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+                                <span class="break-all sm:break-normal">任务ID: {{ task.task_id }}</span>
+                                <span>创建: {{ task.created_at|date:"m-d H:i" }}</span>
                                 {% if task.completed_at %}
-                                    <span>完成时间: {{ task.completed_at|date:"Y-m-d H:i:s" }}</span>
+                                    <span>完成: {{ task.completed_at|date:"m-d H:i" }}</span>
                                 {% endif %}
                             </div>
                         </div>
@@ -79,7 +104,7 @@
                             <details class="collapse collapse-arrow bg-base-200">
                                 <summary class="collapse-title text-sm font-medium">任务详情</summary>
                                 <div class="collapse-content text-sm">
-                                    <div class="grid grid-cols-2 gap-2 mt-2">
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
                                         {% if task.metadata.voice_name %}
                                             <div><strong>语音:</strong> {{ task.metadata.voice_name }}</div>
                                         {% endif %}
@@ -138,8 +163,8 @@
                         {% endif %}
                     </div>
                     
-                    <!-- 状态和操作按钮 -->
-                    <div class="flex flex-col items-end gap-3">
+                    <!-- 状态和操作按钮 - 优化移动端布局 -->
+                    <div class="flex sm:flex-col justify-between sm:justify-start sm:items-end gap-3">
                         <!-- 状态标签 -->
                         <div class="badge 
                             {% if task.status == 'pending' %}badge-warning
@@ -147,7 +172,7 @@
                             {% elif task.status == 'success' %}badge-success
                             {% elif task.status == 'failure' %}badge-error
                             {% elif task.status == 'revoked' %}badge-neutral
-                            {% else %}badge-ghost{% endif %}">
+                            {% else %}badge-ghost{% endif %} text-xs sm:text-sm">
                             {% if task.status == 'pending' %}等待中
                             {% elif task.status == 'processing' %}处理中
                             {% elif task.status == 'success' %}已完成
@@ -157,28 +182,31 @@
                         </div>
                         
                         <!-- 操作按钮 -->
-                        <div class="flex gap-2">
+                        <div class="flex gap-1 sm:gap-2">
                             {% if task.status in 'pending,processing' %}
-                                <button class="btn btn-warning btn-sm" 
+                                <button class="btn btn-warning btn-xs sm:btn-sm" 
                                         onclick="cancelTask('{{ task.task_id }}')"
                                         title="取消任务">
-                                    ✕ 取消
+                                    <span class="hidden sm:inline">✕ 取消</span>
+                                    <span class="sm:hidden">✕</span>
                                 </button>
                             {% endif %}
                             
                             {% if task.status in 'pending,processing' %}
-                                <button class="btn btn-info btn-sm" 
+                                <button class="btn btn-info btn-xs sm:btn-sm" 
                                         onclick="refreshTask('{{ task.task_id }}')"
                                         title="刷新状态">
-                                    🔄 刷新
+                                    <span class="hidden sm:inline">🔄 刷新</span>
+                                    <span class="sm:hidden">🔄</span>
                                 </button>
                             {% endif %}
                             
                             {% if task.is_finished %}
-                                <button class="btn btn-error btn-sm" 
+                                <button class="btn btn-error btn-xs sm:btn-sm" 
                                         onclick="deleteTask('{{ task.task_id }}')"
                                         title="删除记录">
-                                    🗑️ 删除
+                                    <span class="hidden sm:inline">🗑️ 删除</span>
+                                    <span class="sm:hidden">🗑️</span>
                                 </button>
                             {% endif %}
                         </div>
@@ -212,21 +240,21 @@
         <div class="join">
             {% if page_obj.has_previous %}
                 <a href="?status={{ current_status }}&page={{ page_obj.previous_page_number }}" 
-                   class="join-item btn">«</a>
+                   class="join-item btn btn-sm">«</a>
             {% endif %}
             
             {% for num in page_obj.paginator.page_range %}
                 {% if page_obj.number == num %}
-                    <span class="join-item btn btn-active">{{ num }}</span>
+                    <span class="join-item btn btn-sm btn-active">{{ num }}</span>
                 {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
                     <a href="?status={{ current_status }}&page={{ num }}" 
-                       class="join-item btn">{{ num }}</a>
+                       class="join-item btn btn-sm">{{ num }}</a>
                 {% endif %}
             {% endfor %}
             
             {% if page_obj.has_next %}
                 <a href="?status={{ current_status }}&page={{ page_obj.next_page_number }}" 
-                   class="join-item btn">»</a>
+                   class="join-item btn btn-sm">»</a>
             {% endif %}
         </div>
     </div>
