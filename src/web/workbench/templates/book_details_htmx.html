@@ -1,40 +1,68 @@
 {% load custom_filters %}
-<div class="flex justify-between items-center mb-4">
-    <a href="{% url 'aggregated_audio_segments' %}" class="btn btn-sm btn-outline">
-        <i class="fas fa-arrow-left h-5 w-5 mr-2"></i>
-        返回书籍列表
-    </a>
-    <h2 class="text-xl font-bold bg-primary text-primary-content p-2 rounded-lg">📚 {{ book_name }}</h2>
-    <div class="badge badge-lg">{{ total_segments }} 个音频</div>
-</div>
-
-<!-- 分页统计信息 -->
-{% if paginator.count > 0 %}
-<div class="flex justify-between items-center mb-4 text-base-content opacity-70">
-    <div class="flex items-center space-x-4">
-        <div class="flex items-center">
-            <i class="fas fa-file-text h-4 w-4 mr-1"></i>
-            <span class="text-sm">显示 {{ page_obj.start_index }}-{{ page_obj.end_index }} 项，共 {{ paginator.count }} 项</span>
+<!-- 响应式容器 -->
+<div class="container mx-auto px-2 sm:px-4 lg:px-6 xl:px-8">
+    <!-- 顶部导航 - 完整响应式设计 -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 mb-4 sm:mb-6 lg:mb-8">
+        <!-- 返回按钮 -->
+        <div class="flex justify-start order-1 sm:order-1">
+            <a href="{% url 'aggregated_audio_segments' %}" class="btn btn-xs sm:btn-sm lg:btn-md btn-outline w-full sm:w-auto">
+                <i class="fas fa-arrow-left h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 mr-1 sm:mr-2"></i>
+                <span class="text-xs sm:text-sm lg:text-base">返回书籍列表</span>
+            </a>
         </div>
         
-        <!-- 页面大小选择器 -->
-        <div class="flex items-center space-x-2">
-            <span class="text-sm">每页显示:</span>
-            <select 
-                class="select"
-                onchange="changePageSize(this.value)"
-                id="page-size-selector">
-                {% for size in page_size_options %}
-                    <option value="{{ size }}" {% if size == page_size %}selected{% endif %}>{{ size }}</option>
-                {% endfor %}
-            </select>
-            <span class="text-sm">项</span>
+        <!-- 书籍标题 -->
+        <div class="flex justify-center order-3 sm:order-2">
+            <h2 class="text-sm sm:text-lg lg:text-xl xl:text-2xl font-bold bg-primary text-primary-content 
+                       px-3 py-2 sm:px-4 sm:py-2 lg:px-6 lg:py-3 rounded-lg text-center w-full sm:w-auto">
+                📚 {{ book_name }}
+            </h2>
+        </div>
+        
+        <!-- 音频统计 -->
+        <div class="flex justify-end order-2 sm:order-3">
+            <div class="badge badge-sm sm:badge-md lg:badge-lg badge-secondary">
+                <span class="text-xs sm:text-sm lg:text-base">{{ total_segments }} 个音频</span>
+            </div>
         </div>
     </div>
-    <div class="flex items-center">
-        <span class="text-sm">第 {{ page_obj.number }} 页，共 {{ paginator.num_pages }} 页</span>
+
+    <!-- 分页统计信息 - 响应式卡片布局 -->
+    {% if paginator.count > 0 %}
+    <div class="card bg-base-100 shadow-sm mb-4 sm:mb-6">
+        <div class="card-body p-3 sm:p-4 lg:p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 text-base-content opacity-70">
+                <!-- 显示信息 -->
+                <div class="flex items-center justify-center md:justify-start space-x-2">
+                    <i class="fas fa-file-text h-3 w-3 sm:h-4 sm:w-4"></i>
+                    <span class="text-xs sm:text-sm lg:text-base">
+                        显示 {{ page_obj.start_index }}-{{ page_obj.end_index }} / {{ paginator.count }} 项
+                    </span>
+                </div>
+                
+                <!-- 页面大小选择器 -->
+                <div class="flex items-center justify-center md:justify-start space-x-2">
+                    <span class="text-xs sm:text-sm lg:text-base whitespace-nowrap">每页显示:</span>
+                    <select 
+                        class="select select-xs sm:select-sm lg:select-md w-16 sm:w-20 lg:w-24"
+                        onchange="changePageSize(this.value)"
+                        id="page-size-selector">
+                        {% for size in page_size_options %}
+                            <option value="{{ size }}" {% if size == page_size %}selected{% endif %}>{{ size }}</option>
+                        {% endfor %}
+                    </select>
+                    <span class="text-xs sm:text-sm lg:text-base">项</span>
+                </div>
+                
+                <!-- 页面信息 -->
+                <div class="flex items-center justify-center md:justify-end space-x-2">
+                    <span class="text-xs sm:text-sm lg:text-base">
+                        第 {{ page_obj.number }} / {{ paginator.num_pages }} 页
+                    </span>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
 
 <script>
 function changePageSize(newSize) {
@@ -75,64 +103,58 @@ function jumpToPage() {
 // 在HTMX请求完成后自动滚动到顶部
 document.body.addEventListener('htmx:afterSwap', function(evt) {
     if (evt.detail.target && evt.detail.target.id === 'main-content') {
-        // 小延迟确保内容完全渲染
         setTimeout(() => {
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }, 100);
     }
 });
 
-// Toast 通知系统
+// 响应式Toast通知系统
 function showToast(message, type = 'info', duration = 3000) {
-    // 移除已存在的toast
     const existingToast = document.getElementById('segment-toast');
     if (existingToast) {
         existingToast.remove();
     }
     
-    // 创建toast元素
     const toast = document.createElement('div');
     toast.id = 'segment-toast';
-    toast.className = `alert shadow-lg fixed top-4 right-4 z-50 max-w-sm transform transition-all duration-300 ease-in-out`;
+    toast.className = `alert shadow-lg fixed top-4 left-2 right-2 sm:left-4 sm:right-4 md:left-auto md:right-4 md:max-w-sm lg:max-w-md xl:max-w-lg 
+                       z-50 transform transition-all duration-300 ease-in-out text-xs sm:text-sm lg:text-base`;
     
-    // 根据类型设置样式和图标
     let alertClass, icon;
     switch (type) {
         case 'success':
             alertClass = 'alert-success';
-            icon = `<i class="fas fa-check-circle h-6 w-6"></i>`;
+            icon = `<i class="fas fa-check-circle h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6"></i>`;
             break;
         case 'error':
             alertClass = 'alert-error';
-            icon = `<i class="fas fa-times-circle h-6 w-6"></i>`;
+            icon = `<i class="fas fa-times-circle h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6"></i>`;
             break;
         case 'warning':
             alertClass = 'alert-warning';
-            icon = `<i class="fas fa-exclamation-triangle h-6 w-6"></i>`;
+            icon = `<i class="fas fa-exclamation-triangle h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6"></i>`;
             break;
         default:
             alertClass = 'alert-info';
-            icon = `<i class="fas fa-info-circle h-6 w-6"></i>`;
+            icon = `<i class="fas fa-info-circle h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6"></i>`;
     }
     
     toast.className += ` ${alertClass}`;
     toast.innerHTML = `
-        <div>
+        <div class="flex-1 flex items-center space-x-2">
             ${icon}
             <span>${message}</span>
         </div>
-        <button class="btn btn-sm btn-ghost" onclick="this.parentElement.remove()">✕</button>
+        <button class="btn btn-xs sm:btn-sm btn-ghost" onclick="this.parentElement.remove()">✕</button>
     `;
     
-    // 添加到页面
     document.body.appendChild(toast);
     
-    // 显示动画
     setTimeout(() => {
         toast.style.transform = 'translateX(0)';
     }, 10);
     
-    // 自动移除
     setTimeout(() => {
         if (toast.parentElement) {
             toast.style.transform = 'translateX(100%)';
@@ -147,19 +169,15 @@ function showToast(message, type = 'info', duration = 3000) {
 
 // 音频片段发布按钮点击处理函数
 async function handleSegmentPublishClick(segmentId, buttonElement) {
-    // 显示加载状态
     const originalContent = buttonElement.innerHTML;
     const originalClass = buttonElement.className;
     const originalTitle = buttonElement.title;
     
     buttonElement.disabled = true;
-    buttonElement.innerHTML = `
-        <span class="loading loading-spinner loading-xs"></span>
-    `;
+    buttonElement.innerHTML = `<span class="loading loading-spinner loading-xs"></span>`;
     buttonElement.title = '处理中...';
     
     try {
-        // 获取CSRF令牌
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
                          document.querySelector('meta[name=csrf-token]')?.getAttribute('content') ||
                          '{{ csrf_token }}';
@@ -175,31 +193,21 @@ async function handleSegmentPublishClick(segmentId, buttonElement) {
         const data = await response.json();
         
         if (data.status === 'success') {
-            // 更新按钮状态
             updateSegmentPublishButton(buttonElement, data);
-            
-            // 显示成功通知
             showToast(data.message, 'success');
         } else {
-            // 恢复按钮状态
             buttonElement.disabled = false;
             buttonElement.innerHTML = originalContent;
             buttonElement.className = originalClass;
             buttonElement.title = originalTitle;
-            
-            // 显示错误通知
             showToast(data.message || '操作失败', 'error');
         }
     } catch (error) {
         console.error('发布操作失败:', error);
-        
-        // 恢复按钮状态
         buttonElement.disabled = false;
         buttonElement.innerHTML = originalContent;
         buttonElement.className = originalClass;
         buttonElement.title = originalTitle;
-        
-        // 显示错误通知
         showToast('网络错误，请稍后重试', 'error');
     }
 }
@@ -209,291 +217,376 @@ function updateSegmentPublishButton(buttonElement, data) {
     buttonElement.disabled = false;
     
     if (data.published) {
-        // 已发布状态 - 显示取消发布按钮
-        buttonElement.className = 'btn btn-circle btn-sm btn-warning';
-        buttonElement.innerHTML = `<i class="fas fa-times h-4 w-4"></i>`;
+        buttonElement.className = 'btn btn-circle btn-xs sm:btn-sm lg:btn-md btn-warning touch-manipulation';
+        buttonElement.innerHTML = `<i class="fas fa-times h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5"></i>`;
         buttonElement.title = '取消发布';
     } else {
-        // 未发布状态 - 显示发布按钮
-        buttonElement.className = 'btn btn-circle btn-sm btn-success';
-        buttonElement.innerHTML = `<i class="fas fa-check h-4 w-4"></i>`;
+        buttonElement.className = 'btn btn-circle btn-xs sm:btn-sm lg:btn-md btn-success touch-manipulation';
+        buttonElement.innerHTML = `<i class="fas fa-check h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5"></i>`;
         buttonElement.title = '发布';
     }
 }
 </script>
-{% endif %}
+    {% endif %}
 
-<div class="divider"></div>
+    <div class="divider my-2 sm:my-4 lg:my-6"></div>
 
-<!-- Audio segments list -->
-<div class="space-y-4">
-    {% for segment in segments %}
-    <div class="card bg-base-200 shadow-md hover:shadow-lg transition-all duration-200" data-segment-id="{{ segment.id }}">
-        <!-- 折叠组件，以标题作为触发器 -->
-        <div class="collapse collapse-plus">
-            <input type="checkbox" id="segment-checkbox-{{ segment.id }}" />
-            <!-- 标题作为折叠触发器 -->
-            <label for="segment-checkbox-{{ segment.id }}" class="collapse-title bg-base-300 text-base-content p-2 rounded-t-lg cursor-pointer min-h-0 hover:bg-base-200 transition-colors">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-base font-semibold">🔖 {{ segment.title }}</h3>
-                    <div class="flex space-x-2 flex-shrink-0" onclick="event.stopPropagation()">
-                        <a href="{{ segment.file_url }}" download class="btn btn-circle btn-sm btn-primary" title="下载音频">
-                            <i class="fas fa-download h-4 w-4"></i>
-                        </a>
-                        {% if segment.published %}
-                        <button 
-                            class="btn btn-circle btn-sm btn-warning" 
-                            title="取消发布"
-                            onclick="handleSegmentPublishClick('{{ segment.id }}', this)">
-                            <i class="fas fa-times h-4 w-4"></i>
-                        </button>
-                        {% else %}
-                        <button 
-                            class="btn btn-circle btn-sm btn-success" 
-                            title="发布"
-                            onclick="handleSegmentPublishClick('{{ segment.id }}', this)">
-                            <i class="fas fa-check h-4 w-4"></i>
-                        </button>
-                        {% endif %}
-                        <button 
-                            class="btn btn-circle btn-sm btn-error" 
-                            title="删除音频"
-                            hx-delete="/workbench/audio/delete/{{ segment.id }}/"
-                            hx-confirm="确定要删除音频片段 '{{ segment.title }}' 吗？此操作无法撤销。"
-                            hx-target="[data-segment-id='{{ segment.id }}']" 
-                            hx-swap="outerHTML"
-                            hx-trigger="click">
-                            <i class="fas fa-trash h-4 w-4"></i>
-                        </button>
+    <!-- 音频片段列表 - 响应式网格布局 -->
+    <div class="grid grid-cols-1 gap-3 sm:gap-4 lg:gap-6">
+        {% for segment in segments %}
+        <div class="card bg-base-200 shadow-md hover:shadow-lg transition-all duration-200 border border-base-300" 
+             data-segment-id="{{ segment.id }}">
+            <!-- 折叠组件 - 响应式标题区域 -->
+            <div class="collapse collapse-plus">
+                <input type="checkbox" id="segment-checkbox-{{ segment.id }}" />
+                
+                <!-- 标题作为折叠触发器 - 完全响应式 -->
+                <label for="segment-checkbox-{{ segment.id }}" 
+                       class="collapse-title bg-base-300 text-base-content rounded-t-lg cursor-pointer min-h-0 
+                              hover:bg-base-200 transition-colors p-3 sm:p-4 lg:p-5">
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-6 items-center">
+                        <!-- 标题 -->
+                        <div class="lg:col-span-9">
+                            <h3 class="text-sm sm:text-base lg:text-lg xl:text-xl font-semibold break-words">
+                                🔖 {{ segment.title }}
+                            </h3>
+                        </div>
+                        
+                        <!-- 操作按钮组 - 优化桌面端布局 -->
+                        <div class="lg:col-span-3 flex flex-wrap gap-2 lg:gap-3 justify-end lg:justify-center" onclick="event.stopPropagation()">
+                            <!-- 下载按钮 -->
+                            <a href="{{ segment.file_url }}" download 
+                               class="btn btn-circle btn-xs sm:btn-sm lg:btn-md btn-primary touch-manipulation flex-shrink-0 
+                                      hover:scale-110 transition-transform duration-200" 
+                               title="下载音频">
+                                <i class="fas fa-download h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5"></i>
+                            </a>
+                            
+                            <!-- 发布/取消发布按钮 -->
+                            {% if segment.published %}
+                            <button 
+                                class="btn btn-circle btn-xs sm:btn-sm lg:btn-md btn-warning touch-manipulation flex-shrink-0 
+                                       hover:scale-110 transition-transform duration-200" 
+                                title="取消发布"
+                                onclick="handleSegmentPublishClick('{{ segment.id }}', this)">
+                                <i class="fas fa-times h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5"></i>
+                            </button>
+                            {% else %}
+                            <button 
+                                class="btn btn-circle btn-xs sm:btn-sm lg:btn-md btn-success touch-manipulation flex-shrink-0 
+                                       hover:scale-110 transition-transform duration-200" 
+                                title="发布"
+                                onclick="handleSegmentPublishClick('{{ segment.id }}', this)">
+                                <i class="fas fa-check h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5"></i>
+                            </button>
+                            {% endif %}
+                            
+                            <!-- 删除按钮 -->
+                            <button 
+                                class="btn btn-circle btn-xs sm:btn-sm lg:btn-md btn-error touch-manipulation flex-shrink-0 
+                                       hover:scale-110 transition-transform duration-200" 
+                                title="删除音频"
+                                hx-delete="/workbench/audio/delete/{{ segment.id }}/"
+                                hx-confirm="确定要删除音频片段 '{{ segment.title }}' 吗？此操作无法撤销。"
+                                hx-target="[data-segment-id='{{ segment.id }}']" 
+                                hx-swap="outerHTML"
+                                hx-trigger="click">
+                                <i class="fas fa-trash h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5"></i>
+                            </button>
+                        </div>
                     </div>
-                </div>
-            </label>
-            
-            <!-- 折叠内容 - 包含所有原有内容 -->
-            <div class="collapse-content p-0">
-                <div class="card-body p-3">
-                    <!-- Metadata Section - 紧凑的元数据展示 -->
-                    <div class="bg-base-300 p-2 rounded-lg mb-2">
-                        <div class="flex justify-between items-center">
-                            <div class="flex items-center">
-                                <i class="fas fa-book h-3 w-3 mr-1"></i>
-                                <span class="font-medium text-xs">书籍:</span>
-                                <span class="ml-1 text-xs">{{ book_name }}</span>
-                            </div>
-                            <div class="flex items-center">
-                                <span class="font-medium text-xs">页面:</span>
-                                {% if segment.book_page %}
-                                <button 
-                                    class="ml-2 bg-secondary text-secondary-content rounded-full w-5 h-5 flex items-center justify-center hover:bg-secondary-focus cursor-pointer transition-colors text-xs font-medium"
-                                    hx-get="{% url 'text_by_page' book_id=book_id|default:1 name=segment.book_page|stringformat:'s'|replace:'/,_' %}?page={{ segment.book_page|stringformat:'s' }}"
-                                    hx-target="#modal-content-{{ segment.id }}"
-                                    hx-trigger="click"
-                                    onclick="document.getElementById('modal-{{ segment.id }}').showModal()"
-                                    title="点击查看页面内容">
-                                    {{ forloop.counter|add:page_obj.start_index|add:"-1" }}
-                                </button>
-                                {% else %}
-                                <div class="ml-2 bg-base-300 text-base-content rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                                    -
+                </label>
+                
+                <!-- 折叠内容 - 响应式网格布局 -->
+                <div class="collapse-content p-0">
+                    <div class="card-body p-3 sm:p-4 lg:p-6">
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
+                            
+                            <!-- 元数据区域 -->
+                            <div class="lg:col-span-12">
+                                <div class="bg-base-300 rounded-lg p-3 sm:p-4 lg:p-5">
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 text-xs sm:text-sm lg:text-base">
+                                        <!-- 书籍信息 -->
+                                        <div class="flex items-center justify-center sm:justify-start space-x-2">
+                                            <i class="fas fa-book h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5"></i>
+                                            <span class="font-medium">书籍:</span>
+                                            <span class="truncate">{{ book_name }}</span>
+                                        </div>
+                                        
+                                        <!-- 页面信息 -->
+                                        <div class="flex items-center justify-center sm:justify-start space-x-2">
+                                            <span class="font-medium">页面:</span>
+                                            {% if segment.book_page %}
+                                            <button 
+                                                class="bg-secondary text-secondary-content rounded-full w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 
+                                                       flex items-center justify-center hover:bg-secondary-focus cursor-pointer 
+                                                       transition-colors text-xs sm:text-sm lg:text-base font-medium touch-manipulation"
+                                                hx-get="{% url 'text_by_page' book_id=book_id|default:1 name=segment.book_page|stringformat:'s'|replace:'/,_' %}?page={{ segment.book_page|stringformat:'s' }}"
+                                                hx-target="#modal-content-{{ segment.id }}"
+                                                hx-trigger="click"
+                                                onclick="document.getElementById('modal-{{ segment.id }}').showModal()"
+                                                title="点击查看页面内容">
+                                                {{ forloop.counter|add:page_obj.start_index|add:"-1" }}
+                                            </button>
+                                            {% else %}
+                                            <div class="bg-base-300 text-base-content rounded-full w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 
+                                                        flex items-center justify-center text-xs sm:text-sm lg:text-base">
+                                                -
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <!-- 更新时间 -->
+                                        <div class="flex items-center justify-center sm:justify-start lg:justify-end space-x-2 text-base-content opacity-60">
+                                            <i class="fas fa-clock h-3 w-3 sm:h-4 sm:w-4"></i>
+                                            <span class="font-medium">更新:</span>
+                                            <span>{{ segment.updated_at|date:"m-d H:i" }}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 模态弹窗 - 响应式设计 -->
+                                    <dialog id="modal-{{ segment.id }}" class="modal">
+                                        <div class="modal-box bg-base-100 w-11/12 sm:w-3/4 lg:w-1/2 xl:w-2/5 max-w-4xl mx-auto">
+                                            <div class="flex items-center justify-between mb-4">
+                                                <div class="flex items-center space-x-2">
+                                                    <i class="fas fa-file-alt h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6"></i>
+                                                    <h3 class="font-medium text-sm sm:text-base lg:text-lg">页面内容</h3>
+                                                </div>
+                                                <form method="dialog">
+                                                    <button class="btn btn-sm btn-circle touch-manipulation">✕</button>
+                                                </form>
+                                            </div>
+                                            <div id="modal-content-{{ segment.id }}" 
+                                                 class="max-h-60 sm:max-h-80 lg:max-h-96 xl:max-h-[32rem] overflow-y-auto 
+                                                        whitespace-pre-wrap font-mono bg-base-200 rounded-lg 
+                                                        p-3 sm:p-4 lg:p-5 text-xs sm:text-sm lg:text-base">
+                                                <div class="htmx-indicator flex justify-center py-4">
+                                                    <div class="loading loading-spinner loading-md"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <form method="dialog" class="modal-backdrop">
+                                            <button>关闭</button>
+                                        </form>
+                                    </dialog>
                                 </div>
-                                {% endif %}
                             </div>
-                        </div>
-                        
-                        <!-- 更新时间 - 更小的字体 -->
-                        <div class="flex items-center mt-1 text-xs text-base-content opacity-60">
-                            <i class="fas fa-clock h-2 w-2 mr-1"></i>
-                            <span class="font-medium">更新:</span>
-                            <span class="ml-1">{{ segment.updated_at|date:"m-d H:i" }}</span>
-                        </div>
-                        
-                        <!-- 模态弹窗 -->
-                        <dialog id="modal-{{ segment.id }}" class="modal">
-                            <div class="modal-box bg-base-100">
-                                <div class="flex items-center justify-between mb-4">
+                            
+                            <!-- 文本内容区域 -->
+                            <div class="lg:col-span-7">
+                                <div class="bg-base-100 rounded-lg border border-base-300">
+                                    <div class="collapse collapse-plus" id="text-content-{{ segment.id }}">
+                                        <input type="checkbox" id="text-checkbox-{{ segment.id }}" /> 
+                                        <label for="text-checkbox-{{ segment.id }}" 
+                                               class="collapse-title font-medium flex items-center cursor-pointer 
+                                                      py-2 sm:py-3 lg:py-4 px-3 sm:px-4 lg:px-5 text-sm sm:text-base lg:text-lg 
+                                                      min-h-0 touch-manipulation">
+                                            <i class="fas fa-align-left h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 mr-2"></i>
+                                            <span>文本内容</span>
+                                        </label>
+                                        <div class="collapse-content max-h-32 sm:max-h-40 lg:max-h-48 xl:max-h-56 overflow-y-auto 
+                                                    text-xs sm:text-sm lg:text-base px-3 sm:px-4 lg:px-5 pb-3 sm:pb-4 lg:pb-5">
+                                            <p class="whitespace-pre-wrap leading-relaxed">{{ segment.text }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 音频播放区域 -->
+                            <div class="lg:col-span-5">
+                                <div class="bg-secondary bg-opacity-10 rounded-lg p-3 sm:p-4 lg:p-5 h-full">
+                                    <div class="text-xs sm:text-sm lg:text-base font-medium mb-3 sm:mb-4 flex items-center">
+                                        <i class="fas fa-volume-up h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 mr-2"></i>
+                                        音频播放
+                                    </div>
                                     <div class="flex items-center">
-                                        <i class="fas fa-file-alt h-5 w-5 mr-2"></i>
-                                        <h3 class="font-medium">页面内容</h3>
+                                        <div class="flex-1 min-w-0">
+                                            <audio controls class="w-full h-8 sm:h-10 lg:h-12 text-sm sm:text-base">
+                                                <source src="{{ segment.file_url }}" type="audio/mpeg">
+                                                Your browser does not support the audio element.
+                                            </audio>
+                                        </div>
                                     </div>
-                                    <form method="dialog">
-                                        <button class="btn btn-sm btn-circle">✕</button>
-                                    </form>
                                 </div>
-                                <div id="modal-content-{{ segment.id }}" class="max-h-96 overflow-y-auto whitespace-pre-wrap font-mono bg-base-200 p-4 rounded-lg text-sm">
-                                    <div class="htmx-indicator flex justify-center py-4">
-                                        <div class="loading loading-spinner loading-md"></div>
-                                    </div>
-                                    <!-- 内容将在这里动态加载 -->
-                                </div>
-                            </div>
-                            <form method="dialog" class="modal-backdrop">
-                                <button>关闭</button>
-                            </form>
-                        </dialog>
-                    </div>
-                    
-                    <!-- Text Content Section - 中等比例，可折叠 -->
-                    <div class="bg-base-100 rounded-lg mb-1 border border-base-300">
-                        <div class="collapse collapse-plus" id="text-content-{{ segment.id }}">
-                            <input type="checkbox" id="text-checkbox-{{ segment.id }}" /> 
-                            <label for="text-checkbox-{{ segment.id }}" class="collapse-title font-medium flex items-center cursor-pointer py-1 px-3 text-sm min-h-0">
-                                <i class="fas fa-align-left h-3 w-3 mr-1"></i>
-                                <span class="text-xs">文本内容</span>
-                            </label>
-                            <div class="collapse-content max-h-24 overflow-y-auto text-xs px-3 pb-2">
-                                <p class="whitespace-pre-wrap leading-relaxed">{{ segment.text }}</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Audio Playback Section - 占据主要比例，突出显示 -->
-                    <div class="bg-secondary bg-opacity-10 p-2 rounded-lg">
-                        <div class="text-xs font-medium mb-2 flex items-center">
-                            <i class="fas fa-volume-up h-3 w-3 mr-1"></i>
-                            音频播放
-                        </div>
-                        <div class="flex items-center space-x-3">
-                            <div class="flex-1 min-w-0">
-                                <audio controls class="w-full h-8">
-                                    <source src="{{ segment.file_url }}" type="audio/mpeg">
-                                    Your browser does not support the audio element.
-                                </audio>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+        {% empty %}
+        <div class="alert alert-info shadow-lg">
+            <i class="fas fa-info-circle h-5 w-5 sm:h-6 sm:w-6 lg:h-7 lg:w-7"></i>
+            <span class="text-sm sm:text-base lg:text-lg">该书籍下没有任何音频片段。</span>
+        </div>
+        {% endfor %}
     </div>
-    {% empty %}
-    <div class="alert alert-info shadow-lg">
-        <i class="fas fa-info-circle h-6 w-6"></i>
-        <span>该书籍下没有任何音频片段。</span>
-    </div>
-    {% endfor %}
-</div>
 
-<!-- 分页导航 -->
-{% if paginator.num_pages > 1 %}
-<div class="flex justify-center mt-8">
-    <div class="join">
-        <!-- 上一页按钮 -->
-        {% if page_obj.has_previous %}
-            <button 
-                class="join-item btn btn-sm btn-outline"
-                hx-get="{% url 'book_details_htmx' book_id=book_id %}?page={{ page_obj.previous_page_number }}&page_size={{ page_size }}"
-                hx-target="#main-content"
-                hx-swap="innerHTML"
-                hx-push-url="true"
-                hx-indicator="#loading-indicator">
-                <i class="fas fa-chevron-left h-4 w-4"></i>
-                上一页
-            </button>
-        {% else %}
-            <button class="join-item btn btn-sm btn-outline btn-disabled">
-                <i class="fas fa-chevron-left h-4 w-4"></i>
-                上一页
-            </button>
-        {% endif %}
-        
-        <!-- 页码按钮 -->
-        {% for page_num in paginator.page_range %}
-            {% if page_num == page_obj.number %}
-                <button class="join-item btn btn-sm btn-active">{{ page_num }}</button>
-            {% elif page_num > page_obj.number|add:'-3' and page_num < page_obj.number|add:'3' %}
+    <!-- 分页导航 - 完全响应式设计 -->
+    {% if paginator.num_pages > 1 %}
+    <div class="flex justify-center mt-6 sm:mt-8 lg:mt-12">
+        <!-- 移动端简化分页 -->
+        <div class="flex sm:hidden items-center space-x-3">
+            {% if page_obj.has_previous %}
                 <button 
-                    class="join-item btn btn-sm btn-outline"
-                    hx-get="{% url 'book_details_htmx' book_id=book_id %}?page={{ page_num }}&page_size={{ page_size }}"
+                    class="btn btn-sm btn-outline touch-manipulation"
+                    hx-get="{% url 'book_details_htmx' book_id=book_id %}?page={{ page_obj.previous_page_number }}&page_size={{ page_size }}"
                     hx-target="#main-content"
                     hx-swap="innerHTML"
                     hx-push-url="true"
                     hx-indicator="#loading-indicator">
-                    {{ page_num }}
+                    <i class="fas fa-chevron-left h-4 w-4"></i>
                 </button>
-            {% elif page_num == 1 or page_num == paginator.num_pages %}
-                {% if page_num == 1 and page_obj.number > 4 %}
-                    <button 
-                        class="join-item btn btn-sm btn-outline"
-                        hx-get="{% url 'book_details_htmx' book_id=book_id %}?page=1&page_size={{ page_size }}"
-                        hx-target="#main-content"
-                        hx-swap="innerHTML"
-                        hx-push-url="true"
-                        hx-indicator="#loading-indicator">
-                        1
-                    </button>
-                    {% if page_obj.number > 5 %}
-                        <button class="join-item btn btn-sm btn-outline btn-disabled">...</button>
-                    {% endif %}
-                {% elif page_num == paginator.num_pages and page_obj.number < paginator.num_pages|add:'-3' %}
-                    {% if page_obj.number < paginator.num_pages|add:'-4' %}
-                        <button class="join-item btn btn-sm btn-outline btn-disabled">...</button>
-                    {% endif %}
-                    <button 
-                        class="join-item btn btn-sm btn-outline"
-                        hx-get="{% url 'book_details_htmx' book_id=book_id %}?page={{ paginator.num_pages }}&page_size={{ page_size }}"
-                        hx-target="#main-content"
-                        hx-swap="innerHTML"
-                        hx-push-url="true"
-                        hx-indicator="#loading-indicator">
-                        {{ paginator.num_pages }}
-                    </button>
-                {% endif %}
+            {% else %}
+                <button class="btn btn-sm btn-outline btn-disabled">
+                    <i class="fas fa-chevron-left h-4 w-4"></i>
+                </button>
             {% endif %}
-        {% endfor %}
+            
+            <div class="px-4 py-2 bg-base-200 rounded-lg">
+                <span class="text-sm font-medium">{{ page_obj.number }} / {{ paginator.num_pages }}</span>
+            </div>
+            
+            {% if page_obj.has_next %}
+                <button 
+                    class="btn btn-sm btn-outline touch-manipulation"
+                    hx-get="{% url 'book_details_htmx' book_id=book_id %}?page={{ page_obj.next_page_number }}&page_size={{ page_size }}"
+                    hx-target="#main-content"
+                    hx-swap="innerHTML"
+                    hx-push-url="true"
+                    hx-indicator="#loading-indicator">
+                    <i class="fas fa-chevron-right h-4 w-4"></i>
+                </button>
+            {% else %}
+                <button class="btn btn-sm btn-outline btn-disabled">
+                    <i class="fas fa-chevron-right h-4 w-4"></i>
+                </button>
+            {% endif %}
+        </div>
         
-        <!-- 下一页按钮 -->
-        {% if page_obj.has_next %}
-            <button 
-                class="join-item btn btn-sm btn-outline"
-                hx-get="{% url 'book_details_htmx' book_id=book_id %}?page={{ page_obj.next_page_number }}&page_size={{ page_size }}"
-                hx-target="#main-content"
-                hx-swap="innerHTML"
-                hx-push-url="true"
-                hx-indicator="#loading-indicator">
-                下一页
-                <i class="fas fa-chevron-right h-4 w-4"></i>
-            </button>
-        {% else %}
-            <button class="join-item btn btn-sm btn-outline btn-disabled">
-                下一页
-                <i class="fas fa-chevron-right h-4 w-4"></i>
-            </button>
-        {% endif %}
-    </div>
-</div>
-
-<!-- 回到顶部和加载指示器 -->
-<div class="flex justify-center items-center mt-4 space-x-4">
-    <!-- 加载指示器 -->
-    <div id="loading-indicator" class="htmx-indicator">
-        <div class="flex items-center space-x-2">
-            <div class="loading loading-spinner loading-sm"></div>
-            <span class="text-sm">加载中...</span>
+        <!-- 桌面端完整分页 -->
+        <div class="hidden sm:flex join">
+            <!-- 上一页按钮 -->
+            {% if page_obj.has_previous %}
+                <button 
+                    class="join-item btn btn-sm lg:btn-md btn-outline"
+                    hx-get="{% url 'book_details_htmx' book_id=book_id %}?page={{ page_obj.previous_page_number }}&page_size={{ page_size }}"
+                    hx-target="#main-content"
+                    hx-swap="innerHTML"
+                    hx-push-url="true"
+                    hx-indicator="#loading-indicator">
+                    <i class="fas fa-chevron-left h-4 w-4 lg:h-5 lg:w-5"></i>
+                    <span class="hidden lg:inline ml-2">上一页</span>
+                </button>
+            {% else %}
+                <button class="join-item btn btn-sm lg:btn-md btn-outline btn-disabled">
+                    <i class="fas fa-chevron-left h-4 w-4 lg:h-5 lg:w-5"></i>
+                    <span class="hidden lg:inline ml-2">上一页</span>
+                </button>
+            {% endif %}
+            
+            <!-- 页码按钮 -->
+            {% for page_num in paginator.page_range %}
+                {% if page_num == page_obj.number %}
+                    <button class="join-item btn btn-sm lg:btn-md btn-active">{{ page_num }}</button>
+                {% elif page_num > page_obj.number|add:'-3' and page_num < page_obj.number|add:'3' %}
+                    <button 
+                        class="join-item btn btn-sm lg:btn-md btn-outline"
+                        hx-get="{% url 'book_details_htmx' book_id=book_id %}?page={{ page_num }}&page_size={{ page_size }}"
+                        hx-target="#main-content"
+                        hx-swap="innerHTML"
+                        hx-push-url="true"
+                        hx-indicator="#loading-indicator">
+                        {{ page_num }}
+                    </button>
+                {% elif page_num == 1 or page_num == paginator.num_pages %}
+                    {% if page_num == 1 and page_obj.number > 4 %}
+                        <button 
+                            class="join-item btn btn-sm lg:btn-md btn-outline"
+                            hx-get="{% url 'book_details_htmx' book_id=book_id %}?page=1&page_size={{ page_size }}"
+                            hx-target="#main-content"
+                            hx-swap="innerHTML"
+                            hx-push-url="true"
+                            hx-indicator="#loading-indicator">
+                            1
+                        </button>
+                        {% if page_obj.number > 5 %}
+                            <button class="join-item btn btn-sm lg:btn-md btn-outline btn-disabled">...</button>
+                        {% endif %}
+                    {% elif page_num == paginator.num_pages and page_obj.number < paginator.num_pages|add:'-3' %}
+                        {% if page_obj.number < paginator.num_pages|add:'-4' %}
+                            <button class="join-item btn btn-sm lg:btn-md btn-outline btn-disabled">...</button>
+                        {% endif %}
+                        <button 
+                            class="join-item btn btn-sm lg:btn-md btn-outline"
+                            hx-get="{% url 'book_details_htmx' book_id=book_id %}?page={{ paginator.num_pages }}&page_size={{ page_size }}"
+                            hx-target="#main-content"
+                            hx-swap="innerHTML"
+                            hx-push-url="true"
+                            hx-indicator="#loading-indicator">
+                            {{ paginator.num_pages }}
+                        </button>
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+            
+            <!-- 下一页按钮 -->
+            {% if page_obj.has_next %}
+                <button 
+                    class="join-item btn btn-sm lg:btn-md btn-outline"
+                    hx-get="{% url 'book_details_htmx' book_id=book_id %}?page={{ page_obj.next_page_number }}&page_size={{ page_size }}"
+                    hx-target="#main-content"
+                    hx-swap="innerHTML"
+                    hx-push-url="true"
+                    hx-indicator="#loading-indicator">
+                    <span class="hidden lg:inline mr-2">下一页</span>
+                    <i class="fas fa-chevron-right h-4 w-4 lg:h-5 lg:w-5"></i>
+                </button>
+            {% else %}
+                <button class="join-item btn btn-sm lg:btn-md btn-outline btn-disabled">
+                    <span class="hidden lg:inline mr-2">下一页</span>
+                    <i class="fas fa-chevron-right h-4 w-4 lg:h-5 lg:w-5"></i>
+                </button>
+            {% endif %}
         </div>
     </div>
-</div>
 
-<!-- 分页跳转输入框 -->
-{% if paginator.num_pages > 5 %}
-<div class="flex justify-center mt-4">
-    <div class="flex items-center space-x-2">
-        <span class="text-sm">跳转到第</span>
-        <input 
-            type="number" 
-            min="1" 
-            max="{{ paginator.num_pages }}" 
-            value="{{ page_obj.number }}"
-            class="input input-sm input-bordered w-16 text-center"
-            id="page-jump-input"
-            onkeypress="if(event.key==='Enter') jumpToPage()"
-        />
-        <span class="text-sm">页</span>
-        <button 
-            class="btn btn-sm btn-primary"
-            onclick="jumpToPage()">
-            跳转
-        </button>
+    <!-- 加载指示器 -->
+    <div class="flex justify-center items-center mt-4 sm:mt-6">
+        <div id="loading-indicator" class="htmx-indicator">
+            <div class="flex items-center space-x-2">
+                <div class="loading loading-spinner loading-sm sm:loading-md"></div>
+                <span class="text-xs sm:text-sm lg:text-base">加载中...</span>
+            </div>
+        </div>
     </div>
-</div>
-{% endif %}
-{% endif %} 
+
+    <!-- 分页跳转输入框 - 响应式设计 -->
+    {% if paginator.num_pages > 5 %}
+    <div class="flex justify-center mt-4 sm:mt-6">
+        <div class="card bg-base-100 shadow-sm">
+            <div class="card-body p-3 sm:p-4">
+                <div class="flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
+                    <span class="text-xs sm:text-sm lg:text-base font-medium">跳转到第</span>
+                    <input 
+                        type="number" 
+                        min="1" 
+                        max="{{ paginator.num_pages }}" 
+                        value="{{ page_obj.number }}"
+                        class="input input-xs sm:input-sm lg:input-md input-bordered w-20 sm:w-24 text-center touch-manipulation"
+                        id="page-jump-input"
+                        onkeypress="if(event.key==='Enter') jumpToPage()"
+                    />
+                    <span class="text-xs sm:text-sm lg:text-base font-medium">页</span>
+                    <button 
+                        class="btn btn-xs sm:btn-sm lg:btn-md btn-primary touch-manipulation"
+                        onclick="jumpToPage()">
+                        跳转
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
+</div> 
