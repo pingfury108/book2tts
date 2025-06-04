@@ -35,7 +35,7 @@
           </svg>
         </div>
         <ul tabindex="0"
-            class="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow">
+            class="menu menu-sm dropdown-content bg-base-100 rounded-box z-50 mt-3 w-52 p-2 shadow">
           <li><a href="{% url 'index' %}">制作</a></li>
           <li>
             <a>有声书</a>
@@ -56,7 +56,7 @@
         <li>
           <details>
             <summary>有声书</summary>
-            <ul class="p-2">
+            <ul class="p-2 z-50 relative">
               <li><a href="{% url 'aggregated_audio_segments' %}">成品</a></li>
               <li><a href="{% url 'task_queue' %}">队列</a></li>
             </ul>
@@ -82,7 +82,7 @@
           </div>
         </div>
         <ul tabindex="0"
-            class="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow">
+            class="menu menu-sm dropdown-content bg-base-100 rounded-box z-50 mt-3 w-52 p-2 shadow">
           {% if user.is_authenticated %}
           <li>
             <a href="{% url 'profile' %}" class="justify-between">
