@@ -5403,6 +5403,13 @@ details.collapse summary::-webkit-details-marker {
   -webkit-line-clamp: 1;
 }
 
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
 .block {
   display: block;
 }
@@ -5501,6 +5508,10 @@ details.collapse summary::-webkit-details-marker {
 
 .h-10 {
   height: 2.5rem;
+}
+
+.h-20 {
+  height: 5rem;
 }
 
 .max-h-24 {
@@ -5858,6 +5869,10 @@ details.collapse summary::-webkit-details-marker {
   margin-left: calc(0.25rem * calc(1 - var(--tw-space-x-reverse)));
 }
 
+.self-start {
+  align-self: flex-start;
+}
+
 .self-center {
   align-self: center;
 }
@@ -5972,6 +5987,11 @@ details.collapse summary::-webkit-details-marker {
 .border-success {
   --tw-border-opacity: 1;
   border-color: var(--fallback-su,oklch(var(--su)/var(--tw-border-opacity)));
+}
+
+.border-gray-300 {
+  --tw-border-opacity: 1;
+  border-color: rgb(209 213 219 / var(--tw-border-opacity));
 }
 
 .bg-accent {
@@ -6244,6 +6264,10 @@ details.collapse summary::-webkit-details-marker {
 
 .leading-relaxed {
   line-height: 1.625;
+}
+
+.leading-tight {
+  line-height: 1.25;
 }
 
 .text-accent {
@@ -6930,6 +6954,11 @@ details.collapse summary::-webkit-details-marker {
     margin-bottom: 1rem;
   }
 
+  .sm\:mx-4 {
+    margin-left: 1rem;
+    margin-right: 1rem;
+  }
+
   .sm\:mb-3 {
     margin-bottom: 0.75rem;
   }
@@ -6952,6 +6981,13 @@ details.collapse summary::-webkit-details-marker {
 
   .sm\:mt-6 {
     margin-top: 1.5rem;
+  }
+
+  .sm\:line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
   }
 
   .sm\:block {
@@ -7196,6 +7232,11 @@ details.collapse summary::-webkit-details-marker {
     font-size: 1.125rem;
     line-height: 1.75rem;
   }
+
+  .sm\:text-2xl {
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
 }
 
 @media (min-width: 768px) {
@@ -7318,6 +7359,14 @@ details.collapse summary::-webkit-details-marker {
     height: 2rem;
   }
 
+  .lg\:h-10 {
+    height: 2.5rem;
+  }
+
+  .lg\:h-24 {
+    height: 6rem;
+  }
+
   .lg\:max-h-48 {
     max-height: 12rem;
   }
@@ -7352,6 +7401,10 @@ details.collapse summary::-webkit-details-marker {
 
   .lg\:w-28 {
     width: 7rem;
+  }
+
+  .lg\:w-10 {
+    width: 2.5rem;
   }
 
   .lg\:max-w-md {
@@ -7435,6 +7488,11 @@ details.collapse summary::-webkit-details-marker {
   .lg\:text-xl {
     font-size: 1.25rem;
     line-height: 1.75rem;
+  }
+
+  .lg\:text-3xl {
+    font-size: 1.875rem;
+    line-height: 2.25rem;
   }
 }
 
