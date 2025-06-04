@@ -4791,6 +4791,20 @@ details.collapse summary::-webkit-details-marker {
   position: absolute;
 }
 
+.select-sm {
+  height: 2rem;
+  min-height: 2rem;
+  padding-left: 0.75rem;
+  padding-right: 2rem;
+  font-size: 0.875rem;
+  line-height: 2rem;
+}
+
+[dir="rtl"] .select-sm {
+  padding-left: 2rem;
+  padding-right: 0.75rem;
+}
+
 .select-xs {
   height: 1.5rem;
   min-height: 1.5rem;
@@ -6716,6 +6730,21 @@ details.collapse summary::-webkit-details-marker {
     border-start-end-radius: inherit;
   }
 
+  .sm\:select-md {
+    height: 3rem;
+    min-height: 3rem;
+    padding-left: 1rem;
+    padding-right: 2.5rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    line-height: 2;
+  }
+
+  [dir="rtl"] .sm\:select-md {
+    padding-left: 2.5rem;
+    padding-right: 1rem;
+  }
+
   .sm\:select-sm {
     height: 2rem;
     min-height: 2rem;
@@ -7085,6 +7114,10 @@ details.collapse summary::-webkit-details-marker {
 
   .sm\:w-3\/4 {
     width: 75%;
+  }
+
+  .sm\:w-28 {
+    width: 7rem;
   }
 
   .sm\:max-w-sm {

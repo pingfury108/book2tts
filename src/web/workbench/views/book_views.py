@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, HttpResponse
+from django.core.paginator import Paginator
 
 from ..forms import UploadFileForm
 from ..models import Books
@@ -71,11 +72,29 @@ def upload(request):
 
 @login_required
 def my_upload_list(request):
-    """Display user's uploaded books list"""
-    books = Books.objects.filter(user=request.user).all()
-    books = [b for b in books]
+    """Display user's uploaded books list with pagination"""
+    # Get page size from request, default to 10
+    page_size = int(request.GET.get('page_size', 10))
+    page_size_options = [5, 10, 20, 50]
+    
+    # Ensure page_size is valid
+    if page_size not in page_size_options:
+        page_size = 10
+    
+    books = Books.objects.filter(user=request.user).order_by('-created_at')
+    
+    # Setup pagination
+    paginator = Paginator(books, page_size)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
 
-    return render(request, "my_upload_list.html", {"books": books})
+    return render(request, "my_upload_list.html", {
+        "books": page_obj,
+        "paginator": paginator,
+        "page_obj": page_obj,
+        "page_size": page_size,
+        "page_size_options": page_size_options,
+    })
 
 
 @login_required
