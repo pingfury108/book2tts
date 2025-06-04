@@ -97,8 +97,8 @@
                         <input type="text" id="audio-title-input" class="input input-bordered w-full" placeholder="音频标题（选填）" />
                         <button class="btn btn-primary w-full" id="synthesize-btn">合成音频</button>
                         <div id="audio-player-container" class="hidden mt-2 p-3 bg-base-300 rounded-lg">
-                            <div class="text-center mb-2">
-                                <span class="badge badge-primary" id="audio-title"></span>
+                            <div class="text-center mb-3">
+                                <div class="inline-block bg-primary text-primary-content px-3 py-2 rounded-lg text-sm font-medium leading-relaxed max-w-full break-words" id="audio-title" style="min-height: 2.5rem; line-height: 1.4;"></div>
                             </div>
                             <audio id="audio-player" controls class="w-full"></audio>
                             <div id="audio-status" class="text-sm mt-1 text-center font-medium text-success"></div>
@@ -175,6 +175,13 @@
    const publishBtn = document.getElementById('publish-btn');
    if (publishBtn) {
      publishBtn.disabled = true;
+   }
+   
+   // 恢复合成按钮状态
+   const synthesizeBtn = document.getElementById('synthesize-btn');
+   if (synthesizeBtn) {
+     synthesizeBtn.innerHTML = '合成音频';
+     synthesizeBtn.disabled = false;
    }
    
    // 重置当前音频ID
@@ -261,6 +268,7 @@
      // 显示加载状态
      this.innerHTML = '<span class="loading loading-spinner loading-xs"></span> 启动任务...';
      this.disabled = true;
+     console.log('[Button] 合成按钮状态：启动任务中');
      
      try {
        // 启动音频合成任务
@@ -287,18 +295,17 @@
        if (data.status === 'started') {
          // 任务已启动，开始轮询状态
          this.innerHTML = '<span class="loading loading-spinner loading-xs"></span> 正在合成...';
+         console.log('[Button] 合成按钮状态：正在合成');
          await pollTaskStatus(data.task_id, audioTitle);
        } else {
          // 处理启动失败的情况
+         console.log('[Button] 任务启动失败，即将恢复按钮状态');
          await handleAudioError(data.message || '启动音频合成任务失败');
        }
      } catch (error) {
        console.error('启动音频合成任务错误:', error);
+       console.log('[Button] 发生异常，即将恢复按钮状态');
        await handleAudioError(`网络错误或服务器异常: ${error.message}`);
-     } finally {
-       // 恢复按钮状态
-       this.innerHTML = '合成音频';
-       this.disabled = false;
      }
    });
  }
@@ -323,28 +330,36 @@
          case 'pending':
            if (synthesizeBtn) {
              synthesizeBtn.innerHTML = '<span class="loading loading-spinner loading-xs"></span> 等待执行...';
+             synthesizeBtn.disabled = true;
+             console.log('[Button] 合成按钮状态：等待执行');
            }
            break;
            
          case 'processing':
            if (synthesizeBtn) {
              synthesizeBtn.innerHTML = `<span class="loading loading-spinner loading-xs"></span> ${statusData.message || '正在处理...'}`;
+             synthesizeBtn.disabled = true;
+             console.log('[Button] 合成按钮状态：正在处理 -', statusData.message);
            }
            break;
            
          case 'success':
            // 任务成功完成
+           console.log('[Button] 任务成功完成，即将恢复按钮状态');
            await handleAudioSuccess(statusData, audioTitle);
            return; // 停止轮询
            
          case 'failure':
            // 任务失败
+           console.log('[Button] 任务失败，即将恢复按钮状态');
            await handleAudioError(statusData.message || '音频合成失败');
            return; // 停止轮询
            
          default:
            if (synthesizeBtn) {
              synthesizeBtn.innerHTML = `<span class="loading loading-spinner loading-xs"></span> ${statusData.message || '处理中...'}`;
+             synthesizeBtn.disabled = true;
+             console.log('[Button] 合成按钮状态：处理中 -', statusData.message);
            }
            break;
        }
@@ -353,6 +368,7 @@
        if (attempts < maxAttempts) {
          setTimeout(poll, 1000); // 每秒轮询一次
        } else {
+         console.log('[Button] 轮询超时，即将恢复按钮状态');
          await handleAudioError('音频合成超时，请稍后重试');
        }
        
@@ -361,6 +377,7 @@
        if (attempts < maxAttempts) {
          setTimeout(poll, 2000); // 出错时2秒后重试
        } else {
+         console.log('[Button] 轮询错误次数过多，即将恢复按钮状态');
          await handleAudioError('检查任务状态失败');
        }
      }
@@ -370,8 +387,45 @@
    setTimeout(poll, 1000); // 1秒后开始第一次轮询
  }
 
+ // 恢复合成按钮状态的函数
+ function restoreSynthesizeButton() {
+   const synthesizeBtn = document.getElementById('synthesize-btn');
+   if (synthesizeBtn) {
+     synthesizeBtn.innerHTML = '合成音频';
+     synthesizeBtn.disabled = false;
+     console.log('[Button] 合成按钮状态已恢复为可用状态');
+   }
+ }
+
+ // 检查并确保按钮状态一致性的函数
+ function ensureButtonStateConsistency() {
+   const synthesizeBtn = document.getElementById('synthesize-btn');
+   if (synthesizeBtn) {
+     // 如果按钮显示为加载状态但没有进行中的任务，则恢复按钮状态
+     const buttonText = synthesizeBtn.innerHTML;
+     const isShowingLoadingState = buttonText.includes('loading-spinner') || 
+                                  buttonText.includes('启动任务') || 
+                                  buttonText.includes('正在合成') || 
+                                  buttonText.includes('等待执行') || 
+                                  buttonText.includes('正在处理') || 
+                                  buttonText.includes('处理中');
+     
+     if (isShowingLoadingState) {
+       console.log('[Button] 检测到按钮可能处于不一致状态，当前文本:', buttonText);
+       // 可以添加额外的逻辑来判断是否真的有任务在进行
+       // 这里暂时记录状态，不自动恢复，避免干扰正在进行的任务
+     }
+   }
+ }
+
+ // 定期检查按钮状态一致性（可选的保护措施）
+ setInterval(ensureButtonStateConsistency, 5000); // 每5秒检查一次
+
  // 处理音频合成成功的函数
  async function handleAudioSuccess(data, audioTitle) {
+   // 恢复合成按钮状态
+   restoreSynthesizeButton();
+   
    // 显示音频播放器
    document.getElementById('audio-player-container').classList.remove('hidden');
    const audioPlayer = document.getElementById('audio-player');
@@ -435,6 +489,9 @@
 
  // 处理音频合成错误的函数
  async function handleAudioError(errorMessage) {
+   // 恢复合成按钮状态
+   restoreSynthesizeButton();
+   
    const audioStatus = document.getElementById('audio-status');
    audioStatus.className = 'text-sm mt-1 text-center font-medium text-error';
    audioStatus.innerHTML = '';
