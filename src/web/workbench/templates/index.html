@@ -105,17 +105,12 @@
                         </div>
                         <div class="flex gap-2 mt-2">
                             <button class="btn btn-secondary flex-1" id="download-btn" disabled>
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                </svg>
+                                <i class="fas fa-download h-5 w-5 mr-1"></i>
                                 下载
                             </button>
                             <button class="btn btn-accent flex-1" id="publish-btn" disabled
-                                    hx-target="this"
-                                    hx-swap="outerHTML">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                                </svg>
+                                    onclick="handlePublishClick()">
+                                <i class="fas fa-upload h-5 w-5 mr-1"></i>
                                 发布
                             </button>
                         </div>
@@ -473,15 +468,13 @@
      window.currentAudioSegmentId = data.audio_id;
      console.log("Setting audio segment ID:", window.currentAudioSegmentId);
      
-     // Update hx-post attribute and explicitly tell HTMX to process the element
-     const publishUrl = `/workbench/audio/publish/${window.currentAudioSegmentId}/`;
-     console.log("Setting publish URL to:", publishUrl);
-     publishBtn.setAttribute('hx-post', publishUrl);
-     
-     // Ensure HTMX processes the updated attributes
-     if (typeof htmx !== 'undefined') {
-       htmx.process(publishBtn);
-     }
+     // 重置按钮为未发布状态
+     publishBtn.className = 'btn btn-success flex-1';
+     publishBtn.innerHTML = `
+       <i class="fas fa-check h-5 w-5 mr-1"></i>
+       发布
+     `;
+     publishBtn.title = '发布';
    }
 
    logState('Audio synthesized successfully');
@@ -503,9 +496,7 @@
    // 添加错误图标和消息
    errorContainer.innerHTML = `
      <div class="flex items-center">
-       <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24">
-         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-       </svg>
+       <i class="fas fa-times-circle h-5 w-5 mr-2"></i>
        <span class="text-sm">${errorMessage}</span>
      </div>
    `;
@@ -719,6 +710,183 @@
        cleanupFormatting();
      }
    });
+ }
+
+ // Toast 通知系统
+ function showToast(message, type = 'info', duration = 3000) {
+   // 移除已存在的toast
+   const existingToast = document.getElementById('custom-toast');
+   if (existingToast) {
+     existingToast.remove();
+   }
+   
+   // 创建toast元素
+   const toast = document.createElement('div');
+   toast.id = 'custom-toast';
+   toast.className = `alert shadow-lg fixed top-4 right-4 z-50 max-w-sm transform transition-all duration-300 ease-in-out`;
+   
+   // 根据类型设置样式和图标
+   let alertClass, icon;
+   switch (type) {
+     case 'success':
+       alertClass = 'alert-success';
+       icon = `<i class="fas fa-check-circle h-6 w-6"></i>`;
+       break;
+     case 'error':
+       alertClass = 'alert-error';
+       icon = `<i class="fas fa-times-circle h-6 w-6"></i>`;
+       break;
+     case 'warning':
+       alertClass = 'alert-warning';
+       icon = `<i class="fas fa-exclamation-triangle h-6 w-6"></i>`;
+       break;
+     default:
+       alertClass = 'alert-info';
+       icon = `<i class="fas fa-info-circle h-6 w-6"></i>`;
+   }
+   
+   toast.className += ` ${alertClass}`;
+   toast.innerHTML = `
+     <div>
+       ${icon}
+       <span>${message}</span>
+     </div>
+     <button class="btn btn-sm btn-ghost" onclick="this.parentElement.remove()">✕</button>
+   `;
+   
+   // 添加到页面
+   document.body.appendChild(toast);
+   
+   // 显示动画
+   setTimeout(() => {
+     toast.style.transform = 'translateX(0)';
+   }, 10);
+   
+   // 自动移除
+   setTimeout(() => {
+     if (toast.parentElement) {
+       toast.style.transform = 'translateX(100%)';
+       setTimeout(() => {
+         if (toast.parentElement) {
+           toast.remove();
+         }
+       }, 300);
+     }
+   }, duration);
+ }
+
+ // 发布按钮点击处理函数
+ async function handlePublishClick() {
+   const publishBtn = document.getElementById('publish-btn');
+   const publishStatus = document.getElementById('publish-status');
+   
+   if (!window.currentAudioSegmentId) {
+     showToast('没有可发布的音频片段', 'warning');
+     return;
+   }
+   
+   // 显示加载状态
+   const originalContent = publishBtn.innerHTML;
+   publishBtn.disabled = true;
+   publishBtn.innerHTML = `
+     <span class="loading loading-spinner loading-xs"></span>
+     处理中...
+   `;
+   
+   try {
+     const response = await fetch(`/workbench/audio/publish/${window.currentAudioSegmentId}/`, {
+       method: 'POST',
+       headers: {
+         'Content-Type': 'application/json',
+         'X-CSRFToken': '{{ csrf_token }}'
+       }
+     });
+     
+     const data = await response.json();
+     
+     if (data.status === 'success') {
+       // 更新按钮状态
+       updatePublishButton(data);
+       
+       // 显示成功通知
+       showToast(data.message, 'success');
+       
+       // 更新发布状态显示
+       if (publishStatus) {
+         publishStatus.className = 'text-sm mt-1 text-center font-medium text-success';
+         publishStatus.innerHTML = `
+           <div class="flex items-center justify-center">
+             <i class="fas fa-check h-4 w-4 mr-1"></i>
+             ${data.published ? '已发布' : '已取消发布'}
+           </div>
+         `;
+       }
+     } else {
+       // 恢复按钮状态
+       publishBtn.disabled = false;
+       publishBtn.innerHTML = originalContent;
+       
+       // 显示错误通知
+       showToast(data.message || '操作失败', 'error');
+       
+       // 更新发布状态显示
+       if (publishStatus) {
+         publishStatus.className = 'text-sm mt-1 text-center font-medium text-error';
+         publishStatus.innerHTML = `
+           <div class="flex items-center justify-center">
+             <i class="fas fa-times h-4 w-4 mr-1"></i>
+             操作失败
+           </div>
+         `;
+       }
+     }
+   } catch (error) {
+     console.error('发布操作失败:', error);
+     
+     // 恢复按钮状态
+     publishBtn.disabled = false;
+     publishBtn.innerHTML = originalContent;
+     
+     // 显示错误通知
+     showToast('网络错误，请稍后重试', 'error');
+     
+     // 更新发布状态显示
+     if (publishStatus) {
+       publishStatus.className = 'text-sm mt-1 text-center font-medium text-error';
+       publishStatus.innerHTML = `
+         <div class="flex items-center justify-center">
+           <i class="fas fa-times h-4 w-4 mr-1"></i>
+           网络错误
+         </div>
+       `;
+     }
+   }
+ }
+
+ // 更新发布按钮状态的函数
+ function updatePublishButton(data) {
+   const publishBtn = document.getElementById('publish-btn');
+   if (!publishBtn) return;
+   
+   publishBtn.disabled = false;
+   
+   if (data.published) {
+     // 已发布状态 - 显示取消发布按钮
+     publishBtn.className = 'btn btn-warning flex-1';
+     publishBtn.innerHTML = `
+       <i class="fas fa-times h-5 w-5 mr-1"></i>
+       取消发布
+     `;
+     publishBtn.title = '取消发布';
+   } else {
+     // 未发布状态 - 显示发布按钮
+     publishBtn.className = 'btn btn-success flex-1';
+     publishBtn.innerHTML = `
+       <i class="fas fa-check h-5 w-5 mr-1"></i>
+       发布
+     `;
+     publishBtn.title = '发布';
+   }
  }
 </script>
 

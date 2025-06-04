@@ -474,60 +474,80 @@ def toggle_publish_audio_segment(request, segment_id):
     
     # Check if the user owns this audio segment
     if segment.user != request.user:
-        return JsonResponse({"status": "error", "message": "You don't have permission to modify this audio segment"}, status=403)
+        return JsonResponse({
+            "status": "error", 
+            "message": "您没有权限修改此音频片段",
+            "error_type": "permission_denied"
+        }, status=403)
     
     try:
+        # Store original state
+        original_state = segment.published
+        
         # Toggle the published state
         segment.published = not segment.published
         segment.save()
         
-        # Check if this is an HTMX request
-        if request.headers.get('HX-Request') == 'true':
-            # Return the updated button based on the new state
-            if segment.published:
-                button_html = '''
-                <button class="btn btn-warning flex-1" 
-                        title="取消发布"
-                        hx-post="/workbench/audio/publish/{{ segment.id }}/"
-                        hx-target="this" 
-                        hx-swap="outerHTML">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                    </svg>
-                    取消发布
-                </button>
-                '''.replace('{{ segment.id }}', str(segment_id))
-            else:
-                button_html = '''
-                <button class="btn btn-success flex-1" 
-                        title="发布"
-                        hx-post="/workbench/audio/publish/{{ segment.id }}/"
-                        hx-target="this" 
-                        hx-swap="outerHTML">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    发布
-                </button>
-                '''.replace('{{ segment.id }}', str(segment_id))
-            
-            return HttpResponse(button_html)
-        else:
-            # For non-HTMX requests, return JSON
-            return JsonResponse({
-                "status": "success", 
-                "message": f"Audio segment {'published' if segment.published else 'unpublished'} successfully",
-                "published": segment.published
-            })
+        # Record operation
+        OperationRecord.objects.create(
+            user=request.user,
+            operation_type='audio_publish',
+            operation_object=f'{segment.book.name} - {segment.title}',
+            operation_detail=f'音频片段{"发布" if segment.published else "取消发布"}成功',
+            status='success',
+            metadata={
+                'segment_id': segment_id,
+                'book_id': segment.book.id,
+                'book_name': segment.book.name,
+                'segment_title': segment.title,
+                'original_state': original_state,
+                'new_state': segment.published,
+                'action': 'publish' if segment.published else 'unpublish'
+            },
+            ip_address=get_client_ip(request),
+            user_agent=get_user_agent(request)
+        )
+        
+        # Return JSON response with detailed information
+        return JsonResponse({
+            "status": "success", 
+            "message": f"音频片段已{'发布' if segment.published else '取消发布'}",
+            "published": segment.published,
+            "segment_id": segment_id,
+            "action": "publish" if segment.published else "unpublish",
+            "button_text": "取消发布" if segment.published else "发布",
+            "button_class": "btn-warning" if segment.published else "btn-success",
+            "icon_type": "unpublish" if segment.published else "publish",
+            "toast_type": "success"
+        })
     
     except Exception as e:
+        # Record failed operation
+        OperationRecord.objects.create(
+            user=request.user,
+            operation_type='audio_publish',
+            operation_object=f'{segment.book.name} - {segment.title}',
+            operation_detail=f'音频片段发布状态切换失败：{str(e)}',
+            status='failed',
+            metadata={
+                'segment_id': segment_id,
+                'book_id': segment.book.id,
+                'book_name': segment.book.name,
+                'segment_title': segment.title,
+                'error_reason': 'exception',
+                'exception_message': str(e)
+            },
+            ip_address=get_client_ip(request),
+            user_agent=get_user_agent(request)
+        )
+        
         print(f"Error in toggle_publish_audio_segment: {str(e)}")
-        if request.headers.get('HX-Request') == 'true':
-            # For HTMX requests, return error message
-            return HttpResponse(f"操作失败: {str(e)}", status=500)
-        else:
-            # For non-HTMX requests, return JSON
-            return JsonResponse({"status": "error", "message": str(e)}, status=500)
+        return JsonResponse({
+            "status": "error", 
+            "message": f"操作失败: {str(e)}",
+            "error_type": "operation_failed",
+            "toast_type": "error"
+        }, status=500)
 
 
 @login_required

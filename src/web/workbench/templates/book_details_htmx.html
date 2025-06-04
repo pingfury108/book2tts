@@ -1,9 +1,7 @@
 {% load custom_filters %}
 <div class="flex justify-between items-center mb-4">
     <a href="{% url 'aggregated_audio_segments' %}" class="btn btn-sm btn-outline">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-        </svg>
+        <i class="fas fa-arrow-left h-5 w-5 mr-2"></i>
         返回书籍列表
     </a>
     <h2 class="text-xl font-bold bg-primary text-primary-content p-2 rounded-lg">📚 {{ book_name }}</h2>
@@ -15,9 +13,7 @@
 <div class="flex justify-between items-center mb-4 text-base-content opacity-70">
     <div class="flex items-center space-x-4">
         <div class="flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
+            <i class="fas fa-file-text h-4 w-4 mr-1"></i>
             <span class="text-sm">显示 {{ page_obj.start_index }}-{{ page_obj.end_index }} 项，共 {{ paginator.count }} 项</span>
         </div>
         
@@ -85,6 +81,145 @@ document.body.addEventListener('htmx:afterSwap', function(evt) {
         }, 100);
     }
 });
+
+// Toast 通知系统
+function showToast(message, type = 'info', duration = 3000) {
+    // 移除已存在的toast
+    const existingToast = document.getElementById('segment-toast');
+    if (existingToast) {
+        existingToast.remove();
+    }
+    
+    // 创建toast元素
+    const toast = document.createElement('div');
+    toast.id = 'segment-toast';
+    toast.className = `alert shadow-lg fixed top-4 right-4 z-50 max-w-sm transform transition-all duration-300 ease-in-out`;
+    
+    // 根据类型设置样式和图标
+    let alertClass, icon;
+    switch (type) {
+        case 'success':
+            alertClass = 'alert-success';
+            icon = `<i class="fas fa-check-circle h-6 w-6"></i>`;
+            break;
+        case 'error':
+            alertClass = 'alert-error';
+            icon = `<i class="fas fa-times-circle h-6 w-6"></i>`;
+            break;
+        case 'warning':
+            alertClass = 'alert-warning';
+            icon = `<i class="fas fa-exclamation-triangle h-6 w-6"></i>`;
+            break;
+        default:
+            alertClass = 'alert-info';
+            icon = `<i class="fas fa-info-circle h-6 w-6"></i>`;
+    }
+    
+    toast.className += ` ${alertClass}`;
+    toast.innerHTML = `
+        <div>
+            ${icon}
+            <span>${message}</span>
+        </div>
+        <button class="btn btn-sm btn-ghost" onclick="this.parentElement.remove()">✕</button>
+    `;
+    
+    // 添加到页面
+    document.body.appendChild(toast);
+    
+    // 显示动画
+    setTimeout(() => {
+        toast.style.transform = 'translateX(0)';
+    }, 10);
+    
+    // 自动移除
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.remove();
+                }
+            }, 300);
+        }
+    }, duration);
+}
+
+// 音频片段发布按钮点击处理函数
+async function handleSegmentPublishClick(segmentId, buttonElement) {
+    // 显示加载状态
+    const originalContent = buttonElement.innerHTML;
+    const originalClass = buttonElement.className;
+    const originalTitle = buttonElement.title;
+    
+    buttonElement.disabled = true;
+    buttonElement.innerHTML = `
+        <span class="loading loading-spinner loading-xs"></span>
+    `;
+    buttonElement.title = '处理中...';
+    
+    try {
+        // 获取CSRF令牌
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                         document.querySelector('meta[name=csrf-token]')?.getAttribute('content') ||
+                         '{{ csrf_token }}';
+        
+        const response = await fetch(`/workbench/audio/publish/${segmentId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            // 更新按钮状态
+            updateSegmentPublishButton(buttonElement, data);
+            
+            // 显示成功通知
+            showToast(data.message, 'success');
+        } else {
+            // 恢复按钮状态
+            buttonElement.disabled = false;
+            buttonElement.innerHTML = originalContent;
+            buttonElement.className = originalClass;
+            buttonElement.title = originalTitle;
+            
+            // 显示错误通知
+            showToast(data.message || '操作失败', 'error');
+        }
+    } catch (error) {
+        console.error('发布操作失败:', error);
+        
+        // 恢复按钮状态
+        buttonElement.disabled = false;
+        buttonElement.innerHTML = originalContent;
+        buttonElement.className = originalClass;
+        buttonElement.title = originalTitle;
+        
+        // 显示错误通知
+        showToast('网络错误，请稍后重试', 'error');
+    }
+}
+
+// 更新音频片段发布按钮状态的函数
+function updateSegmentPublishButton(buttonElement, data) {
+    buttonElement.disabled = false;
+    
+    if (data.published) {
+        // 已发布状态 - 显示取消发布按钮
+        buttonElement.className = 'btn btn-circle btn-sm btn-warning';
+        buttonElement.innerHTML = `<i class="fas fa-times h-4 w-4"></i>`;
+        buttonElement.title = '取消发布';
+    } else {
+        // 未发布状态 - 显示发布按钮
+        buttonElement.className = 'btn btn-circle btn-sm btn-success';
+        buttonElement.innerHTML = `<i class="fas fa-check h-4 w-4"></i>`;
+        buttonElement.title = '发布';
+    }
+}
 </script>
 {% endif %}
 
@@ -103,31 +238,21 @@ document.body.addEventListener('htmx:afterSwap', function(evt) {
                     <h3 class="text-base font-semibold">🔖 {{ segment.title }}</h3>
                     <div class="flex space-x-2 flex-shrink-0" onclick="event.stopPropagation()">
                         <a href="{{ segment.file_url }}" download class="btn btn-circle btn-sm btn-primary" title="下载音频">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>
+                            <i class="fas fa-download h-4 w-4"></i>
                         </a>
                         {% if segment.published %}
                         <button 
                             class="btn btn-circle btn-sm btn-warning" 
                             title="取消发布"
-                            hx-post="{% url 'toggle_publish_audio_segment' segment_id=segment.id %}"
-                            hx-target="this" 
-                            hx-swap="outerHTML">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                            </svg>
+                            onclick="handleSegmentPublishClick('{{ segment.id }}', this)">
+                            <i class="fas fa-times h-4 w-4"></i>
                         </button>
                         {% else %}
                         <button 
                             class="btn btn-circle btn-sm btn-success" 
                             title="发布"
-                            hx-post="{% url 'toggle_publish_audio_segment' segment_id=segment.id %}"
-                            hx-target="this" 
-                            hx-swap="outerHTML">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
+                            onclick="handleSegmentPublishClick('{{ segment.id }}', this)">
+                            <i class="fas fa-check h-4 w-4"></i>
                         </button>
                         {% endif %}
                         <button 
@@ -138,9 +263,7 @@ document.body.addEventListener('htmx:afterSwap', function(evt) {
                             hx-target="[data-segment-id='{{ segment.id }}']" 
                             hx-swap="outerHTML"
                             hx-trigger="click">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0016.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
+                            <i class="fas fa-trash h-4 w-4"></i>
                         </button>
                     </div>
                 </div>
@@ -153,9 +276,7 @@ document.body.addEventListener('htmx:afterSwap', function(evt) {
                     <div class="bg-base-300 p-2 rounded-lg mb-2">
                         <div class="flex justify-between items-center">
                             <div class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                                </svg>
+                                <i class="fas fa-book h-3 w-3 mr-1"></i>
                                 <span class="font-medium text-xs">书籍:</span>
                                 <span class="ml-1 text-xs">{{ book_name }}</span>
                             </div>
@@ -181,9 +302,7 @@ document.body.addEventListener('htmx:afterSwap', function(evt) {
                         
                         <!-- 更新时间 - 更小的字体 -->
                         <div class="flex items-center mt-1 text-xs text-base-content opacity-60">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-2 w-2 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
+                            <i class="fas fa-clock h-2 w-2 mr-1"></i>
                             <span class="font-medium">更新:</span>
                             <span class="ml-1">{{ segment.updated_at|date:"m-d H:i" }}</span>
                         </div>
@@ -193,9 +312,7 @@ document.body.addEventListener('htmx:afterSwap', function(evt) {
                             <div class="modal-box bg-base-100">
                                 <div class="flex items-center justify-between mb-4">
                                     <div class="flex items-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                        </svg>
+                                        <i class="fas fa-file-alt h-5 w-5 mr-2"></i>
                                         <h3 class="font-medium">页面内容</h3>
                                     </div>
                                     <form method="dialog">
@@ -220,9 +337,7 @@ document.body.addEventListener('htmx:afterSwap', function(evt) {
                         <div class="collapse collapse-plus" id="text-content-{{ segment.id }}">
                             <input type="checkbox" id="text-checkbox-{{ segment.id }}" /> 
                             <label for="text-checkbox-{{ segment.id }}" class="collapse-title font-medium flex items-center cursor-pointer py-1 px-3 text-sm min-h-0">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
+                                <i class="fas fa-align-left h-3 w-3 mr-1"></i>
                                 <span class="text-xs">文本内容</span>
                             </label>
                             <div class="collapse-content max-h-24 overflow-y-auto text-xs px-3 pb-2">
@@ -234,9 +349,7 @@ document.body.addEventListener('htmx:afterSwap', function(evt) {
                     <!-- Audio Playback Section - 占据主要比例，突出显示 -->
                     <div class="bg-secondary bg-opacity-10 p-2 rounded-lg">
                         <div class="text-xs font-medium mb-2 flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15.536a5 5 0 001.414 1.414m2.828-9.9a9 9 0 012.728-2.728" />
-                            </svg>
+                            <i class="fas fa-volume-up h-3 w-3 mr-1"></i>
                             音频播放
                         </div>
                         <div class="flex items-center space-x-3">
@@ -254,9 +367,7 @@ document.body.addEventListener('htmx:afterSwap', function(evt) {
     </div>
     {% empty %}
     <div class="alert alert-info shadow-lg">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-        </svg>
+        <i class="fas fa-info-circle h-6 w-6"></i>
         <span>该书籍下没有任何音频片段。</span>
     </div>
     {% endfor %}
@@ -275,16 +386,12 @@ document.body.addEventListener('htmx:afterSwap', function(evt) {
                 hx-swap="innerHTML"
                 hx-push-url="true"
                 hx-indicator="#loading-indicator">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                </svg>
+                <i class="fas fa-chevron-left h-4 w-4"></i>
                 上一页
             </button>
         {% else %}
             <button class="join-item btn btn-sm btn-outline btn-disabled">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                </svg>
+                <i class="fas fa-chevron-left h-4 w-4"></i>
                 上一页
             </button>
         {% endif %}
@@ -337,23 +444,19 @@ document.body.addEventListener('htmx:afterSwap', function(evt) {
         <!-- 下一页按钮 -->
         {% if page_obj.has_next %}
             <button 
-                class="join-item btn btn-sm  btn-outline"
+                class="join-item btn btn-sm btn-outline"
                 hx-get="{% url 'book_details_htmx' book_id=book_id %}?page={{ page_obj.next_page_number }}&page_size={{ page_size }}"
                 hx-target="#main-content"
                 hx-swap="innerHTML"
                 hx-push-url="true"
                 hx-indicator="#loading-indicator">
                 下一页
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
+                <i class="fas fa-chevron-right h-4 w-4"></i>
             </button>
         {% else %}
-            <button class="join-item btn btn-sm  btn-outline btn-disabled">
+            <button class="join-item btn btn-sm btn-outline btn-disabled">
                 下一页
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
+                <i class="fas fa-chevron-right h-4 w-4"></i>
             </button>
         {% endif %}
     </div>
@@ -393,41 +496,4 @@ document.body.addEventListener('htmx:afterSwap', function(evt) {
     </div>
 </div>
 {% endif %}
-
-<script>
-function scrollToTop() {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-function jumpToPage() {
-    const input = document.getElementById('page-jump-input');
-    const pageNum = parseInt(input.value);
-    const maxPages = parseInt('{{ paginator.num_pages }}');
-    const currentPage = parseInt('{{ page_obj.number }}');
-    const bookId = parseInt('{{ book_id }}');
-    const pageSize = parseInt('{{ page_size }}');
-    
-    if (pageNum >= 1 && pageNum <= maxPages) {
-        const url = '/workbench/audio/book-details/' + bookId + '/?page=' + pageNum + '&page_size=' + pageSize;
-        htmx.ajax('GET', url, {
-            target: '#main-content', 
-            swap: 'innerHTML', 
-            pushURL: true
-        });
-    } else {
-        input.value = currentPage;
-        alert('请输入有效的页码（1-' + maxPages + '）');
-    }
-}
-
-// 在HTMX请求完成后自动滚动到顶部
-document.body.addEventListener('htmx:afterSwap', function(evt) {
-    if (evt.detail.target && evt.detail.target.id === 'main-content') {
-        // 小延迟确保内容完全渲染
-        setTimeout(() => {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }, 100);
-    }
-});
-</script>
-{% endif %}
+{% endif %} 
