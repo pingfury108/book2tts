@@ -14,6 +14,10 @@ from home.utils.rss_utils import (
 )
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_headers
+from django.core.cache import cache
+from django.utils import timezone
 
 # Create your views here.
 
@@ -141,6 +145,14 @@ def audio_rss_feed(request, user_id=None):
     """Generate an RSS feed for all published audio segments.
     If user_id is provided, only show that user's audio segments."""
     
+    # 生成缓存键
+    cache_key = f'rss_feed_user_{user_id}' if user_id else 'rss_feed_all'
+    
+    # 检查缓存
+    cached_response = cache.get(cache_key)
+    if cached_response:
+        return HttpResponse(cached_response, content_type='application/xml')
+    
     if user_id:
         # Fetch the user or return 404
         from django.contrib.auth.models import User
@@ -154,7 +166,7 @@ def audio_rss_feed(request, user_id=None):
         segments = AudioSegment.objects.filter(
             published=True, 
             book__user__id=user_id
-        ).order_by('-updated_at')[:50]  # Limit to 50 items
+        ).order_by('-updated_at')
     else:
         # Original behavior for all users
         title = "Book2TTS 公开发布的音频"
@@ -165,7 +177,7 @@ def audio_rss_feed(request, user_id=None):
         # Fetch all published audio segments, ordered by most recent first
         segments = AudioSegment.objects.filter(
             published=True
-        ).order_by('-updated_at')[:50]  # Limit to 50 items
+        ).order_by('-updated_at')
 
     link = request.build_absolute_uri(reverse('home'))  # Link to the homepage
     # 站点图标URL
@@ -233,20 +245,52 @@ def audio_rss_feed(request, user_id=None):
     # 应用清理
     cleaned_xml = clean_xml_output(xml_string)
     
+    # 缓存响应内容（15分钟）
+    cache.set(cache_key, cleaned_xml, 60 * 15)
+    
     response = HttpResponse(cleaned_xml, content_type='application/xml')
+    # 添加缓存控制头
+    response['Cache-Control'] = 'public, max-age=900'  # 15分钟
+    response['ETag'] = f'rss-{hash(cleaned_xml)}'
     return response
 
 
 def audio_rss_feed_by_username(request, username):
     """Generate an RSS feed for a specific user's published audio segments by username."""
     from django.contrib.auth.models import User
+    
+    # 生成缓存键
+    cache_key = f'rss_username_{username}'
+    
+    # 检查缓存
+    cached_response = cache.get(cache_key)
+    if cached_response:
+        response = HttpResponse(cached_response, content_type='application/xml')
+        response['Cache-Control'] = 'public, max-age=900'  # 15分钟
+        response['ETag'] = f'rss-{hash(cached_response)}'
+        return response
+    
     user = get_object_or_404(User, username=username)
-    return audio_rss_feed(request, user_id=user.id)
+    response = audio_rss_feed(request, user_id=user.id)
+    
+    # 缓存用户名相关的RSS
+    if hasattr(response, 'content'):
+        cache.set(cache_key, response.content.decode('utf-8'), 60 * 15)
+    
+    return response
 
 
 def audio_rss_feed_by_book(request, token, book_id):
     """Generate an RSS feed for a specific book based on user's RSS token and book ID."""
     from workbench.models import UserProfile, Books
+    
+    # 生成缓存键
+    cache_key = f'rss_book_{token}_{book_id}'
+    
+    # 检查缓存
+    cached_response = cache.get(cache_key)
+    if cached_response:
+        return HttpResponse(cached_response, content_type='application/xml')
     
     try:
         # Get the user profile by token
@@ -266,7 +310,7 @@ def audio_rss_feed_by_book(request, token, book_id):
         segments = AudioSegment.objects.filter(
             published=True, 
             book=book
-        ).order_by('-updated_at')[:50]  # Limit to 50 items
+        ).order_by('-updated_at')
         
     except Exception as e:
         # Return 404 if any error occurs
@@ -337,7 +381,13 @@ def audio_rss_feed_by_book(request, token, book_id):
     # 应用清理
     cleaned_xml = clean_xml_output(xml_string)
     
+    # 缓存响应内容（30分钟）
+    cache.set(cache_key, cleaned_xml, 60 * 30)
+    
     response = HttpResponse(cleaned_xml, content_type='application/xml')
+    # 添加缓存控制头
+    response['Cache-Control'] = 'public, max-age=1800'  # 30分钟
+    response['ETag'] = f'rss-{hash(cleaned_xml)}'
     return response
 
 
@@ -345,6 +395,14 @@ def audio_rss_feed_by_token(request, token, book_id=None):
     """Generate an RSS feed for a specific user based on their RSS token."""
     from workbench.models import UserProfile
     from django.contrib.auth.models import User
+    
+    # 生成缓存键
+    cache_key = f'rss_token_{token}_{book_id}' if book_id else f'rss_token_{token}_all'
+    
+    # 检查缓存
+    cached_response = cache.get(cache_key)
+    if cached_response:
+        return HttpResponse(cached_response, content_type='application/xml')
     
     try:
         # 尝试获取对应token的用户profile
@@ -367,7 +425,7 @@ def audio_rss_feed_by_token(request, token, book_id=None):
                 published=True, 
                 book__user=user,
                 book_id=book_id
-            ).order_by('-updated_at')[:50]  # 限制为50条
+            ).order_by('-updated_at')
         else:
             title = f"{user.username}的有声书合集"
             description = f"{user.username}的有声书作品集"
@@ -376,7 +434,7 @@ def audio_rss_feed_by_token(request, token, book_id=None):
             segments = AudioSegment.objects.filter(
                 published=True, 
                 book__user=user
-            ).order_by('-updated_at')[:50]  # 限制为50条
+            ).order_by('-updated_at')
         
         # 如果找不到音频片段，仍然返回空的feed
         if not segments.exists():
@@ -449,7 +507,13 @@ def audio_rss_feed_by_token(request, token, book_id=None):
     # 应用清理
     cleaned_xml = clean_xml_output(xml_string)
     
+    # 缓存响应内容（30分钟）
+    cache.set(cache_key, cleaned_xml, 60 * 30)
+    
     response = HttpResponse(cleaned_xml, content_type='application/xml')
+    # 添加缓存控制头
+    response['Cache-Control'] = 'public, max-age=1800'  # 30分钟
+    response['ETag'] = f'rss-{hash(cleaned_xml)}'
     return response
 
 
