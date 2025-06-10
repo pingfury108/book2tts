@@ -4,7 +4,8 @@
   <div class="flex-none">
     <div class="grid grid-cols-4 gap-1 mb-2">
       <button class="btn btn-xs btn-outline" id="goto-first"
-              data-text-url="{% url 'text_by_page' book_id=book_id name=pages.0.href|stringformat:"s"|replace:"/,_" %}?page={{ pages.0.href }}">
+              data-text-url="{% url 'text_by_page' book_id=book_id %}"
+              data-names="{{ pages.0.href|stringformat:"s" }}">
         <span class="inline-flex items-center">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
@@ -30,7 +31,8 @@
       </button>
       {% with last_page=pages|last %}
       <button class="btn btn-xs btn-outline" id="goto-last"
-              data-text-url="{% url 'text_by_page' book_id=book_id name=last_page.href|stringformat:"s"|replace:"/,_" %}?page={{ last_page.href }}">
+              data-text-url="{% url 'text_by_page' book_id=book_id %}"
+              data-names="{{ last_page.href|stringformat:"s" }}">
         <span class="inline-flex items-center">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
@@ -60,7 +62,8 @@
         <div class="flex items-center w-full py-1.5 px-3{% if request.GET.page == page.href|stringformat:"s" %} active{% endif %}">
           <input type="checkbox" class="page-checkbox checkbox checkbox-sm mr-2" value="{{ page.href }}" data-page="{{ page.href }}" />
           <a class="flex-1 page-link"
-             data-text-url="{% url 'text_by_page' book_id=book_id name=page.href|stringformat:"s"|replace:"/,_" %}?page={{ page.href }}"
+             data-text-url="{% url 'text_by_page' book_id=book_id %}"
+             data-names="{{ page.href|stringformat:"s" }}"
              data-page-number="{{ page.href }}"
           >
             <span class="truncate">{{ page.title }}</span>
@@ -90,8 +93,9 @@
     $('.page-link').off('click').on('click', function(e) {
       e.preventDefault();
       
-      // Get URL from data attribute - 这里已经包含了必要的替换
+      // Get URL and data from attributes
       const url = $(this).data('text-url');
+      const names = $(this).data('names');
       const skipStart = $('#skip-start-input').val() || 0;
       const skipEnd = $('#skip-end-input').val() || 0;
       
@@ -100,40 +104,50 @@
         resetAudioDisplay();
       }
       
-      // 使用与原始HTMX请求相同的参数拼接方式
-      const fullUrl = url + '&head_cut=' + skipStart + '&tail_cut=' + skipEnd;
+      console.log('Requesting page content using POST');
       
-      console.log('Requesting page content from URL:', fullUrl);
-      
-      // Fetch the text content
+      // Fetch the text content using POST
       $.ajax({
-        url: fullUrl,
-        type: 'GET',
+        url: url,
+        type: 'POST',
+        dataType: 'json',
+        data: {
+          'names': names,
+          'head_cut': skipStart,
+          'tail_cut': skipEnd,
+          'csrfmiddlewaretoken': '{{ csrf_token }}'
+        },
         success: function(response) {
-          console.log('Page content received, length:', response.length);
-          // Update the textarea with the response
-          $('#src-text').val(response);
-          
-          // Highlight the clicked item
-          $('.page-link').parent().removeClass('active');
-          $(e.currentTarget).parent().addClass('active');
-          
-          // Scroll to the active item
-          scrollActiveLinkIntoView();
-          
-          // Update page state (required for other functionality)
-          window.currentPageName = $(e.currentTarget).find('span').text().trim();
-          window.currentPageId = $(e.currentTarget).data('page-number');
-          
-          // Update audio title placeholder
-          const titleInput = document.getElementById('audio-title-input');
-          if (titleInput) {
-            titleInput.placeholder = `音频标题 (默认: ${window.currentPageName})`;
-          }
-          
-          // Log state change
-          if (typeof logState === 'function') {
-            logState('Page content loaded with jQuery');
+          console.log('Page content received:', response);
+          // Handle JSON response
+          if (response.status === 'success') {
+            // Update the textarea with the texts from JSON response
+            $('#src-text').val(response.texts);
+            
+            // Highlight the clicked item
+            $('.page-link').parent().removeClass('active');
+            $(e.currentTarget).parent().addClass('active');
+            
+            // Scroll to the active item
+            scrollActiveLinkIntoView();
+            
+            // Update page state (required for other functionality)
+            window.currentPageName = $(e.currentTarget).find('span').text().trim();
+            window.currentPageId = $(e.currentTarget).data('page-number');
+            
+            // Update audio title placeholder
+            const titleInput = document.getElementById('audio-title-input');
+            if (titleInput) {
+              titleInput.placeholder = `音频标题 (默认: ${window.currentPageName})`;
+            }
+            
+            // Log state change
+            if (typeof logState === 'function') {
+              logState('Page content loaded with jQuery');
+            }
+          } else {
+            console.error('Error in response:', response);
+            alert('加载页面内容失败：' + (response.message || '未知错误'));
           }
         },
         error: function(xhr, status, error) {
@@ -147,8 +161,9 @@
     $('#goto-first, #goto-last').off('click').on('click', function(e) {
       e.preventDefault();
       
-      // Get URL from data attribute - 这里已经包含了必要的替换
+      // Get URL and data from attributes
       const url = $(this).data('text-url');
+      const names = $(this).data('names');
       const skipStart = $('#skip-start-input').val() || 0;
       const skipEnd = $('#skip-end-input').val() || 0;
       
@@ -157,23 +172,33 @@
         resetAudioDisplay();
       }
       
-      // 使用与原始HTMX请求相同的参数拼接方式
-      const fullUrl = url + '&head_cut=' + skipStart + '&tail_cut=' + skipEnd;
+      console.log('Requesting first/last page content using POST');
       
-      console.log('Requesting first/last page content from URL:', fullUrl);
-      
-      // Fetch the text content
+      // Fetch the text content using POST
       $.ajax({
-        url: fullUrl,
-        type: 'GET',
+        url: url,
+        type: 'POST',
+        dataType: 'json',
+        data: {
+          'names': names,
+          'head_cut': skipStart,
+          'tail_cut': skipEnd,
+          'csrfmiddlewaretoken': '{{ csrf_token }}'
+        },
         success: function(response) {
-          console.log('First/last page content received, length:', response.length);
-          // Update the textarea with the response
-          $('#src-text').val(response);
-          
-          // Log state change
-          if (typeof logState === 'function') {
-            logState('Page content loaded with jQuery (first/last)');
+          console.log('First/last page content received:', response);
+          // Handle JSON response
+          if (response.status === 'success') {
+            // Update the textarea with the texts from JSON response
+            $('#src-text').val(response.texts);
+            
+            // Log state change
+            if (typeof logState === 'function') {
+              logState('Page content loaded with jQuery (first/last)');
+            }
+          } else {
+            console.error('Error in response:', response);
+            alert('加载页面内容失败：' + (response.message || '未知错误'));
           }
         },
         error: function(xhr, status, error) {
@@ -201,55 +226,50 @@
         
         // Only proceed if checkboxes are selected
         if (checkedPages.length > 0) {
-          // 需要单独请求每个页面然后合并内容，而不是通过逗号分隔的列表
+          // 使用新的批量处理逻辑，通过逗号分隔的页面列表一次请求
           // Get skip lines parameters
           const skipStart = $('#skip-start-input').val() || 0;
           const skipEnd = $('#skip-end-input').val() || 0;
           
-          const allContents = [];
-          let completedRequests = 0;
+          // 处理页面名称，用逗号连接（保持顺序）
+          const pageListForNames = checkedPages.join(',');
           
-          // 对每个页面分别发起请求
-          checkedPages.forEach(function(page, index) {
-            // 替换斜杠为下划线，用于URL路径
-            const processedPage = page.replace(/\//g, '_');
-            
-            // 为单个页面构建URL
-            let url = '{% url "text_by_page" book_id=book_id name="PLACEHOLDER" %}';
-            url = url.replace('PLACEHOLDER', processedPage);
-            url += '?page=' + page; // 使用原始page作为查询参数
-            url += '&head_cut=' + skipStart;
-            url += '&tail_cut=' + skipEnd;
-            
-            console.log(`Requesting content for page ${index+1}/${checkedPages.length}: ${url}`);
-            
-            // 发起请求获取内容
-            $.ajax({
-              url: url,
-              type: 'GET',
-              success: function(response) {
-                console.log(`Content received for page ${index+1}, length: ${response.length}`);
-                allContents.push(response);
-              },
-              error: function(xhr, status, error) {
-                console.error(`Error loading content for page ${page}:`, error);
-                allContents.push(`[Error loading ${page}: ${error}]`);
-              },
-              complete: function() {
-                completedRequests++;
+          // 构建批量请求URL
+          const url = '{% url "text_by_page" book_id=book_id %}';
+          
+          console.log(`Requesting batch content for ${checkedPages.length} pages using POST`);
+          
+          // 发起单个POST请求获取所有选中页面的内容
+          $.ajax({
+            url: url,
+            type: 'POST',
+            dataType: 'json',
+            data: {
+              'names': pageListForNames,
+              'head_cut': skipStart,
+              'tail_cut': skipEnd,
+              'csrfmiddlewaretoken': '{{ csrf_token }}'
+            },
+            success: function(response) {
+              console.log('Batch content received:', response);
+              // Handle JSON response
+              if (response.status === 'success') {
+                // Update the textarea with the combined texts from JSON response
+                $('#src-text').val(response.texts);
                 
-                // 所有请求完成后，合并内容并更新文本区域
-                if (completedRequests === checkedPages.length) {
-                  const combinedContent = allContents.join('\n\n');
-                  $('#src-text').val(combinedContent);
-                  
-                  // Log state change
-                  if (typeof logState === 'function') {
-                    logState('Batch content loaded with jQuery (multiple requests)');
-                  }
+                // Log state change
+                if (typeof logState === 'function') {
+                  logState('Batch content loaded with jQuery (single request)');
                 }
+              } else {
+                console.error('Error in batch response:', response);
+                alert('批量加载内容失败：' + (response.message || '未知错误'));
               }
-            });
+            },
+            error: function(xhr, status, error) {
+              console.error('Error loading batch content:', error);
+              alert('批量加载内容失败：' + error);
+            }
           });
         } else {
           // Alert if no checkboxes selected
@@ -259,22 +279,22 @@
     }
   }
 
-  // 初始化函数在页面加载和内容更新后都会执行
-  $(document).ready(function() {
-    // Function to scroll active page into view
-    function scrollActiveLinkIntoView() {
-      const activeElement = $('.page-link').parent('.active');
-      if (activeElement.length) {
-        const container = $('#pages-list');
-        // Ensure the container is scrollable
-        if (container.prop('scrollHeight') > container.height()) {
-          container.animate({
-            scrollTop: activeElement.offset().top - container.offset().top + container.scrollTop() - (container.height() / 2) + (activeElement.height() / 2)
-          }, 200);
-        }
+  // Function to scroll active page into view - moved to global scope
+  function scrollActiveLinkIntoView() {
+    const activeElement = $('.page-link').parent('.active');
+    if (activeElement.length) {
+      const container = $('#pages-list');
+      // Ensure the container is scrollable
+      if (container.prop('scrollHeight') > container.height()) {
+        container.animate({
+          scrollTop: activeElement.offset().top - container.offset().top + container.scrollTop() - (container.height() / 2) + (activeElement.height() / 2)
+        }, 200);
       }
     }
-    
+  }
+
+  // 初始化函数在页面加载和内容更新后都会执行
+  $(document).ready(function() {
     // Initialize page functions
     initPageFunctions();
     

@@ -320,11 +320,11 @@ function updateSegmentPublishButton(buttonElement, data) {
                                             <button 
                                                 class="bg-secondary text-secondary-content rounded-full w-6 h-6 sm:w-7 sm:h-7 
                                                        flex items-center justify-center hover:bg-secondary-focus cursor-pointer 
-                                                       transition-colors text-xs sm:text-sm font-medium touch-manipulation"
-                                                hx-get="{% url 'text_by_page' book_id=book_id|default:1 name=segment.book_page|stringformat:'s'|replace:'/,_' %}?page={{ segment.book_page|stringformat:'s' }}"
-                                                hx-target="#modal-content-{{ segment.id }}"
-                                                hx-trigger="click"
-                                                onclick="document.getElementById('modal-{{ segment.id }}').showModal()"
+                                                       transition-colors text-xs sm:text-sm font-medium touch-manipulation page-view-btn"
+                                                data-segment-id="{{ segment.id }}"
+                                                data-book-id="{{ book_id|default:1 }}"
+                                                data-names="{{ segment.book_page|stringformat:'s' }}"
+                                                onclick="loadPageContent(this); document.getElementById('modal-{{ segment.id }}').showModal()"
                                                 title="点击查看页面内容">
                                                 {{ forloop.counter|add:page_obj.start_index|add:"-1" }}
                                             </button>
@@ -496,4 +496,42 @@ function updateSegmentPublishButton(buttonElement, data) {
         </div>
     </div>
     {% endif %}
-</div> 
+</div>
+
+<script>
+// Load page content using POST request
+function loadPageContent(button) {
+    const segmentId = button.dataset.segmentId;
+    const bookId = button.dataset.bookId;
+    const names = button.dataset.names;
+    
+    const targetElement = document.getElementById(`modal-content-${segmentId}`);
+    
+    // Show loading state
+    targetElement.innerHTML = '<div class="flex justify-center py-4"><div class="loading loading-spinner loading-md"></div></div>';
+    
+    // Make POST request to get page content
+    fetch(`/workbench/book/${bookId}/text/pages/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: new URLSearchParams({
+            'names': names
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            targetElement.textContent = data.texts;
+        } else {
+            targetElement.textContent = '加载失败: ' + (data.message || '未知错误');
+        }
+    })
+    .catch(error => {
+        console.error('Error loading page content:', error);
+        targetElement.textContent = '加载失败: ' + error.message;
+    });
+}
+</script> 

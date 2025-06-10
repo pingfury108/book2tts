@@ -163,56 +163,81 @@ def pages(request, book_id):
 
 
 @login_required
-def text_by_toc(request, book_id, name):
+@csrf_exempt
+@require_http_methods(["POST"])
+def text_by_toc(request, book_id):
     """Extract text content by table of contents"""
-    name = name.replace("_", "/")
     book = get_object_or_404(Books, pk=book_id)
-    texts = ""
-    if book.file_type == ".pdf":
-        try:
-            pbook = open_pdf(book.file.path)
-            texts = pbook[int(name)].get_text()
-        except Exception as e:
-            texts = f"Error extracting text: {str(e)}"
-    elif book.file_type == ".epub":
-        try:
-            ebook = open_ebook(book.file.path)
-            # 检查是否有 toc 查询参数，如果有就使用它而不是 name
-            toc_param = request.GET.get('toc')
-            if toc_param:
-                href_to_use = toc_param
-            else:
-                href_to_use = name
-            texts = get_content_with_href(ebook, href_to_use)
-        except Exception as e:
-            texts = f"Error extracting text: {str(e)}"
-
-    # Check if this is an HTMX request for just the text content
-    if request.headers.get('HX-Target') == 'src-text':
-        return render(request, "text_content.html", {"texts": texts})
-    else:
-        return render(request, "text_by_toc.html", {"texts": texts})
+    
+    # Get names from POST data
+    names_param = request.POST.get('names', '')
+    if not names_param:
+        return JsonResponse({
+            "status": "error",
+            "message": "No names provided"
+        }, status=400)
+    
+    # Support multiple names separated by comma, maintain order
+    names = names_param.split(',')
+    combined_texts = []
+    
+    for single_name in names:
+        text_content = ""
+        
+        if book.file_type == ".pdf":
+            try:
+                pbook = open_pdf(book.file.path)
+                text_content = pbook[int(single_name)].get_text()
+            except Exception as e:
+                text_content = f"Error extracting text: {str(e)}"
+        elif book.file_type == ".epub":
+            try:
+                ebook = open_ebook(book.file.path)
+                text_content = get_content_with_href(ebook, single_name)
+            except Exception as e:
+                text_content = f"Error extracting text: {str(e)}"
+        
+        combined_texts.append(text_content)
+    
+    # Join all texts with double newlines
+    texts = "\n\n".join(combined_texts)
+    
+    # Return JSON response
+    return JsonResponse({
+        "status": "success",
+        "texts": texts,
+        "count": len(names)
+    })
 
 
 @login_required
-def text_by_page(request, book_id, name):
+@csrf_exempt
+@require_http_methods(["POST"])
+def text_by_page(request, book_id):
     """Extract text content by page with filtering options"""
     book = get_object_or_404(Books, pk=book_id)
-    texts = ""
     
-    # Get line filtering parameters from query string
-    head_cut = int(request.GET.get('head_cut', 0))  # Lines to remove from beginning (default: 0)
-    tail_cut = int(request.GET.get('tail_cut', 0))  # Lines to remove from end (default: 0)
-    line_count = request.GET.get('line_count')  # Total lines to keep (optional)
+    # Get names from POST data
+    names_param = request.POST.get('names', '')
+    if not names_param:
+        return JsonResponse({
+            "status": "error",
+            "message": "No names provided"
+        }, status=400)
+    
+    # Get line filtering parameters from POST data
+    head_cut = int(request.POST.get('head_cut', 0))  # Lines to remove from beginning (default: 0)
+    tail_cut = int(request.POST.get('tail_cut', 0))  # Lines to remove from end (default: 0)
+    line_count = request.POST.get('line_count')  # Total lines to keep (optional)
     if line_count:
         line_count = int(line_count)
     
-    # Support multiple names separated by comma
-    names = name.split(',')
+    # Support multiple names separated by comma, maintain order
+    names = names_param.split(',')
     combined_texts = []
     
     for page_name in names:
-        page_name = page_name.replace("_", "/")
+        page_text = ""
         
         if book.file_type == ".pdf":
             try:
@@ -238,19 +263,12 @@ def text_by_page(request, book_id, name):
                     filtered_lines = lines[start_idx:end_idx]
                     page_text = "\n".join(filtered_lines)
                 
-                combined_texts.append(page_text)
             except Exception as e:
-                combined_texts.append(f"Error extracting text for page {page_name}: {str(e)}")
+                page_text = f"Error extracting text for page {page_name}: {str(e)}"
         elif book.file_type == ".epub":
             try:
                 ebook = open_ebook(book.file.path)
-                page_param = request.GET.get('page')
-                if page_param:
-                    href_to_use = page_param
-                else:
-                    href_to_use = page_name
-                    
-                page_text = get_content_with_href(ebook, href_to_use)
+                page_text = get_content_with_href(ebook, page_name)
                 
                 # Apply line filtering to individual page content
                 if head_cut > 0 or tail_cut > 0 or line_count:
@@ -271,18 +289,20 @@ def text_by_page(request, book_id, name):
                     filtered_lines = lines[start_idx:end_idx]
                     page_text = "\n".join(filtered_lines)
                 
-                combined_texts.append(page_text)
             except Exception as e:
-                combined_texts.append(f"Error extracting text for page {page_name}: {str(e)}")
+                page_text = f"Error extracting text for page {page_name}: {str(e)}"
+        
+        combined_texts.append(page_text)
     
-    # Combine all texts without a separator
+    # Combine all texts with double newlines
     texts = "\n\n".join(combined_texts)
     
-    # Check if this is an HTMX request for just the text content
-    if request.headers.get('HX-Target') == 'src-text':
-        return render(request, "text_content.html", {"texts": texts})
-    else:
-        return render(request, "text_by_toc.html", {"texts": texts})
+    # Return JSON response
+    return JsonResponse({
+        "status": "success",
+        "texts": texts,
+        "count": len(names)
+    })
 
 
 @login_required

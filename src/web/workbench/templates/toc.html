@@ -5,8 +5,9 @@
     {% for toc in tocs %}
     <li>
       <a class="flex items-center py-1.5 px-3 w-full toc-link transition-all duration-300 ease-in-out hover:bg-opacity-20 hover:bg-base-300{% if request.GET.toc == toc.href %} active{% endif %}"
-         data-text-url="{% url 'text_by_toc' book_id=book_id name=toc.href|stringformat:"s"|replace:"/,_" %}?toc={{ toc.href|stringformat:"s" }}"
+         data-text-url="{% url 'text_by_toc' book_id=book_id %}"
          data-toc-href="{{ toc.href }}"
+         data-names="{{ toc.href|stringformat:"s" }}"
       >
         <span class="truncate">{% if request.GET.toc == toc.href %}<span class="indicator-dot mr-1">•</span>{% endif %}{{ toc.title }}</span>
       </a>
@@ -43,42 +44,54 @@ $(document).ready(function() {
     // Show loading indicator
     $('.loading-container').removeClass('hidden');
     
-    // Get the URL from data attribute
+    // Get the URL and data from attributes
     const url = $(this).data('text-url');
+    const names = $(this).data('names');
     
     // Reset audio display if function exists
     if (typeof resetAudioDisplay === 'function') {
       resetAudioDisplay();
     }
     
-    // Fetch the text content
+    // Fetch the text content using POST
     $.ajax({
       url: url,
-      type: 'GET',
+      type: 'POST',
+      dataType: 'json',
+      data: {
+        'names': names,
+        'csrfmiddlewaretoken': '{{ csrf_token }}'
+      },
       success: function(response) {
-        // Update the textarea with the response
-        $('#src-text').val(response);
-        
-        // Highlight the clicked item
-        $('.toc-link').removeClass('bg-base-300 active');
-        $(e.currentTarget).addClass('bg-base-300 active');
-        
-        // Scroll to the active item
-        scrollActiveIntoView();
-        
-        // Update page state (required for other functionality)
-        window.currentPageName = $(e.currentTarget).find('span').text().trim();
-        window.currentPageId = $(e.currentTarget).data('toc-href');
-        
-        // Update audio title placeholder
-        const titleInput = document.getElementById('audio-title-input');
-        if (titleInput) {
-          titleInput.placeholder = `音频标题 (默认: ${window.currentPageName})`;
-        }
-        
-        // Log state change
-        if (typeof logState === 'function') {
-          logState('Content loaded with jQuery');
+        // Handle JSON response
+        if (response.status === 'success') {
+          // Update the textarea with the texts from JSON response
+          $('#src-text').val(response.texts);
+          
+          // Highlight the clicked item
+          $('.toc-link').removeClass('bg-base-300 active');
+          $(e.currentTarget).addClass('bg-base-300 active');
+          
+          // Scroll to the active item
+          scrollActiveIntoView();
+          
+          // Update page state (required for other functionality)
+          window.currentPageName = $(e.currentTarget).find('span').text().trim();
+          window.currentPageId = $(e.currentTarget).data('toc-href');
+          
+          // Update audio title placeholder
+          const titleInput = document.getElementById('audio-title-input');
+          if (titleInput) {
+            titleInput.placeholder = `音频标题 (默认: ${window.currentPageName})`;
+          }
+          
+          // Log state change
+          if (typeof logState === 'function') {
+            logState('Content loaded with jQuery');
+          }
+        } else {
+          console.error('Error in response:', response);
+          alert('加载内容失败：' + (response.message || '未知错误'));
         }
       },
       error: function(xhr, status, error) {
