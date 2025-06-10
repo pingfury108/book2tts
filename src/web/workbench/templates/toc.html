@@ -1,19 +1,39 @@
 {% load custom_filters %}
-<!-- TOC navigation component - optimized for jQuery loading into #src-text -->
-<div class="toc-container h-full">
-  <ul id="toc-list" class="menu menu-sm bg-base-100 rounded-box w-full flex flex-col single-column" style="column-count:1 !important; columns:1 !important; display:block !important;">
-    {% for toc in tocs %}
-    <li>
-      <a class="flex items-center py-1.5 px-3 w-full toc-link transition-all duration-300 ease-in-out hover:bg-opacity-20 hover:bg-base-300{% if request.GET.toc == toc.href %} active{% endif %}"
-         data-text-url="{% url 'text_by_toc' book_id=book_id %}"
-         data-toc-href="{{ toc.href }}"
-         data-names="{{ toc.href|stringformat:"s" }}"
-      >
-        <span class="truncate">{% if request.GET.toc == toc.href %}<span class="indicator-dot mr-1">•</span>{% endif %}{{ toc.title }}</span>
-      </a>
-    </li>
-    {% endfor %}
-  </ul>
+<!-- TOC navigation component - optimized for jQuery loading into #src-text with multi-select support -->
+<div class="toc-container h-full flex flex-col">
+  <!-- Fixed control bar at the top -->
+  <div class="flex justify-between items-center p-2 border-b border-base-300 bg-base-100 flex-shrink-0">
+    <div class="text-sm text-base-content/70">
+      <span id="selection-count">选择 0 项</span>
+    </div>
+    <div class="flex gap-1">
+      <button id="select-all-btn" class="btn btn-xs btn-ghost">全选</button>
+      <button id="clear-selection-btn" class="btn btn-xs btn-ghost">清除</button>
+      <button id="load-selected-btn" class="btn btn-xs btn-primary" disabled>加载选中</button>
+    </div>
+  </div>
+  
+  <!-- Scrollable TOC list -->
+  <div class="flex-1 overflow-y-auto">
+    <ul id="toc-list" class="menu menu-sm bg-base-100 rounded-box w-full flex flex-col single-column" style="column-count:1 !important; columns:1 !important; display:block !important;">
+      {% for toc in tocs %}
+      <li class="flex items-center w-full hover:bg-base-200 transition-colors duration-200">
+        <div class="flex items-center w-full py-1.5 px-3{% if request.GET.toc == toc.href %} active{% endif %}">
+          <input type="checkbox" class="toc-checkbox checkbox checkbox-sm mr-2" value="{{ toc.href }}" data-toc-href="{{ toc.href }}" />
+          <a class="flex-1 toc-link transition-all duration-300 ease-in-out hover:bg-opacity-20 hover:bg-base-300"
+             data-text-url="{% url 'text_by_toc' book_id=book_id %}"
+             data-toc-href="{{ toc.href }}"
+             data-names="{{ toc.href|stringformat:"s" }}"
+          >
+            <span class="truncate">{% if request.GET.toc == toc.href %}<span class="indicator-dot mr-1">•</span>{% endif %}{{ toc.title }}</span>
+          </a>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  
+  <!-- Loading indicator -->
   <div class="loading-container fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 hidden">
     <div class="bg-base-200 rounded-lg shadow-lg p-2">
       <div class="loading loading-spinner loading-xs"></div>
@@ -23,11 +43,26 @@
 
 <script>
 $(document).ready(function() {
+  let selectedTocItems = new Set();
+  
+  // Function to update selection count and button states
+  function updateSelectionUI() {
+    const count = selectedTocItems.size;
+    $('#selection-count').text(`选择 ${count} 项`);
+    $('#load-selected-btn').prop('disabled', count === 0);
+    
+    // Update checkbox states
+    $('.toc-checkbox').each(function() {
+      const href = $(this).data('toc-href');
+      $(this).prop('checked', selectedTocItems.has(href));
+    });
+  }
+  
   // Function to scroll active element into view
   function scrollActiveIntoView() {
     const activeElement = $('.toc-link.active, .toc-link.bg-base-300');
     if (activeElement.length) {
-      const container = $('#toc-list');
+      const container = $('.toc-container .flex-1'); // Updated selector to use the scrollable container
       // Ensure the container is scrollable
       if (container.prop('scrollHeight') > container.height()) {
         container.animate({
@@ -36,17 +71,17 @@ $(document).ready(function() {
       }
     }
   }
-
-  // Handle TOC link clicks
-  $('.toc-container').on('click', '.toc-link', function(e) {
-    e.preventDefault();
+  
+  // Function to load selected TOC items
+  function loadSelectedTocItems() {
+    if (selectedTocItems.size === 0) return;
     
     // Show loading indicator
     $('.loading-container').removeClass('hidden');
     
-    // Get the URL and data from attributes
-    const url = $(this).data('text-url');
-    const names = $(this).data('names');
+    // Get the URL from any toc link (they're all the same)
+    const url = $('.toc-link:first').data('text-url');
+    const names = Array.from(selectedTocItems).join(',');
     
     // Reset audio display if function exists
     if (typeof resetAudioDisplay === 'function') {
@@ -68,26 +103,33 @@ $(document).ready(function() {
           // Update the textarea with the texts from JSON response
           $('#src-text').val(response.texts);
           
-          // Highlight the clicked item
+          // Update UI to show multiple selections
           $('.toc-link').removeClass('bg-base-300 active');
-          $(e.currentTarget).addClass('bg-base-300 active');
+          selectedTocItems.forEach(href => {
+            $(`.toc-link[data-toc-href="${href}"]`).addClass('bg-base-300');
+          });
           
-          // Scroll to the active item
-          scrollActiveIntoView();
-          
-          // Update page state (required for other functionality)
-          window.currentPageName = $(e.currentTarget).find('span').text().trim();
-          window.currentPageId = $(e.currentTarget).data('toc-href');
-          
-          // Update audio title placeholder
-          const titleInput = document.getElementById('audio-title-input');
-          if (titleInput) {
-            titleInput.placeholder = `音频标题 (默认: ${window.currentPageName})`;
+          // Update page state (use first selected item's info)
+          const firstSelectedHref = Array.from(selectedTocItems)[0];
+          const firstSelectedLink = $(`.toc-link[data-toc-href="${firstSelectedHref}"]`);
+          if (firstSelectedLink.length) {
+            window.currentPageName = firstSelectedLink.find('span').text().trim();
+            window.currentPageId = firstSelectedHref;
+            
+            // Update audio title placeholder with count info
+            const titleInput = document.getElementById('audio-title-input');
+            if (titleInput) {
+              if (selectedTocItems.size === 1) {
+                titleInput.placeholder = `音频标题 (默认: ${window.currentPageName})`;
+              } else {
+                titleInput.placeholder = `音频标题 (默认: ${window.currentPageName} 等${selectedTocItems.size}章)`;
+              }
+            }
           }
           
           // Log state change
           if (typeof logState === 'function') {
-            logState('Content loaded with jQuery');
+            logState(`Content loaded with jQuery - ${selectedTocItems.size} items selected`);
           }
         } else {
           console.error('Error in response:', response);
@@ -103,10 +145,62 @@ $(document).ready(function() {
         $('.loading-container').addClass('hidden');
       }
     });
+  }
+  
+  // Handle checkbox changes
+  $('.toc-container').on('change', '.toc-checkbox', function() {
+    const href = $(this).data('toc-href');
+    
+    if ($(this).is(':checked')) {
+      selectedTocItems.add(href);
+    } else {
+      selectedTocItems.delete(href);
+    }
+    
+    updateSelectionUI();
   });
   
-  // Auto-load the first TOC item
-  $('.toc-link:first').trigger('click');
+  // Handle TOC link clicks (single selection for backward compatibility)
+  $('.toc-container').on('click', '.toc-link', function(e) {
+    e.preventDefault();
+    
+    const href = $(this).data('toc-href');
+    
+    // Clear previous selections and select only this item
+    selectedTocItems.clear();
+    selectedTocItems.add(href);
+    
+    updateSelectionUI();
+    loadSelectedTocItems();
+  });
+  
+  // Handle select all button
+  $('#select-all-btn').on('click', function(e) {
+    e.preventDefault();
+    selectedTocItems.clear();
+    $('.toc-checkbox').each(function() {
+      selectedTocItems.add($(this).data('toc-href'));
+    });
+    updateSelectionUI();
+  });
+  
+  // Handle clear selection button
+  $('#clear-selection-btn').on('click', function(e) {
+    e.preventDefault();
+    selectedTocItems.clear();
+    updateSelectionUI();
+  });
+  
+  // Handle load selected button
+  $('#load-selected-btn').on('click', function(e) {
+    e.preventDefault();
+    loadSelectedTocItems();
+  });
+  
+  // Auto-load the first TOC item (for backward compatibility)
+  if ($('.toc-link').length > 0) {
+    $('.toc-link:first').trigger('click');
+  }
   
   // Scroll to active item on initial load
   setTimeout(scrollActiveIntoView, 300);
