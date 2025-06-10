@@ -1,0 +1,38 @@
+services:
+  book2tts:
+    image: ghcr.io/pingfury108/book2tts:latest
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - ./.env
+    environment:
+      DJANGO_DEBUG: False
+      DB_NAME: /app/data/db.sqlite3
+      MEDIA_ROOT: /app/data/media
+      STATIC_ROOT: /app/data/static
+      CSRF_TRUSTED_ORIGINS: https://example.com
+      CELERY_BROKER_URL: redis://redis:6379/0
+  book2tts_celery:
+    image: ghcr.io/pingfury108/book2tts:latest
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - ./.env
+    environment:
+      DJANGO_DEBUG: False
+      DB_NAME: /app/data/db.sqlite3
+      MEDIA_ROOT: /app/data/media
+      STATIC_ROOT: /app/data/static
+      CSRF_TRUSTED_ORIGINS: https://example.com
+      CELERY_BROKER_URL: redis://redis:6379/0
+    working_dir: /app/src/web
+    entrypoint: ['celery', '-A', 'book_tts', 'worker', '-l','info']
+  caddy:
+    image: caddy:latest
+    ports:
+      - "4002:8000"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./data:/b2t_data
+  redis:
+    image: redis:6-alpine

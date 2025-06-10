@@ -1,0 +1,20 @@
+:8000 {
+    log {
+        format console
+        output stdout
+    }
+
+    handle /static/* {
+        root * /b2t_data/
+        file_server
+    }
+
+    handle /media/* {
+        root * /b2t_data/
+        file_server
+    }
+
+    handle /* {
+        reverse_proxy book2tts:8000
+    }
+}
