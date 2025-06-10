@@ -12,12 +12,55 @@ from book2tts.ebook import open_ebook, ebook_toc, get_content_with_href, ebook_p
 from book2tts.pdf import open_pdf
 
 
+def calculate_toc_page_ranges(toc_list, total_pages):
+    """
+    计算TOC条目的页面范围
+    参数:
+        toc_list: 原始TOC列表，格式为 [[level, title, start_page], ...]
+        total_pages: PDF总页数
+    返回:
+        处理后的TOC列表，每个条目包含 [level, title, start_page, end_page]
+    """
+    if not toc_list:
+        return []
+    
+    toc_with_ranges = []
+    
+    for i, toc in enumerate(toc_list):
+        level, title, start_page = toc[0], toc[1], toc[2]
+        
+        # 找到结束页：查找下一个同级别或更高级别的条目
+        end_page = total_pages  # 默认到文档末尾
+        
+        for j in range(i + 1, len(toc_list)):
+            next_toc = toc_list[j]
+            next_level = next_toc[0]
+            next_start_page = next_toc[2]
+            
+            # 如果找到同级别或更高级别的条目，结束页为其起始页减1
+            if next_level <= level:
+                end_page = next_start_page - 1
+                break
+        
+        # 确保结束页不小于起始页
+        end_page = max(start_page, end_page)
+        
+        toc_with_ranges.append([level, title, start_page, end_page])
+    
+    return toc_with_ranges
+
+
 @login_required
 def index(request, book_id):
     """Display book index with table of contents and pages"""
     book = get_object_or_404(Books, pk=book_id)
     if book.file_type == ".pdf":
         pbook = open_pdf(book.file.path)
+        # 计算TOC页面范围
+        toc_list = pbook.get_toc()
+        total_pages = len(list(pbook.pages()))
+        toc_with_ranges = calculate_toc_page_ranges(toc_list, total_pages)
+        
         return render(
             request,
             "index.html",
@@ -25,7 +68,12 @@ def index(request, book_id):
                 "book_id": book.id,
                 "title": book.name,  # Always use the database book name
                 "tocs": [
-                    {"title": f"{toc[1]}", "href": toc[2]} for toc in pbook.get_toc()
+                    {
+                        "title": f"{toc[1]}", 
+                        "href": f"{toc[2]}-{toc[3]}",
+                        "start_page": toc[2],
+                        "end_page": toc[3]
+                    } for toc in toc_with_ranges
                 ],
                 "pages": [
                     {"title": f"第{page.number+1}页", "href": page.number}
@@ -113,6 +161,12 @@ def toc(request, book_id):
 
     if book.file_type == ".pdf":
         pbook = open_pdf(book.file.path)
+        # 计算TOC页面范围
+        toc_list = pbook.get_toc()
+        total_pages = len(list(pbook.pages()))
+        toc_with_ranges = calculate_toc_page_ranges(toc_list, total_pages)
+        
+        print(toc_with_ranges)  # 调试输出
         return render(
             request,
             "toc.html",
@@ -120,7 +174,12 @@ def toc(request, book_id):
                 "book_id": book.id,
                 "title": book.name,  # Already using database book name
                 "tocs": [
-                    {"title": f"{toc[1]}", "href": toc[2]} for toc in pbook.get_toc()
+                    {
+                        "title": f"{toc[1]}", 
+                        "href": f"{toc[2]}-{toc[3]}",
+                        "start_page": toc[2],
+                        "end_page": toc[3]
+                    } for toc in toc_with_ranges
                 ],
             },
         )
@@ -196,7 +255,25 @@ def text_by_toc(request, book_id):
         if book.file_type == ".pdf":
             try:
                 pbook = open_pdf(book.file.path)
-                text_content = pbook[int(single_name)].get_text()
+                
+                # 检查是否是页面范围格式 (start-end)
+                if '-' in single_name:
+                    start_page, end_page = map(int, single_name.split('-'))
+                    # 获取页面范围内所有页面的文本
+                    page_texts = []
+                    for page_num in range(start_page, end_page + 1):
+                        try:
+                            page_text = pbook[page_num].get_text()
+                            if page_text.strip():  # 只添加非空页面
+                                page_texts.append(page_text)
+                        except IndexError:
+                            # 如果页面不存在，跳过
+                            continue
+                    text_content = "\n\n".join(page_texts)
+                else:
+                    # 单页模式（保持向后兼容）
+                    text_content = pbook[int(single_name)].get_text()
+                    
             except Exception as e:
                 text_content = f"Error extracting text: {str(e)}"
         elif book.file_type == ".epub":
