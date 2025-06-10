@@ -60,13 +60,22 @@ def upload(request):
         form = UploadFileForm(request.POST, request.FILES)
 
         if form.is_valid():
-            instance = form.save(commit=False)
-            instance.setkw(request.user)
-            instance.save()
+            try:
+                instance = form.save(commit=False)
+                instance.setkw(request.user)
+                instance.save()
 
-            return redirect(reverse("index", args=[instance.id]))
+                # 成功上传后跳转到书籍详情页
+                return redirect(reverse("index", args=[instance.id]))
+            
+            except Exception as e:
+                # 处理保存过程中的其他错误
+                form.add_error(None, f"上传失败：{str(e)}")
+                
+        # 如果表单无效或保存失败，重新显示表单和错误
     else:
         form = UploadFileForm()
+    
     return render(request, "upload.html", {"form": form})
 
 
