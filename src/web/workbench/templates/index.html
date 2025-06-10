@@ -35,7 +35,10 @@
         <div class="container p-2 flex flex-col h-[calc(100%-3.5rem)]" id="context">
             <div class="mb-2 p-2 bg-base-200 rounded-lg">
                 <div class="flex justify-between items-center">
-                    <div class="badge badge-primary p-3 text-sm">章节内容</div>
+                    <div class="flex gap-2 items-center">
+                        <div class="badge badge-primary p-3 text-sm">章节内容</div>
+                        <div class="badge badge-outline p-2 text-xs" id="word-count-badge">0 字</div>
+                    </div>
                     <div class="flex gap-2">
                         <button class="btn btn-xs btn-outline" id="format-text-btn">自动排版</button>
                         <button class="btn btn-xs btn-outline" id="increase-font-btn">放大字体</button>
@@ -207,9 +210,60 @@
    }
  }
 
- // 初始化字体调整按钮
+ // 字数统计功能（带防重复机制）
+ let lastUpdateTime = 0;
+ let lastCountValue = -1;
+ let lastTextValue = ''; // 添加文本内容缓存，供定期检查使用
+ 
+ function updateWordCount() {
+   const textarea = document.getElementById('src-text');
+   const wordCountBadge = document.getElementById('word-count-badge');
+   
+   if (textarea && wordCountBadge) {
+     const text = textarea.value;
+     // 计算字符数（去除空白字符）
+     const charCount = text.replace(/\s/g, '').length;
+     const currentTime = Date.now();
+     
+     // 防重复机制：如果字数相同且时间间隔小于2000ms，则跳过更新
+     if (charCount === lastCountValue && (currentTime - lastUpdateTime) < 2000) {
+       return;
+     }
+     
+     wordCountBadge.textContent = `${charCount} 字`;
+     lastUpdateTime = currentTime;
+     lastCountValue = charCount;
+     lastTextValue = text; // 同步更新文本缓存
+     
+     // 调试信息（可选）
+     if (charCount > 0) {
+       console.log('[WordCount] 字数已更新:', charCount, '时间:', new Date().toLocaleTimeString());
+     }
+   }
+ }
+
+ // 初始化字体调整按钮和字数统计
  $(document).ready(function() {
    setupFontSizeButtons();
+   
+   // 初始化字数统计
+   updateWordCount();
+   
+   // 拦截jQuery的val方法来监听内容变化
+   interceptJQueryVal();
+   
+   // 设置定期检查（备用方案）
+   setupPeriodicCheck();
+   
+   // 监听文本区域变化
+   const textarea = document.getElementById('src-text');
+   if (textarea) {
+     textarea.addEventListener('input', updateWordCount);
+     textarea.addEventListener('paste', function() {
+       // 粘贴后需要延迟一下再统计，确保内容已更新
+       setTimeout(updateWordCount, 10);
+     });
+   }
  });
 
  // 添加调试日志
@@ -525,6 +579,63 @@
    });
  });
 
+ // 监听HTMX内容加载完成事件，更新字数统计
+ document.body.addEventListener('htmx:afterSwap', function(evt) {
+   // 如果是TOC区域的加载（TOC和pages都加载到这里），更新字数统计
+   if (evt.detail.target && evt.detail.target.id === 'toc') {
+     // 延迟较长时间，确保TOC/pages组件的JavaScript已执行完成
+     setTimeout(updateWordCount, 200);
+   }
+ });
+
+ // 创建一个全局函数，供TOC和pages调用来更新字数
+ window.triggerWordCountUpdate = function() {
+   setTimeout(updateWordCount, 10);
+ };
+
+ // 定期检查textarea值变化（作为备用方案）
+ function setupPeriodicCheck() {
+   const textarea = document.getElementById('src-text');
+   if (textarea && !window._periodicCheckSetup) {
+     window._periodicCheckSetup = true;
+     
+     setInterval(function() {
+       const currentValue = textarea.value;
+       const currentLength = currentValue.replace(/\s/g, '').length;
+       
+       // 使用共享的状态变量，避免重复触发
+       if (currentValue !== lastTextValue) {
+         console.log('[WordCount] 定期检查发现变化，触发更新');
+         updateWordCount();
+       }
+     }, 2000); // 改为每2秒检查一次，减少频率
+   }
+ }
+
+ // 拦截jQuery的val方法，专门针对src-text textarea
+ function interceptJQueryVal() {
+   if (typeof $ !== 'undefined' && !window._jqueryValIntercepted) {
+     window._jqueryValIntercepted = true;
+     
+     const originalVal = $.fn.val;
+     $.fn.val = function(value) {
+       const result = originalVal.apply(this, arguments);
+       
+       // 如果是设置值操作（有参数）
+       if (arguments.length > 0) {
+         // 检查当前jQuery对象是否包含src-text元素
+         const containsSrcText = this.filter('#src-text').length > 0 || this.is('#src-text');
+         if (containsSrcText) {
+           // 延迟更新字数，确保DOM已更新
+           setTimeout(updateWordCount, 50);
+         }
+       }
+       
+       return result;
+     };
+   }
+ }
+
  // 自动排版相关的全局变量
  let formattedText = '';
  let formatEventSource = null;
@@ -558,6 +669,9 @@
    if (textarea && !formattedText && textarea.value.startsWith('正在进行自动排版')) {
      textarea.value = originalTextContent || '';
    }
+   
+   // 更新字数统计
+   updateWordCount();
  }
  
  // 自动排版按钮点击处理
@@ -679,6 +793,8 @@
                      if (textarea) {
                        textarea.value = formattedText;
                        textarea.scrollTop = textarea.scrollHeight;
+                       // 更新字数统计
+                       updateWordCount();
                      }
                    } else if (eventType === 'complete') {
                      console.log('格式化完成');
