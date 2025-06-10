@@ -55,7 +55,7 @@
     </div>
   </div>
   
-  <div class="flex-grow overflow-x-hidden">
+  <div class="flex-1 overflow-y-auto overflow-x-auto">
     <ul id="pages-list" class="menu menu-sm bg-base-100 rounded-box w-full flex flex-col single-column" style="column-count:1 !important; columns:1 !important; display:block !important;">
       {% for page in pages %}
       <li class="flex items-center w-full hover:bg-base-200 transition-colors duration-200">
@@ -283,7 +283,7 @@
   function scrollActiveLinkIntoView() {
     const activeElement = $('.page-link').parent('.active');
     if (activeElement.length) {
-      const container = $('#pages-list');
+      const container = $('.pages-container .flex-1'); // Updated selector to use the scrollable container
       // Ensure the container is scrollable
       if (container.prop('scrollHeight') > container.height()) {
         container.animate({
