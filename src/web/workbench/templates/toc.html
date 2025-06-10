@@ -1,5 +1,12 @@
 {% load custom_filters %}
 <!-- TOC navigation component - optimized for jQuery loading into #src-text with multi-select support -->
+<style>
+  .toc-indent-prefix {
+    color: #9ca3af;
+    font-family: monospace;
+    font-size: 0.75rem;
+  }
+</style>
 <div class="toc-container h-full flex flex-col">
   <!-- Fixed control bar at the top -->
   <div class="flex justify-between items-center p-2 border-b border-base-300 bg-base-100 flex-shrink-0">
@@ -18,14 +25,22 @@
     <ul id="toc-list" class="menu menu-sm bg-base-100 rounded-box w-full flex flex-col single-column" style="column-count:1 !important; columns:1 !important; display:block !important;">
       {% for toc in tocs %}
       <li class="flex items-center w-full hover:bg-base-200 transition-colors duration-200">
-        <div class="flex items-center w-full py-1.5 px-3{% if request.GET.toc == toc.href %} active{% endif %}">
+        <div class="flex items-center w-full py-1.5 px-3{% if request.GET.toc == toc.href %} active{% endif %}" data-level="{{ toc.level|default:0 }}">
           <input type="checkbox" class="toc-checkbox checkbox checkbox-sm mr-2" value="{{ toc.href }}" data-toc-href="{{ toc.href }}" />
           <a class="flex-1 toc-link transition-all duration-300 ease-in-out hover:bg-opacity-20 hover:bg-base-300"
              data-text-url="{% url 'text_by_toc' book_id=book_id %}"
              data-toc-href="{{ toc.href }}"
              data-names="{{ toc.href|stringformat:"s" }}"
           >
-            <span class="truncate">{% if request.GET.toc == toc.href %}<span class="indicator-dot mr-1">•</span>{% endif %}{{ toc.title }}</span>
+            <span class="truncate">
+              {% if toc.level > 0 %}
+                <span class="toc-indent-prefix mr-1">
+                  {% if toc.level == 1 %}├─{% elif toc.level == 2 %}├──{% elif toc.level == 3 %}├───{% elif toc.level == 4 %}├────{% else %}├─{% endif %}
+                </span>
+              {% endif %}
+              {% if request.GET.toc == toc.href %}<span class="indicator-dot mr-1">•</span>{% endif %}
+              {{ toc.title }}
+            </span>
           </a>
         </div>
       </li>
@@ -44,6 +59,15 @@
 <script>
 $(document).ready(function() {
   let selectedTocItems = new Set();
+  
+  // Apply level-based styling
+  $('[data-level]').each(function() {
+    const level = parseInt($(this).data('level')) || 0;
+    $(this).css('margin-left', (level * 16) + 'px');
+    if (level > 0) {
+      $(this).css('border-left', '2px solid #e5e7eb');
+    }
+  });
   
   // Function to update selection count and button states
   function updateSelectionUI() {
