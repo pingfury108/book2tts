@@ -98,6 +98,67 @@ def calculate_toc_page_ranges(toc_list, total_pages):
     return toc_with_ranges
 
 
+def calculate_epub_toc_page_ranges(toc_list, all_pages):
+    """
+    计算EPUB TOC条目的页面范围
+    参数:
+        toc_list: TOC列表，格式为 [{"title": str, "href": str, "level": int}, ...]
+        all_pages: 所有页面列表，格式为 [{"title": str, "href": str}, ...]
+    返回:
+        处理后的TOC列表，每个条目包含页面范围信息
+    """
+    if not toc_list or not all_pages:
+        return []
+    
+    # 创建页面href到索引的映射
+    page_href_to_index = {page["href"]: idx for idx, page in enumerate(all_pages)}
+    
+    toc_with_ranges = []
+    
+    for i, toc in enumerate(toc_list):
+        title = toc["title"]
+        href = toc["href"]
+        level = toc["level"]
+        
+        # 找到当前TOC条目对应的页面索引
+        start_page_index = page_href_to_index.get(href)
+        if start_page_index is None:
+            # 如果找不到对应页面，跳过这个TOC条目
+            continue
+        
+        # 找到结束页面索引：查找下一个同级别或更高级别的条目
+        end_page_index = len(all_pages) - 1  # 默认到文档末尾
+        
+        for j in range(i + 1, len(toc_list)):
+            next_toc = toc_list[j]
+            next_level = next_toc["level"]
+            next_href = next_toc["href"]
+            
+            # 如果找到同级别或更高级别的条目
+            if next_level <= level:
+                next_page_index = page_href_to_index.get(next_href)
+                if next_page_index is not None:
+                    end_page_index = next_page_index - 1
+                    break
+        
+        # 确保结束页面索引不小于起始页面索引
+        end_page_index = max(start_page_index, end_page_index)
+        
+        # 获取页面范围内的所有页面href
+        page_hrefs = [all_pages[idx]["href"] for idx in range(start_page_index, end_page_index + 1)]
+        
+        toc_with_ranges.append({
+            "title": title,
+            "href": ",".join(page_hrefs),  # 使用逗号分隔的多个页面href
+            "start_page_index": start_page_index,
+            "end_page_index": end_page_index,
+            "level": level,
+            "page_count": len(page_hrefs)
+        })
+    
+    return toc_with_ranges
+
+
 @login_required
 def index(request, book_id):
     """Display book index with table of contents and pages"""
@@ -132,6 +193,10 @@ def index(request, book_id):
         )
     elif book.file_type == ".epub":
         ebook = open_ebook(book.file.path)
+        all_pages = ebook_pages(ebook)
+        toc_list = ebook_toc_with_level(ebook)
+        toc_with_ranges = calculate_epub_toc_page_ranges(toc_list, all_pages)
+        
         return render(
             request,
             "index.html",
@@ -141,12 +206,15 @@ def index(request, book_id):
                 "tocs": [
                     {
                         "title": toc.get("title"),
-                        "href": toc.get("href").split("#")[0].replace("/", "_"),
-                        "level": toc.get("level", 0)  # 添加层级信息
+                        "href": toc.get("href").replace("/", "_"),  # 已经是逗号分隔的页面列表
+                        "level": toc.get("level", 0),
+                        "start_page_index": toc.get("start_page_index"),
+                        "end_page_index": toc.get("end_page_index"),
+                        "page_count": toc.get("page_count", 1)
                     }
-                    for toc in ebook_toc_with_level(ebook)  # 使用新的层级函数
+                    for toc in toc_with_ranges
                 ],
-                "pages": ebook_pages(ebook),
+                "pages": all_pages,
             },
         )
 
@@ -235,6 +303,10 @@ def toc(request, book_id):
         )
     elif book.file_type == ".epub":
         ebook = open_ebook(book.file.path)
+        all_pages = ebook_pages(ebook)
+        toc_list = ebook_toc_with_level(ebook)
+        toc_with_ranges = calculate_epub_toc_page_ranges(toc_list, all_pages)
+        
         return render(
             request,
             "toc.html",
@@ -244,10 +316,13 @@ def toc(request, book_id):
                 "tocs": [
                     {
                         "title": toc.get("title"), 
-                        "href": toc.get("href"),
-                        "level": toc.get("level", 0)  # 添加层级信息
+                        "href": toc.get("href"),  # 已经是逗号分隔的页面列表
+                        "level": toc.get("level", 0),
+                        "start_page_index": toc.get("start_page_index"),
+                        "end_page_index": toc.get("end_page_index"),
+                        "page_count": toc.get("page_count", 1)
                     }
-                    for toc in ebook_toc_with_level(ebook)  # 使用新的层级函数
+                    for toc in toc_with_ranges
                 ],
             },
         )
@@ -333,7 +408,19 @@ def text_by_toc(request, book_id):
         elif book.file_type == ".epub":
             try:
                 ebook = open_ebook(book.file.path)
-                text_content = get_content_with_href(ebook, single_name)
+                # 检查是否是多页面格式（逗号分隔）
+                if ',' in single_name:
+                    # 多页面模式：获取多个页面的内容
+                    page_hrefs = single_name.split(',')
+                    page_texts = []
+                    for href in page_hrefs:
+                        page_text = get_content_with_href(ebook, href.strip())
+                        if page_text.strip():  # 只添加非空页面
+                            page_texts.append(page_text)
+                    text_content = "\n\n".join(page_texts)
+                else:
+                    # 单页面模式（保持向后兼容）
+                    text_content = get_content_with_href(ebook, single_name)
             except Exception as e:
                 text_content = f"Error extracting text: {str(e)}"
         
@@ -408,9 +495,21 @@ def text_by_page(request, book_id):
         elif book.file_type == ".epub":
             try:
                 ebook = open_ebook(book.file.path)
-                page_text = get_content_with_href(ebook, page_name)
+                # 检查是否是多页面格式（逗号分隔）
+                if ',' in page_name:
+                    # 多页面模式：获取多个页面的内容
+                    page_hrefs = page_name.split(',')
+                    combined_page_texts = []
+                    for href in page_hrefs:
+                        individual_page_text = get_content_with_href(ebook, href.strip())
+                        if individual_page_text.strip():  # 只添加非空页面
+                            combined_page_texts.append(individual_page_text)
+                    page_text = "\n\n".join(combined_page_texts)
+                else:
+                    # 单页面模式（保持向后兼容）
+                    page_text = get_content_with_href(ebook, page_name)
                 
-                # Apply line filtering to individual page content
+                # Apply line filtering to combined page content
                 if head_cut > 0 or tail_cut > 0 or line_count:
                     lines = page_text.splitlines()
                     total_lines = len(lines)
