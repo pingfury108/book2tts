@@ -248,51 +248,81 @@ function updateSegmentPublishButton(buttonElement, data) {
                         <!-- 标题 -->
                         <div class="lg:col-span-9">
                             <h3 class="text-lg sm:text-xl font-bold text-gray-900 leading-tight break-words">
-                                🔖 {{ segment.title }}
+                                {% if segment.type == 'dialogue_script' %}
+                                    🎭 {{ segment.title }}
+                                    {% if segment.speakers %}
+                                        <span class="text-sm text-gray-500 ml-2">({{ segment.speakers|length }}个角色)</span>
+                                    {% endif %}
+                                {% else %}
+                                    🔖 {{ segment.title }}
+                                {% endif %}
                             </h3>
                         </div>
                         
                         <!-- 操作按钮组 - 优化桌面端布局 -->
                         <div class="lg:col-span-3 flex flex-wrap gap-2 lg:gap-4 justify-end lg:justify-end lg:items-center lg:pr-2" onclick="event.stopPropagation()">
                             <!-- 下载按钮 -->
+                            {% if segment.file_url %}
                             <a href="{{ segment.file_url }}" download 
                                class="btn btn-circle btn-xs sm:btn-sm lg:btn-md btn-primary touch-manipulation flex-shrink-0 
                                       hover:scale-110 transition-transform duration-200" 
                                title="下载音频">
                                 <i class="fas fa-download h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5"></i>
                             </a>
-                            
-                            <!-- 发布/取消发布按钮 -->
-                            {% if segment.published %}
-                            <button 
-                                class="btn btn-circle btn-xs sm:btn-sm lg:btn-md btn-warning touch-manipulation flex-shrink-0 
-                                       hover:scale-110 transition-transform duration-200" 
-                                title="取消发布"
-                                onclick="handleSegmentPublishClick('{{ segment.id }}', this)">
-                                <i class="fas fa-times h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5"></i>
-                            </button>
-                            {% else %}
-                            <button 
-                                class="btn btn-circle btn-xs sm:btn-sm lg:btn-md btn-success touch-manipulation flex-shrink-0 
-                                       hover:scale-110 transition-transform duration-200" 
-                                title="发布"
-                                onclick="handleSegmentPublishClick('{{ segment.id }}', this)">
-                                <i class="fas fa-check h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5"></i>
-                            </button>
                             {% endif %}
                             
-                            <!-- 删除按钮 -->
-                            <button 
-                                class="btn btn-circle btn-xs sm:btn-sm lg:btn-md btn-error touch-manipulation flex-shrink-0 
-                                       hover:scale-110 transition-transform duration-200" 
-                                title="删除音频"
-                                hx-delete="/workbench/audio/delete/{{ segment.id }}/"
-                                hx-confirm="确定要删除音频片段 '{{ segment.title }}' 吗？此操作无法撤销。"
-                                hx-target="[data-segment-id='{{ segment.id }}']" 
-                                hx-swap="outerHTML"
-                                hx-trigger="click">
-                                <i class="fas fa-trash h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5"></i>
-                            </button>
+                            <!-- 发布/取消发布按钮 -->
+                            {% if segment.type == 'dialogue_script' %}
+                                <!-- 对话脚本的发布按钮 - 目前只显示状态，不提供切换功能 -->
+                                {% if segment.published %}
+                                <span class="px-2 py-1 text-xs bg-green-100 text-green-600 rounded-full">已发布</span>
+                                {% else %}
+                                <span class="px-2 py-1 text-xs bg-blue-100 text-blue-600 rounded-full">已生成</span>
+                                {% endif %}
+                            {% else %}
+                                <!-- 传统音频片段的发布切换按钮 -->
+                                {% if segment.published %}
+                                <button 
+                                    class="btn btn-circle btn-xs sm:btn-sm lg:btn-md btn-warning touch-manipulation flex-shrink-0 
+                                           hover:scale-110 transition-transform duration-200" 
+                                    title="取消发布"
+                                    onclick="handleSegmentPublishClick('{{ segment.id }}', this)">
+                                    <i class="fas fa-times h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5"></i>
+                                </button>
+                                {% else %}
+                                <button 
+                                    class="btn btn-circle btn-xs sm:btn-sm lg:btn-md btn-success touch-manipulation flex-shrink-0 
+                                           hover:scale-110 transition-transform duration-200" 
+                                    title="发布"
+                                    onclick="handleSegmentPublishClick('{{ segment.id }}', this)">
+                                    <i class="fas fa-check h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5"></i>
+                                </button>
+                                {% endif %}
+                            {% endif %}
+                            
+                            <!-- 删除按钮 - 根据类型使用不同的删除逻辑 -->
+                            {% if segment.type == 'dialogue_script' %}
+                                <!-- 对话脚本删除：跳转到对话脚本详情页面 -->
+                                <a href="{% url 'dialogue_detail' segment.id %}"
+                                   class="btn btn-circle btn-xs sm:btn-sm lg:btn-md btn-info touch-manipulation flex-shrink-0 
+                                          hover:scale-110 transition-transform duration-200" 
+                                   title="编辑对话脚本">
+                                    <i class="fas fa-edit h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5"></i>
+                                </a>
+                            {% else %}
+                                <!-- 传统音频片段删除 -->
+                                <button 
+                                    class="btn btn-circle btn-xs sm:btn-sm lg:btn-md btn-error touch-manipulation flex-shrink-0 
+                                           hover:scale-110 transition-transform duration-200" 
+                                    title="删除音频"
+                                    hx-delete="/workbench/audio/delete/{{ segment.id }}/"
+                                    hx-confirm="确定要删除音频片段 '{{ segment.title }}' 吗？此操作无法撤销。"
+                                    hx-target="[data-segment-id='{{ segment.id }}']" 
+                                    hx-swap="outerHTML"
+                                    hx-trigger="click">
+                                    <i class="fas fa-trash h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5"></i>
+                                </button>
+                            {% endif %}
                         </div>
                     </div>
                 </label>
@@ -313,28 +343,43 @@ function updateSegmentPublishButton(buttonElement, data) {
                                             <span class="truncate">{{ book_name }}</span>
                                         </div>
                                         
-                                        <!-- 页面信息 -->
-                                        <div class="flex items-center justify-center sm:justify-start space-x-2">
-                                            <span class="font-medium">页面:</span>
-                                            {% if segment.book_page %}
-                                            <button 
-                                                class="bg-secondary text-secondary-content rounded-full w-6 h-6 sm:w-7 sm:h-7 
-                                                       flex items-center justify-center hover:bg-secondary-focus cursor-pointer 
-                                                       transition-colors text-xs sm:text-sm font-medium touch-manipulation page-view-btn"
-                                                data-segment-id="{{ segment.id }}"
-                                                data-book-id="{{ book_id|default:1 }}"
-                                                data-names="{{ segment.book_page|stringformat:'s' }}"
-                                                onclick="loadPageContent(this); document.getElementById('modal-{{ segment.id }}').showModal()"
-                                                title="点击查看页面内容">
-                                                {{ forloop.counter|add:page_obj.start_index|add:"-1" }}
-                                            </button>
-                                            {% else %}
-                                            <div class="bg-base-300 text-base-content rounded-full w-6 h-6 sm:w-7 sm:h-7 
-                                                        flex items-center justify-center text-xs sm:text-sm">
-                                                -
+                                        <!-- 页面信息或对话脚本特殊信息 -->
+                                        {% if segment.type == 'dialogue_script' %}
+                                            <div class="flex items-center justify-center sm:justify-start space-x-2">
+                                                <i class="fas fa-users h-3 w-3 sm:h-4 sm:w-4"></i>
+                                                <span class="font-medium">片段:</span>
+                                                <span>{{ segment.segment_count|default:0 }}个</span>
+                                            </div>
+                                            {% if segment.audio_duration %}
+                                            <div class="flex items-center justify-center sm:justify-start space-x-2">
+                                                <i class="fas fa-clock h-3 w-3 sm:h-4 sm:w-4"></i>
+                                                <span class="font-medium">时长:</span>
+                                                <span>{{ segment.audio_duration }}</span>
                                             </div>
                                             {% endif %}
-                                        </div>
+                                        {% else %}
+                                            <div class="flex items-center justify-center sm:justify-start space-x-2">
+                                                <span class="font-medium">页面:</span>
+                                                {% if segment.book_page %}
+                                                <button 
+                                                    class="bg-secondary text-secondary-content rounded-full w-6 h-6 sm:w-7 sm:h-7 
+                                                           flex items-center justify-center hover:bg-secondary-focus cursor-pointer 
+                                                           transition-colors text-xs sm:text-sm font-medium touch-manipulation page-view-btn"
+                                                    data-segment-id="{{ segment.id }}"
+                                                    data-book-id="{{ book_id|default:1 }}"
+                                                    data-names="{{ segment.book_page|stringformat:'s' }}"
+                                                    onclick="loadPageContent(this); document.getElementById('modal-{{ segment.id }}').showModal()"
+                                                    title="点击查看页面内容">
+                                                    {{ forloop.counter|add:page_obj.start_index|add:"-1" }}
+                                                </button>
+                                                {% else %}
+                                                <div class="bg-base-300 text-base-content rounded-full w-6 h-6 sm:w-7 sm:h-7 
+                                                            flex items-center justify-center text-xs sm:text-sm">
+                                                    -
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                        {% endif %}
                                         
                                         <!-- 更新时间 -->
                                         <div class="flex items-center justify-center sm:justify-start lg:justify-end space-x-2">

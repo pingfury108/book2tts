@@ -283,9 +283,26 @@ def voice_roles_list(request):
     multi_voice_tts = MultiVoiceTTS()
     edge_voices = multi_voice_tts.get_available_voices('edge_tts')
     
+    # Azure音色列表（静态定义常用的中文音色）
+    azure_voices = [
+        {"name": "晓晓 (女声)", "value": "zh-CN-XiaoxiaoNeural"},
+        {"name": "云希 (男声)", "value": "zh-CN-YunxiNeural"},
+        {"name": "晓伊 (女声)", "value": "zh-CN-XiaoyiNeural"},
+        {"name": "云扬 (男声)", "value": "zh-CN-YunyangNeural"},
+        {"name": "晓梦 (女声)", "value": "zh-CN-XiaomengNeural"},
+        {"name": "云健 (男声)", "value": "zh-CN-YunjianNeural"},
+        {"name": "晓墨 (女声)", "value": "zh-CN-XiaomoNeural"},
+        {"name": "晓睿 (女声)", "value": "zh-CN-XiaoruiNeural"},
+        {"name": "晓双 (女声)", "value": "zh-CN-XiaoshuangNeural"},
+        {"name": "晓悠 (女声)", "value": "zh-CN-XiaoyouNeural"},
+        {"name": "云野 (男声)", "value": "zh-CN-YunyeNeural"},
+        {"name": "云泽 (男声)", "value": "zh-CN-YunzeNeural"},
+    ]
+    
     return render(request, 'voice_roles.html', {
         'voice_roles': voice_roles,
-        'edge_voices_json': json.dumps(edge_voices)
+        'edge_voices_json': json.dumps(edge_voices),
+        'azure_voices_json': json.dumps(azure_voices)
     })
 
 @login_required

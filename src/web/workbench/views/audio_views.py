@@ -11,15 +11,127 @@ from django.http import JsonResponse, HttpResponse
 from django.core.files.base import ContentFile
 from django.conf import settings
 from django.db import transaction
-from django.core.paginator import Paginator
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.utils import timezone
+from django.contrib import messages
+from django.db.models import Q
 
-from ..models import Books, AudioSegment, UserTask, DialogueScript
-from ..tasks import synthesize_audio_task
+from ..models import Books, AudioSegment, UserTask, DialogueScript, VoiceRole
+from ..tasks import synthesize_audio_task, start_audio_synthesis_on_commit
 from book2tts.tts import edge_tts_volices
 from book2tts.edgetts import EdgeTTS
 from book2tts.audio_utils import get_audio_duration, estimate_audio_duration_from_text
 from home.models import UserQuota, OperationRecord
+from book2tts.multi_voice_tts import MultiVoiceTTS
+
+
+def get_or_create_dialogue_virtual_book(user):
+    """获取或创建对话脚本虚拟书籍"""
+    virtual_book_name = "📢 对话脚本集"
+    virtual_book, created = Books.objects.get_or_create(
+        user=user,
+        name=virtual_book_name,
+        defaults={
+            'file_type': '.virtual',
+            'file': None,  # 虚拟书籍无文件
+        }
+    )
+    return virtual_book
+
+
+def get_unified_audio_content(user=None, book=None, published_only=True):
+    """
+    统一获取音频内容（AudioSegment + DialogueScript）
+    返回统一格式的数据列表，按创建时间倒序排列
+    """
+    audio_items = []
+    
+    # 构建查询条件
+    audio_filter = Q()
+    dialogue_filter = Q()
+    
+    if user:
+        audio_filter &= Q(user=user)
+        dialogue_filter &= Q(user=user)
+    
+    if book:
+        audio_filter &= Q(book=book)
+        dialogue_filter &= Q(book=book)
+    
+    if published_only:
+        audio_filter &= Q(published=True)
+        dialogue_filter &= Q(published=True)
+    
+    # 获取传统音频片段
+    audio_segments = AudioSegment.objects.filter(audio_filter).order_by('-created_at')
+    for segment in audio_segments:
+        # 确保AudioSegment有有效的book
+        if not segment.book or not segment.book.id:
+            continue
+            
+        audio_items.append({
+            'id': segment.id,
+            'type': 'audio_segment',
+            'title': segment.title,
+            'text': segment.text,
+            'book_page': segment.book_page,
+            'file_url': segment.file.url if segment.file else None,
+            'file_size': segment.file.size if segment.file else 0,
+            'published': segment.published,
+            'created_at': segment.created_at,
+            'updated_at': segment.updated_at,
+            'book': segment.book,
+            'user': segment.user,
+            # 为了兼容性添加的字段
+            'file': segment.file,
+        })
+    
+    # 获取对话脚本
+    dialogue_scripts = DialogueScript.objects.filter(
+        dialogue_filter & Q(audio_file__isnull=False)
+    ).order_by('-created_at')
+    
+    # 如果有用户指定且有无关联书籍的对话脚本，创建虚拟书籍
+    virtual_book = None
+    if user and not book:  # 只有在不指定特定书籍时才需要虚拟书籍
+        # 检查是否有无关联书籍的对话脚本
+        unlinked_scripts = dialogue_scripts.filter(book__isnull=True)
+        if unlinked_scripts.exists():
+            virtual_book = get_or_create_dialogue_virtual_book(user)
+    
+    for script in dialogue_scripts:
+        # 确定归属的书籍：如果没有关联书籍且有虚拟书籍，则使用虚拟书籍
+        target_book = script.book if script.book else virtual_book
+        
+        # 如果仍然没有book或book无效，跳过该对话脚本
+        if not target_book or not target_book.id:
+            continue
+            
+        audio_items.append({
+            'id': script.id,
+            'type': 'dialogue_script',
+            'title': script.title,
+            'text': f"🎭 对话脚本 ({script.segment_count}段) - {', '.join(script.speakers[:3])}{'...' if len(script.speakers) > 3 else ''}",
+            'book_page': f"对话音频 ({len(script.speakers)}个角色)",
+            'file_url': script.audio_file.url if script.audio_file else None,
+            'file_size': script.audio_file.size if script.audio_file else 0,
+            'published': script.published,
+            'created_at': script.created_at,
+            'updated_at': script.updated_at,
+            'book': target_book,  # 确保总是有有效的book对象
+            'user': script.user,
+            # 对话脚本特有字段
+            'audio_duration': script.audio_duration,
+            'speakers': script.speakers,
+            'segment_count': script.segment_count,
+            # 为了兼容性添加的字段
+            'file': script.audio_file,
+        })
+    
+    # 按创建时间倒序排列
+    audio_items.sort(key=lambda x: x['created_at'], reverse=True)
+    
+    return audio_items
 
 
 def get_client_ip(request):
@@ -40,6 +152,7 @@ def get_user_agent(request):
 @login_required
 def aggregated_audio_segments(request):
     """Display aggregated audio segments grouped by book, including dialogue audio"""
+    
     # Get the current user's audio segments, ordered by created_at descending
     audio_segments = AudioSegment.objects.filter(user=request.user).order_by('-created_at')
     
@@ -49,6 +162,9 @@ def aggregated_audio_segments(request):
         published=True, 
         audio_file__isnull=False
     ).order_by('-created_at')
+
+    # Get or create virtual book for dialogue scripts without book association
+    virtual_book = get_or_create_dialogue_virtual_book(request.user)
 
     # Aggregate by book
     aggregated_data = defaultdict(list)
@@ -69,26 +185,29 @@ def aggregated_audio_segments(request):
         aggregated_data[segment.book.name].append(book_data)
         book_ids[segment.book.name] = segment.book.id  # Store book ID
     
-    # Add dialogue audio
+    # Add dialogue audio - 统一数据格式，确保都关联到真实的Book对象
     for script in dialogue_scripts:
-        book_name = script.book.name if script.book else "对话脚本"
+        # 确定归属的书籍
+        target_book = script.book if script.book else virtual_book
+        book_name = target_book.name
+        
+        # 转换为与AudioSegment一致的数据格式
         book_data = {
             "id": script.id,
             "type": "dialogue_script",
             "title": script.title,
-            "text": f"对话脚本 - {script.segment_count} 个片段",
-            "book_page": f"对话 ({len(script.speakers)} 个角色)",
+            "text": f"🎭 对话脚本 ({script.segment_count}段) - {', '.join(script.speakers[:3])}{'...' if len(script.speakers) > 3 else ''}",
+            "book_page": f"对话音频 ({len(script.speakers)}个角色)",
             "file_url": script.audio_file.url,
             "published": script.published,
             "created_at": script.created_at,
+            # 保留对话脚本特有的字段，但不影响通用处理
             "audio_duration": script.audio_duration,
-            "speakers": script.speakers
+            "speakers": script.speakers,
+            "segment_count": script.segment_count
         }
         aggregated_data[book_name].append(book_data)
-        if script.book:
-            book_ids[book_name] = script.book.id
-        else:
-            book_ids[book_name] = 0  # No book associated
+        book_ids[book_name] = target_book.id  # 始终关联真实的Book ID
         
     # Sort each book's segments by created_at descending
     for book_name in aggregated_data:
@@ -99,7 +218,7 @@ def aggregated_audio_segments(request):
     for book_name, segments in aggregated_data.items():
         books_with_ids[book_name] = {
             "segments": segments,
-            "book_id": book_ids[book_name]  # Use book ID instead of slug
+            "book_id": book_ids[book_name]  # 所有Book ID都是真实的
         }
 
     # Convert to standard dictionary and pass to template

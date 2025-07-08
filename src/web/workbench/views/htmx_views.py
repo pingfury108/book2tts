@@ -2,7 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
-from ..models import Books, AudioSegment
+from ..models import Books, AudioSegment, DialogueScript
+from .audio_views import get_unified_audio_content
 
 
 @login_required
@@ -28,15 +29,15 @@ def book_details_htmx(request, book_id):
     except (ValueError, TypeError):
         page_size = 10
     
-    # Get segments for this specific book, ordered by created_at descending
-    # Use select_related to optimize database queries
-    book_segments_qs = AudioSegment.objects.filter(
-        user=request.user,
-        book=target_book
-    ).select_related('book').order_by('-created_at')
+    # 使用统一的音频内容获取函数，包含AudioSegment和DialogueScript
+    all_audio_items = get_unified_audio_content(
+        user=request.user, 
+        book=target_book, 
+        published_only=False  # 显示所有音频，包括未发布的
+    )
     
-    # Create paginator
-    paginator = Paginator(book_segments_qs, page_size)
+    # Create paginator for unified audio content
+    paginator = Paginator(all_audio_items, page_size)
     
     try:
         segments_page = paginator.page(page)
@@ -47,19 +48,27 @@ def book_details_htmx(request, book_id):
         # If page is out of range, deliver last page
         segments_page = paginator.page(paginator.num_pages)
     
-    # Convert segments to include file URLs
+    # Convert to template-friendly format
     segments = []
-    for segment in segments_page:
+    for item in segments_page:
         segment_data = {
-            'id': segment.id,
-            'title': segment.title,
-            'text': segment.text,
-            'book_page': segment.book_page,
-            'file_url': segment.file.url if segment.file else None,
-            'published': segment.published,
-            'created_at': segment.created_at,
-            'updated_at': segment.updated_at,
+            'id': item['id'],
+            'type': item['type'],  # 'audio_segment' or 'dialogue_script'
+            'title': item['title'],
+            'text': item['text'],
+            'book_page': item['book_page'],
+            'file_url': item['file_url'],
+            'published': item['published'],
+            'created_at': item['created_at'],
+            'updated_at': item['updated_at'],
         }
+        # 添加对话脚本特有的字段
+        if item['type'] == 'dialogue_script':
+            segment_data.update({
+                'audio_duration': item.get('audio_duration'),
+                'speakers': item.get('speakers', []),
+                'segment_count': item.get('segment_count', 0)
+            })
         segments.append(segment_data)
     
     # Return only the specific book's details with pagination info

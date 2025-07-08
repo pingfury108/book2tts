@@ -18,70 +18,71 @@ from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
 from django.core.cache import cache
 from django.utils import timezone
+from workbench.views.audio_views import get_unified_audio_content
+from .models import OperationRecord
 
 # Create your views here.
 
 
 def index(request):
-    context = {}
-    
-    # 如果用户已登录，获取已发布的音频片段
+    """Main page that lists audio segments"""
+    # 根据用户登录状态决定显示内容
     if request.user.is_authenticated:
-        # 确保用户有一个有效的RSS token
-        ensure_rss_token(request.user)
+        # 已登录用户：显示自己的已发布音频（包括对话脚本）
+        all_audio_items = get_unified_audio_content(user=request.user, published_only=True)
+        display_title = '我的音频作品'
+    else:
+        # 未登录用户：显示所有已发布的音频（跳过无关联书籍的对话脚本）
+        all_audio_items = get_unified_audio_content(published_only=True)
+        display_title = 'Book2TTS 公开音频'
+    
+    # 添加分页
+    page = request.GET.get('page', 1)
+    try:
+        page_size = int(request.GET.get('page_size', 10))
+        page_size = min(max(page_size, 5), 50)  # 限制在5-50之间
+    except (ValueError, TypeError):
+        page_size = 10
         
-        published_audio_segments_qs = AudioSegment.objects.filter(
-            book__user=request.user,
-            published=True
-        ).order_by('-created_at')  # 按创建时间降序排列（最新的在前）
-        
-        # 添加分页
-        page = request.GET.get('page', 1)
-        try:
-            page_size = int(request.GET.get('page_size', 10))
-            page_size = min(max(page_size, 5), 50)  # 限制在5-50之间
-        except (ValueError, TypeError):
-            page_size = 10
-            
-        # 创建分页器，即使没有数据也要创建
-        paginator = Paginator(published_audio_segments_qs, page_size)
-        
-        try:
-            audio_segments = paginator.page(page)
-        except PageNotAnInteger:
+    # 创建分页器
+    paginator = Paginator(all_audio_items, page_size)
+    
+    try:
+        audio_segments = paginator.page(page)
+    except PageNotAnInteger:
+        audio_segments = paginator.page(1)
+    except EmptyPage:
+        if paginator.num_pages > 0:
+            audio_segments = paginator.page(paginator.num_pages)
+        else:
             audio_segments = paginator.page(1)
-        except EmptyPage:
-            # 如果页面超出范围，显示最后一页
-            if paginator.num_pages > 0:
-                audio_segments = paginator.page(paginator.num_pages)
-            else:
-                audio_segments = paginator.page(1)
-        
-        # 始终传递分页相关的上下文
-        context['audio_segments'] = audio_segments
-        context['paginator'] = paginator
-        context['page_size'] = page_size
-        context['page_size_options'] = [5, 10, 20, 50]
+    
+    context = {
+        'audio_segments': audio_segments,
+        'display_title': display_title,
+        'paginator': paginator,
+        'page_size': page_size,
+        'page_size_options': [5, 10, 20, 50]
+    }
     
     return render(request, "home/index.html", context)
 
 
 def audio_detail(request, segment_id):
-    # 获取音频片段对象，确保它存在且已发布
-    segment = get_object_or_404(AudioSegment, id=segment_id, published=True)
-    
-    # 如果用户已登录，确保用户只能访问自己的音频片段
-    # 修改逻辑：允许未登录用户访问已发布的音频片段（从RSS访问）
-    if request.user.is_authenticated and request.user != segment.book.user:
-        from django.http import Http404
-        raise Http404("您没有权限访问此页面")
-    
-    # 确保音频作者有一个有效的RSS token
-    if segment.book.user:  # 检查确保用户存在
-        ensure_rss_token(segment.book.user)
+    # 首先尝试从AudioSegment中查找
+    try:
+        segment = get_object_or_404(AudioSegment, id=segment_id, published=True)
+        segment_type = 'audio_segment'
+    except:
+        # 如果AudioSegment中没有，尝试从DialogueScript中查找
+        from workbench.models import DialogueScript
+        segment = get_object_or_404(DialogueScript, id=segment_id, published=True, audio_file__isnull=False)
+        segment_type = 'dialogue_script'
     
     context = {
-        'segment': segment
+        'segment': segment,
+        'segment_type': segment_type,
+        'display_title': f'音频详情 - {segment.title}',
     }
     
     return render(request, "home/audio_detail.html", context)
@@ -101,11 +102,8 @@ def book_audio_list(request, book_id):
     if book.user:  # 确保用户存在
         ensure_rss_token(book.user)
     
-    # 获取该书籍下已发布的音频片段
-    book_audio_segments_qs = AudioSegment.objects.filter(
-        book=book,
-        published=True
-    ).order_by('-created_at')  # 按创建时间降序排列（最新的在前）
+    # 使用统一的音频内容获取函数
+    book_audio_items = get_unified_audio_content(book=book, published_only=True)
     
     # 添加分页
     page = request.GET.get('page', 1)
@@ -115,8 +113,8 @@ def book_audio_list(request, book_id):
     except (ValueError, TypeError):
         page_size = 10
         
-    # 创建分页器，即使没有数据也要创建
-    paginator = Paginator(book_audio_segments_qs, page_size)
+    # 创建分页器
+    paginator = Paginator(book_audio_items, page_size)
     
     try:
         audio_segments = paginator.page(page)
@@ -162,11 +160,8 @@ def audio_rss_feed(request, user_id=None):
         author_name = user.username
         author_email = user.email if user.email else ""
         
-        # Filter segments for this specific user
-        segments = AudioSegment.objects.filter(
-            published=True, 
-            book__user__id=user_id
-        ).order_by('-updated_at')
+        # 使用统一函数获取该用户的所有音频内容
+        audio_items = get_unified_audio_content(user=user, published_only=True)
     else:
         # Original behavior for all users
         title = "Book2TTS 公开发布的音频"
@@ -174,10 +169,8 @@ def audio_rss_feed(request, user_id=None):
         author_name = "Book2TTS"
         author_email = ""
         
-        # Fetch all published audio segments, ordered by most recent first
-        segments = AudioSegment.objects.filter(
-            published=True
-        ).order_by('-updated_at')
+        # 获取所有已发布的音频内容
+        audio_items = get_unified_audio_content(published_only=True)
 
     link = request.build_absolute_uri(reverse('home'))  # Link to the homepage
     # 站点图标URL
@@ -197,43 +190,49 @@ def audio_rss_feed(request, user_id=None):
         author_email=author_email
     )
 
-    for segment in segments:
+    for item in audio_items:
         # 使用音频文件直接URL而不是网页URL
-        audio_url = request.build_absolute_uri(segment.file.url) if segment.file else None
+        audio_url = request.build_absolute_uri(item['file_url']) if item['file_url'] else None
         # 备用页面链接，如果没有音频文件
-        item_link = audio_url or request.build_absolute_uri(reverse('audio_detail', args=[segment.id]))
+        item_link = audio_url or request.build_absolute_uri(reverse('audio_detail', args=[item['id']]))
         
-        # 估计音频时长
-        duration_seconds, formatted_duration = estimate_audio_duration(segment.file if segment.file else None)
+        # 处理音频时长
+        if item['type'] == 'dialogue_script' and item.get('audio_duration'):
+            # 对话脚本有精确的时长
+            duration_seconds = int(item['audio_duration'])
+            formatted_duration = f"{duration_seconds//3600:02d}:{(duration_seconds%3600)//60:02d}:{duration_seconds%60:02d}"
+        else:
+            # 估计音频时长
+            duration_seconds, formatted_duration = estimate_audio_duration(item.get('file') if item.get('file') else None)
         
-        # 尝试获取段落的图片（如果有）或使用书籍的封面图
+        # 尝试获取图片（如果有）或使用书籍的封面图
         image_url = None
-        if hasattr(segment.book, 'cover_image') and segment.book.cover_image:
-            image_url = request.build_absolute_uri(segment.book.cover_image.url)
+        if item['book'] and hasattr(item['book'], 'cover_image') and item['book'].cover_image:
+            image_url = request.build_absolute_uri(item['book'].cover_image.url)
         else:
             image_url = request.build_absolute_uri('/static/images/default_cover.png')
         
         # 准备简短文本描述
-        description = segment.text or ''
+        description = item['text'] or ''
         # 截取文本，保留前300个字符
         short_description = description[:300] + ('...' if len(description) > 300 else '')
         
         # 添加条目
         add_podcast_entry(
             feed=feed,
-            title=f"{segment.book.name} - {segment.title}",
+            title=f"{item['book'].name if item['book'] else '对话脚本'} - {item['title']}",
             audio_url=audio_url,
-            audio_size=segment.file.size if segment.file else 0,
+            audio_size=item['file_size'],
             link=item_link,
             description=short_description,
-            pubdate=segment.updated_at,
-            author=segment.book.user.username if segment.book.user else "未知作者",
+            pubdate=item['updated_at'],
+            author=item['user'].username if item['user'] else "未知作者",
             duration_formatted=formatted_duration,
             duration_seconds=duration_seconds,
             image_url=image_url,
-            episode_number=segment.id,
-            season_number=segment.book.id if segment.book else None,
-            unique_id=str(segment.id)
+            episode_number=item['id'],
+            season_number=item['book'].id if item['book'] else None,
+            unique_id=f"{item['type']}_{item['id']}"
         )
 
     # 生成XML
@@ -306,11 +305,8 @@ def audio_rss_feed_by_book(request, token, book_id):
         author_name = user.username
         author_email = user.email if user.email else ""
         
-        # Filter segments for this specific book
-        segments = AudioSegment.objects.filter(
-            published=True, 
-            book=book
-        ).order_by('-updated_at')
+        # 使用统一函数获取该书籍的音频内容
+        audio_items = get_unified_audio_content(user=user, book=book, published_only=True)
         
     except Exception as e:
         # Return 404 if any error occurs
@@ -340,36 +336,42 @@ def audio_rss_feed_by_book(request, token, book_id):
         author_email=author_email
     )
 
-    for segment in segments:
+    for item in audio_items:
         # 使用音频文件直接URL而不是网页URL
-        audio_url = request.build_absolute_uri(segment.file.url) if segment.file else None
+        audio_url = request.build_absolute_uri(item['file_url']) if item['file_url'] else None
         # 备用页面链接，如果没有音频文件
-        item_link = audio_url or request.build_absolute_uri(reverse('audio_detail', args=[segment.id]))
-
-        # 估计音频时长
-        duration_seconds, formatted_duration = estimate_audio_duration(segment.file if segment.file else None)
-
+        item_link = audio_url or request.build_absolute_uri(reverse('audio_detail', args=[item['id']]))
+        
+        # 处理音频时长
+        if item['type'] == 'dialogue_script' and item.get('audio_duration'):
+            # 对话脚本有精确的时长
+            duration_seconds = int(item['audio_duration'])
+            formatted_duration = f"{duration_seconds//3600:02d}:{(duration_seconds%3600)//60:02d}:{duration_seconds%60:02d}"
+        else:
+            # 估计音频时长
+            duration_seconds, formatted_duration = estimate_audio_duration(item.get('file') if item.get('file') else None)
+        
         # 准备简短文本描述
-        description = segment.text or ''
+        description = item['text'] or ''
         # 截取文本，保留前300个字符
         short_description = description[:300] + ('...' if len(description) > 300 else '')
-
+        
         # 添加条目
         add_podcast_entry(
             feed=feed,
-            title=f"{segment.book.name} - {segment.title}",
+            title=f"{book.name} - {item['title']}",
             audio_url=audio_url,
-            audio_size=segment.file.size if segment.file else 0,
+            audio_size=item['file_size'],
             link=item_link,
             description=short_description,
-            pubdate=segment.updated_at,
-            author=user.username,
+            pubdate=item['updated_at'],
+            author=author_name,
             duration_formatted=formatted_duration,
             duration_seconds=duration_seconds,
             image_url=image_url,
-            episode_number=segment.id,
-            season_number=segment.book.id if segment.book else None,
-            unique_id=str(segment.id)
+            episode_number=item['id'],
+            season_number=book.id,
+            unique_id=f"{item['type']}_{item['id']}"
         )
 
     # 生成XML
@@ -381,12 +383,12 @@ def audio_rss_feed_by_book(request, token, book_id):
     # 应用清理
     cleaned_xml = clean_xml_output(xml_string)
     
-    # 缓存响应内容（30分钟）
-    cache.set(cache_key, cleaned_xml, 60 * 30)
+    # 缓存响应内容（15分钟）
+    cache.set(cache_key, cleaned_xml, 60 * 15)
     
     response = HttpResponse(cleaned_xml, content_type='application/xml')
     # 添加缓存控制头
-    response['Cache-Control'] = 'public, max-age=1800'  # 30分钟
+    response['Cache-Control'] = 'public, max-age=900'  # 15分钟
     response['ETag'] = f'rss-{hash(cleaned_xml)}'
     return response
 

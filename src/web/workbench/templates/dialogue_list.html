@@ -82,11 +82,16 @@
                                 详情
                             </a>
                             {% if script.audio_file and not script.published %}
-                                <a href="{% url 'dialogue_publish' script.id %}" 
-                                   class="text-green-600 hover:text-green-900 mr-3"
-                                   onclick="return confirm('确定要发布这个对话音频吗？')">
-                                    发布
-                                </a>
+                                <form style="display: inline;" 
+                                      method="post" 
+                                      action="{% url 'dialogue_publish' script.id %}"
+                                      onsubmit="return confirm('确定要发布这个对话音频吗？')">
+                                    {% csrf_token %}
+                                    <button type="submit" 
+                                            class="text-green-600 hover:text-green-900 mr-3 bg-transparent border-none cursor-pointer underline">
+                                        发布
+                                    </button>
+                                </form>
                             {% endif %}
                         </td>
                     </tr>

@@ -220,7 +220,7 @@ document.addEventListener('DOMContentLoaded', function() {
             is_default: formData.get('is_default') === 'on'
         };
         
-                 fetch('{% url "voice_role_create" %}', {
+        fetch('{% url "voice_role_create" %}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

@@ -45,11 +45,16 @@
                     <i class="fas fa-arrow-left mr-2"></i>返回列表
                 </a>
                 {% if script.audio_file and not script.published %}
-                <a href="{% url 'dialogue_publish' script.id %}" 
-                   class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg"
-                   onclick="return confirm('确定要发布这个对话音频吗？')">
-                    <i class="fas fa-upload mr-2"></i>发布音频
-                </a>
+                <form style="display: inline;" 
+                      method="post" 
+                      action="{% url 'dialogue_publish' script.id %}"
+                      onsubmit="return confirm('确定要发布这个对话音频吗？')">
+                    {% csrf_token %}
+                    <button type="submit" 
+                            class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg">
+                        <i class="fas fa-upload mr-2"></i>发布音频
+                    </button>
+                </form>
                 {% endif %}
             </div>
         </div>
