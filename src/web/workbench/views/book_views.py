@@ -223,7 +223,7 @@ def index(request, book_id):
 def upload(request):
     """Handle book file upload"""
     if request.method == "POST":
-        form = UploadFileForm(request.POST, request.FILES)
+        form = UploadFileForm(request.POST, request.FILES, user=request.user)
 
         if form.is_valid():
             try:
@@ -240,7 +240,7 @@ def upload(request):
                 
         # 如果表单无效或保存失败，重新显示表单和错误
     else:
-        form = UploadFileForm()
+        form = UploadFileForm(user=request.user)
     
     return render(request, "upload.html", {"form": form})
 

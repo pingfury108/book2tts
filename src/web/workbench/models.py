@@ -3,6 +3,7 @@ from django.utils import timezone
 from django.db import models
 from django.conf import settings
 import uuid
+import hashlib
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
@@ -14,17 +15,36 @@ class Books(models.Model):
     name = models.TextField(default="")
     file_type = models.TextField(default="")
     file = models.FileField(upload_to='books/%Y/%m/%d/')
+    md5_hash = models.CharField(max_length=32, blank=True, db_index=True, help_text="文件的MD5哈希值，用于检测重复文件")
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self) -> str:
         return self.name.__str__()
 
+    def calculate_md5(self):
+        """计算文件的MD5哈希值"""
+        if not self.file:
+            return ""
+        
+        try:
+            hash_md5 = hashlib.md5()
+            self.file.seek(0)  # 确保从文件开头读取
+            for chunk in iter(lambda: self.file.read(4096), b""):
+                hash_md5.update(chunk)
+            self.file.seek(0)  # 重置文件指针
+            return hash_md5.hexdigest()
+        except Exception:
+            return ""
+
     def setkw(self, user):
         file = Path(self.file.path)
         self.user = user
         self.name = file.stem
         self.file_type = file.suffix
+        # 计算并设置MD5哈希值
+        if not self.md5_hash:
+            self.md5_hash = self.calculate_md5()
         return
 
     def save(self, *args, **kwargs):

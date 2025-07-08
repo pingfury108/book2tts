@@ -5,10 +5,10 @@ from .models import Books, AudioSegment
 
 
 class BooksAdmin(admin.ModelAdmin):
-    list_display = ('name', 'user', 'file_type', 'created_at')
+    list_display = ('name', 'user', 'file_type', 'md5_hash', 'created_at')
     list_filter = ('file_type', 'user')
-    search_fields = ('name',)
-    readonly_fields = ('file_type', 'created_at', 'updated_at')
+    search_fields = ('name', 'md5_hash')
+    readonly_fields = ('file_type', 'md5_hash', 'created_at', 'updated_at')
 
 
 class AudioSegmentAdmin(admin.ModelAdmin):
