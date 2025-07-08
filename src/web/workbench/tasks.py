@@ -7,11 +7,13 @@ from django.conf import settings
 from django.core.files.base import ContentFile
 from django.contrib.auth.models import User
 from django.db import transaction
+from django.utils import timezone
 
-from .models import Books, AudioSegment
+from .models import Books, AudioSegment, DialogueScript, UserTask
 from book2tts.edgetts import EdgeTTS
 from book2tts.audio_utils import get_audio_duration, estimate_audio_duration_from_text
 from home.models import UserQuota, OperationRecord
+from book2tts.multi_voice_tts import MultiVoiceTTS
 
 # Get a logger instance for the tasks
 logger = get_task_logger(__name__)
@@ -274,4 +276,129 @@ def cleanup_old_audio_files(self):
     # 这里可以添加清理逻辑
     # 例如：删除超过30天的未发布音频文件
     
-    return "Cleanup task completed" 
+    return "Cleanup task completed"
+
+
+@shared_task(bind=True)
+def generate_dialogue_audio_task(self, script_id, voice_mapping):
+    """生成对话音频的异步任务"""
+    try:
+        # 更新任务状态
+        self.update_state(state='PROCESSING', meta={'message': '开始生成对话音频...'})
+        logger.info(f"Starting dialogue audio generation for script {script_id}")
+        
+        # 获取对话脚本
+        try:
+            script = DialogueScript.objects.get(pk=script_id)
+        except DialogueScript.DoesNotExist:
+            error_msg = f"对话脚本不存在: {script_id}"
+            logger.error(error_msg)
+            raise Exception(error_msg)
+        
+        # 更新用户任务状态
+        try:
+            user_task = UserTask.objects.get(task_id=self.request.id)
+            user_task.status = 'processing'
+            user_task.progress_message = '正在生成对话音频...'
+            user_task.save()
+        except UserTask.DoesNotExist:
+            logger.warning(f"UserTask not found for task {self.request.id}")
+        
+        # 初始化多音色TTS服务
+        multi_voice_tts = MultiVoiceTTS()
+        
+        # 创建临时输出文件
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
+            temp_output_path = temp_file.name
+        
+        try:
+            # 更新任务状态
+            self.update_state(state='PROCESSING', meta={'message': '正在合成多角色音频...'})
+            
+            # 生成对话音频
+            synthesis_result = multi_voice_tts.synthesize_dialogue(
+                dialogue_data=script.script_data,
+                voice_mapping=voice_mapping,
+                output_file=temp_output_path
+            )
+            
+            if not synthesis_result['success']:
+                error_msg = f"对话音频合成失败: {synthesis_result['error']}"
+                logger.error(error_msg)
+                
+                # 更新用户任务为失败状态
+                if 'user_task' in locals():
+                    user_task.status = 'failure'
+                    user_task.error_message = error_msg
+                    user_task.save()
+                
+                raise Exception(error_msg)
+            
+            # 更新任务状态
+            self.update_state(state='PROCESSING', meta={'message': '音频生成完成，正在保存...'})
+            
+            # 保存音频文件到对话脚本
+            filename = f"dialogue_{script_id}_{int(time.time())}.wav"
+            
+            with open(temp_output_path, "rb") as f:
+                script.audio_file.save(filename, ContentFile(f.read()))
+            
+            # 获取音频时长
+            try:
+                audio_duration = get_audio_duration(temp_output_path, "")
+                script.audio_duration = audio_duration
+            except Exception as e:
+                logger.warning(f"Failed to get audio duration: {e}")
+                script.audio_duration = multi_voice_tts.estimate_audio_duration(script.script_data)
+            
+            script.save()
+            
+            # 更新用户任务为成功状态
+            if 'user_task' in locals():
+                user_task.status = 'success'
+                user_task.progress_message = '对话音频生成完成'
+                user_task.result_data = {
+                    'audio_file': script.audio_file.url if script.audio_file else None,
+                    'audio_duration': script.audio_duration,
+                    'segments_count': synthesis_result.get('segments_count', 0),
+                    'speakers': synthesis_result.get('speakers', [])
+                }
+                user_task.completed_at = timezone.now()
+                user_task.save()
+            
+            logger.info(f"Dialogue audio generation completed for script {script_id}")
+            
+            return {
+                'success': True,
+                'script_id': script_id,
+                'audio_file': script.audio_file.url if script.audio_file else None,
+                'audio_duration': script.audio_duration
+            }
+            
+        finally:
+            # 清理临时文件
+            if os.path.exists(temp_output_path):
+                try:
+                    os.unlink(temp_output_path)
+                except Exception as e:
+                    logger.warning(f"Failed to cleanup temp file {temp_output_path}: {e}")
+    
+    except Exception as e:
+        error_msg = f"对话音频生成任务失败: {str(e)}"
+        logger.error(error_msg)
+        
+        # 更新用户任务为失败状态
+        try:
+            user_task = UserTask.objects.get(task_id=self.request.id)
+            user_task.status = 'failure'
+            user_task.error_message = error_msg
+            user_task.completed_at = timezone.now()
+            user_task.save()
+        except UserTask.DoesNotExist:
+            pass
+        
+        self.update_state(
+            state='FAILURE',
+            meta={'error': error_msg}
+        )
+        raise 

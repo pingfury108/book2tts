@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold text-gray-900">创建对话脚本</h1>
+        <p class="text-gray-600 mt-2">使用AI将文本内容转换为对话形式的脚本</p>
+    </div>
+
+    <div class="bg-white shadow-md rounded-lg p-6">
+        <form id="dialogue-form">
+            <div class="mb-6">
+                <label for="title" class="block text-sm font-medium text-gray-700 mb-2">
+                    脚本标题
+                </label>
+                <input type="text" id="title" name="title" 
+                       class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                       placeholder="为您的对话脚本起一个标题">
+            </div>
+
+            <div class="mb-6">
+                <label for="book_id" class="block text-sm font-medium text-gray-700 mb-2">
+                    关联书籍（可选）
+                </label>
+                <select id="book_id" name="book_id" 
+                        class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                    <option value="">不关联任何书籍</option>
+                    {% for book in books %}
+                    <option value="{{ book.id }}">{{ book.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-6">
+                <label for="text" class="block text-sm font-medium text-gray-700 mb-2">
+                    原始文本内容 <span class="text-red-500">*</span>
+                </label>
+                <textarea id="text" name="text" rows="12" 
+                          class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                          placeholder="请输入需要转换为对话的文本内容..."
+                          required></textarea>
+                <p class="text-sm text-gray-500 mt-2">
+                    支持长文本，系统会自动分段处理。建议文本长度在1000-5000字之间效果最佳。
+                </p>
+            </div>
+
+            <div class="mb-6">
+                <div class="flex items-center justify-between mb-2">
+                    <label for="custom_prompt" class="block text-sm font-medium text-gray-700">
+                        自定义提示词（可选）
+                    </label>
+                    <button type="button" id="toggle-custom-prompt" 
+                            class="text-sm text-indigo-600 hover:text-indigo-500">
+                        显示高级选项
+                    </button>
+                </div>
+                <div id="custom-prompt-section" class="hidden">
+                    <textarea id="custom_prompt" name="custom_prompt" rows="8" 
+                              class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                              placeholder="如果需要自定义AI转换规则，可以在此输入提示词..."></textarea>
+                    <p class="text-sm text-gray-500 mt-2">
+                        留空将使用默认的对话转换提示词。自定义提示词需要包含完整的转换指令。
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex justify-between">
+                <a href="{% url 'dialogue_list' %}" 
+                   class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded-lg">
+                    取消
+                </a>
+                <button type="submit" id="convert-btn"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg">
+                    <i class="fas fa-magic mr-2"></i>转换为对话
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 转换进度模态框 -->
+    <div id="conversion-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100">
+                    <i class="fas fa-magic text-blue-600"></i>
+                </div>
+                <h3 class="text-lg leading-6 font-medium text-gray-900 mt-2">正在转换中...</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-sm text-gray-500">
+                        AI正在分析您的文本并转换为对话格式，请稍候...
+                    </p>
+                    <div class="mt-4">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('dialogue-form');
+    const convertBtn = document.getElementById('convert-btn');
+    const modal = document.getElementById('conversion-modal');
+    const toggleBtn = document.getElementById('toggle-custom-prompt');
+    const customPromptSection = document.getElementById('custom-prompt-section');
+    
+    // 切换自定义提示词显示
+    toggleBtn.addEventListener('click', function() {
+        if (customPromptSection.classList.contains('hidden')) {
+            customPromptSection.classList.remove('hidden');
+            toggleBtn.textContent = '隐藏高级选项';
+        } else {
+            customPromptSection.classList.add('hidden');
+            toggleBtn.textContent = '显示高级选项';
+        }
+    });
+    
+    // 表单提交处理
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const data = {
+            title: formData.get('title'),
+            book_id: formData.get('book_id') || null,
+            text: formData.get('text'),
+            custom_prompt: formData.get('custom_prompt')
+        };
+        
+        // 验证必填字段
+        if (!data.text.trim()) {
+            alert('请输入文本内容');
+            return;
+        }
+        
+        // 显示加载状态
+        convertBtn.disabled = true;
+        convertBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>转换中...';
+        modal.classList.remove('hidden');
+        
+        // 发送转换请求
+        fetch('{% url "dialogue_convert_text" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            modal.classList.add('hidden');
+            convertBtn.disabled = false;
+            convertBtn.innerHTML = '<i class="fas fa-magic mr-2"></i>转换为对话';
+            
+            if (result.success) {
+                alert('对话脚本创建成功！即将跳转到详情页面。');
+                window.location.href = '/workbench/dialogue/' + result.script_id + '/';
+            } else {
+                alert('转换失败：' + result.error);
+            }
+        })
+        .catch(error => {
+            modal.classList.add('hidden');
+            convertBtn.disabled = false;
+            convertBtn.innerHTML = '<i class="fas fa-magic mr-2"></i>转换为对话';
+            alert('网络错误：' + error.message);
+        });
+    });
+});
+</script>
+{% endblock %} 

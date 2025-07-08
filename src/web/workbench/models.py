@@ -137,3 +137,83 @@ class UserTask(models.Model):
     def is_finished(self):
         """检查任务是否已完成（无论成功还是失败）"""
         return self.status in ['success', 'failure', 'revoked']
+
+class VoiceRole(models.Model):
+    """音色角色模型，用于管理对话中的角色和对应的TTS音色"""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='voice_roles')
+    name = models.CharField(max_length=100, help_text="角色名称，如：主持人、嘉宾、旁白等")
+    tts_provider = models.CharField(max_length=20, choices=[('edge_tts', 'Edge TTS'), ('azure', 'Azure TTS')], default='azure')
+    voice_name = models.CharField(max_length=100, help_text="TTS语音模型名称")
+    is_default = models.BooleanField(default=False, help_text="是否为默认角色")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ['user', 'name']
+        ordering = ['name']
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.name} ({self.voice_name})"
+
+
+class DialogueScript(models.Model):
+    """对话脚本模型，存储LLM转换后的对话脚本"""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='dialogue_scripts')
+    book = models.ForeignKey(Books, on_delete=models.CASCADE, related_name='dialogue_scripts', null=True, blank=True)
+    title = models.CharField(max_length=500, help_text="对话脚本标题")
+    original_text = models.TextField(help_text="原始文本内容")
+    script_data = models.JSONField(help_text="LLM解析后的JSON格式对话数据")
+    
+    # 音频生成相关
+    audio_file = models.FileField(upload_to='dialogue_audio/%Y/%m/%d/', null=True, blank=True)
+    audio_duration = models.FloatField(null=True, blank=True, help_text="音频时长（秒）")
+    published = models.BooleanField(default=False, help_text="是否发布到成品")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.title} - {self.user.username}"
+    
+    @property
+    def segment_count(self):
+        """获取对话段落数量"""
+        if self.script_data and 'segments' in self.script_data:
+            return len(self.script_data['segments'])
+        return 0
+    
+    @property
+    def speakers(self):
+        """获取对话中的所有说话者"""
+        speakers = set()
+        if self.script_data and 'segments' in self.script_data:
+            for segment in self.script_data['segments']:
+                speakers.add(segment.get('speaker', ''))
+        return list(speakers)
+
+
+class DialogueSegment(models.Model):
+    """对话片段模型，用于存储角色音色配置"""
+    script = models.ForeignKey(DialogueScript, on_delete=models.CASCADE, related_name='segments')
+    speaker = models.CharField(max_length=100, help_text="说话者名称")
+    voice_role = models.ForeignKey(VoiceRole, on_delete=models.SET_NULL, null=True, blank=True, help_text="分配的音色角色")
+    sequence = models.IntegerField(help_text="片段顺序")
+    utterance = models.TextField(help_text="说话内容")
+    dialogue_type = models.CharField(max_length=20, choices=[('dialogue', '对话'), ('narration', '旁白')], default='dialogue')
+    
+    # 音频相关
+    audio_file = models.FileField(upload_to='dialogue_segments/%Y/%m/%d/', null=True, blank=True)
+    audio_duration = models.FloatField(null=True, blank=True, help_text="片段音频时长（秒）")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['script', 'sequence']
+        unique_together = ['script', 'sequence']
+    
+    def __str__(self):
+        return f"{self.script.title} - {self.speaker} (#{self.sequence})"

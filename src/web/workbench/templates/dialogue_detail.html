@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<style>
+/* 自定义滚动条样式 */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Firefox */
+.custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f1f5f9;
+}
+</style>
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-6">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">{{ script.title }}</h1>
+                <p class="text-gray-600 mt-2">
+                    {% if script.book %}关联书籍：{{ script.book.name }}{% endif %}
+                    | 创建时间：{{ script.created_at|date:"Y-m-d H:i" }}
+                </p>
+            </div>
+            <div class="flex space-x-3">
+                <a href="{% url 'dialogue_list' %}" 
+                   class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded-lg">
+                    <i class="fas fa-arrow-left mr-2"></i>返回列表
+                </a>
+                {% if script.audio_file and not script.published %}
+                <a href="{% url 'dialogue_publish' script.id %}" 
+                   class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg"
+                   onclick="return confirm('确定要发布这个对话音频吗？')">
+                    <i class="fas fa-upload mr-2"></i>发布音频
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[80vh]">
+        <!-- 对话内容预览 -->
+        <div class="lg:col-span-2">
+            <div class="bg-white shadow-md rounded-lg p-6 h-full flex flex-col relative">
+                <h2 class="text-xl font-semibold mb-4">对话内容</h2>
+                <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 relative">
+                    {% for segment in segments %}
+                    <div class="mb-3 p-4 rounded-lg transition-all {% if segment.dialogue_type == 'narration' %}bg-gray-50 hover:bg-gray-100{% else %}bg-blue-50 hover:bg-blue-100{% endif %} border border-transparent hover:border-gray-200">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-medium text-sm 
+                                {% if segment.dialogue_type == 'narration' %}text-gray-600{% else %}text-blue-600{% endif %}">
+                                {{ segment.speaker }}
+                                {% if segment.voice_role %}
+                                    <span class="text-xs bg-green-100 text-green-600 px-2 py-1 rounded ml-2">
+                                        {{ segment.voice_role.voice_name }}
+                                    </span>
+                                {% endif %}
+                            </span>
+                            <span class="text-xs text-gray-500">
+                                #{{ segment.sequence }}
+                            </span>
+                        </div>
+                        <p class="text-gray-800">{{ segment.utterance }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                <!-- 滚动渐变提示 -->
+                <div class="absolute bottom-6 left-6 right-6 h-6 bg-gradient-to-t from-white to-transparent pointer-events-none opacity-0 transition-opacity duration-300" id="scroll-fade"></div>
+            </div>
+        </div>
+
+        <!-- 音色配置和控制面板 -->
+        <div class="lg:col-span-1">
+            <!-- 状态信息 -->
+            <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+                <h3 class="text-lg font-semibold mb-3">状态信息</h3>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span>片段数量：</span>
+                        <span>{{ segments.count }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>说话者数量：</span>
+                        <span>{{ speakers|length }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>音频状态：</span>
+                        <span>
+                            {% if script.audio_file %}
+                                {% if script.published %}
+                                    <span class="text-green-600">已发布</span>
+                                {% else %}
+                                    <span class="text-blue-600">已生成</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-gray-600">未生成</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    {% if script.audio_duration %}
+                    <div class="flex justify-between">
+                        <span>音频时长：</span>
+                        <span>{{ script.audio_duration|floatformat:1 }} 秒</span>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                {% if script.audio_file %}
+                <div class="mt-4">
+                    <audio controls class="w-full">
+                        <source src="{{ script.audio_file.url }}" type="audio/wav">
+                        您的浏览器不支持音频播放。
+                    </audio>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- 音色配置 -->
+            <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+                <h3 class="text-lg font-semibold mb-3">音色配置</h3>
+                <form id="voice-config-form">
+                    {% for speaker in speakers %}
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ speaker }}
+                        </label>
+                        <select name="voice_mapping[{{ speaker }}][voice_role_id]" 
+                                class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                            <option value="">选择音色角色</option>
+                            {% for role in voice_roles %}
+                            <option value="{{ role.id }}"
+                                {% for segment in segments %}
+                                    {% if segment.speaker == speaker and segment.voice_role.id == role.id %}selected{% endif %}
+                                {% endfor %}>
+                                {{ role.name }} ({{ role.voice_name }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endfor %}
+                    
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg">
+                        <i class="fas fa-save mr-2"></i>保存配置
+                    </button>
+                </form>
+            </div>
+
+            <!-- 音频生成 -->
+            <div class="bg-white shadow-md rounded-lg p-6">
+                <h3 class="text-lg font-semibold mb-3">音频生成</h3>
+                <form id="audio-generation-form">
+                    <button type="submit" id="generate-audio-btn"
+                            class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg"
+                            {% if not voice_roles %}disabled{% endif %}>
+                        <i class="fas fa-microphone mr-2"></i>生成音频
+                    </button>
+                    
+                    {% if not voice_roles %}
+                    <p class="text-sm text-red-500 mt-2">
+                        请先<a href="{% url 'voice_roles_list' %}" class="underline">创建音色角色</a>并配置音色
+                    </p>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const voiceConfigForm = document.getElementById('voice-config-form');
+    const audioGenerationForm = document.getElementById('audio-generation-form');
+    const generateAudioBtn = document.getElementById('generate-audio-btn');
+    
+    // 滚动提示功能
+    const scrollContainer = document.querySelector('.custom-scrollbar');
+    const scrollFade = document.getElementById('scroll-fade');
+    
+    function updateScrollFade() {
+        if (scrollContainer) {
+            const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+            const isScrollable = scrollHeight > clientHeight;
+            const isNearBottom = scrollTop + clientHeight >= scrollHeight - 10;
+            
+            if (isScrollable && !isNearBottom) {
+                scrollFade.style.opacity = '1';
+            } else {
+                scrollFade.style.opacity = '0';
+            }
+        }
+    }
+    
+    if (scrollContainer) {
+        scrollContainer.addEventListener('scroll', updateScrollFade);
+        // 初始检查
+        setTimeout(updateScrollFade, 100);
+    }
+    
+    // 保存音色配置
+    voiceConfigForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(voiceConfigForm);
+        const voiceMapping = {};
+        
+        // 构建音色映射数据
+        for (const [key, value] of formData.entries()) {
+            if (key.startsWith('voice_mapping[') && key.endsWith('][voice_role_id]') && value) {
+                const speaker = key.match(/voice_mapping\[(.+?)\]\[voice_role_id\]/)[1];
+                voiceMapping[speaker] = {
+                    voice_role_id: value
+                };
+            }
+        }
+        
+        fetch('{% url "dialogue_configure_voices" script.id %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                voice_mapping: voiceMapping
+            })
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                alert('音色配置已保存');
+                location.reload();
+            } else {
+                alert('保存失败：' + result.error);
+            }
+        })
+        .catch(error => {
+            alert('网络错误：' + error.message);
+        });
+    });
+    
+    // 生成音频
+    audioGenerationForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // 显示加载状态
+        generateAudioBtn.disabled = true;
+        generateAudioBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>生成中...';
+        
+        fetch('{% url "dialogue_generate_audio" script.id %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({})
+        })
+        .then(response => response.json())
+        .then(result => {
+            generateAudioBtn.disabled = false;
+            generateAudioBtn.innerHTML = '<i class="fas fa-microphone mr-2"></i>生成音频';
+            
+            if (result.success) {
+                alert('音频生成任务已开始，请在任务队列中查看进度');
+                // 可以选择跳转到任务队列页面
+                window.open('{% url "task_queue" %}', '_blank');
+            } else {
+                alert('任务创建失败：' + result.error);
+            }
+        })
+        .catch(error => {
+            generateAudioBtn.disabled = false;
+            generateAudioBtn.innerHTML = '<i class="fas fa-microphone mr-2"></i>生成音频';
+            alert('网络错误：' + error.message);
+        });
+    });
+});
+</script>
+{% endblock %} 

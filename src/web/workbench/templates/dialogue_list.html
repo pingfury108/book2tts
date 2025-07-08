@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    {% if page_obj.object_list %}
+        <div class="flex justify-end mb-6">
+            <a href="{% url 'dialogue_create' %}" 
+               class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg">
+                <i class="fas fa-plus mr-2"></i>创建对话脚本
+            </a>
+        </div>
+        <div class="bg-white shadow-md rounded-lg overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            标题
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            关联书籍
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            片段数
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            状态
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            创建时间
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            操作
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for script in scripts %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">
+                                {{ script.title|truncatechars:50 }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-500">
+                                {% if script.book %}
+                                    {{ script.book.name|truncatechars:30 }}
+                                {% else %}
+                                    无关联书籍
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">
+                                {{ script.segment_count }} 个片段
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if script.audio_file %}
+                                {% if script.published %}
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                        已发布
+                                    </span>
+                                {% else %}
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                        已生成
+                                    </span>
+                                {% endif %}
+                            {% else %}
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                                    未生成
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ script.created_at|date:"Y-m-d H:i" }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <a href="{% url 'dialogue_detail' script.id %}" 
+                               class="text-indigo-600 hover:text-indigo-900 mr-3">
+                                详情
+                            </a>
+                            {% if script.audio_file and not script.published %}
+                                <a href="{% url 'dialogue_publish' script.id %}" 
+                                   class="text-green-600 hover:text-green-900 mr-3"
+                                   onclick="return confirm('确定要发布这个对话音频吗？')">
+                                    发布
+                                </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 分页 -->
+        {% if page_obj.has_other_pages %}
+        <div class="mt-6 flex justify-center">
+            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}" 
+                       class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                        上一页
+                    </a>
+                {% endif %}
+                
+                <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                    第 {{ page_obj.number }} 页，共 {{ page_obj.paginator.num_pages }} 页
+                </span>
+                
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}" 
+                       class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                        下一页
+                    </a>
+                {% endif %}
+            </nav>
+        </div>
+        {% endif %}
+    {% else %}
+        <div class="text-center py-12">
+            <div class="mx-auto h-12 w-12 text-gray-400">
+                <i class="fas fa-comments text-4xl"></i>
+            </div>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">暂无对话脚本</h3>
+            <p class="mt-1 text-sm text-gray-500">开始创建您的第一个对话脚本</p>
+            <div class="mt-6">
+                <a href="{% url 'dialogue_create' %}" 
+                   class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                    <i class="fas fa-plus mr-2"></i>
+                    创建对话脚本
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %} 

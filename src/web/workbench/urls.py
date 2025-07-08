@@ -18,6 +18,18 @@ from .views.audio_views import (
     cancel_task,
     delete_task_record,
 )
+from .views.dialogue_views import (
+    dialogue_list,
+    dialogue_create,
+    dialogue_convert_text,
+    dialogue_detail,
+    dialogue_configure_voices,
+    dialogue_generate_audio,
+    dialogue_publish,
+    voice_roles_list,
+    voice_role_create,
+    voice_role_delete,
+)
 
 urlpatterns = [
     path("", views.upload, name="index"),
@@ -58,4 +70,18 @@ urlpatterns = [
     path("tasks/", task_queue, name="task_queue"),
     path("task/cancel/<str:task_id>/", cancel_task, name="cancel_task"),
     path("task/delete/<str:task_id>/", delete_task_record, name="delete_task_record"),
+    
+    # 对话功能相关路由
+    path("dialogue/", dialogue_list, name="dialogue_list"),
+    path("dialogue/create/", dialogue_create, name="dialogue_create"),
+    path("dialogue/convert/", dialogue_convert_text, name="dialogue_convert_text"),
+    path("dialogue/<int:script_id>/", dialogue_detail, name="dialogue_detail"),
+    path("dialogue/<int:script_id>/configure-voices/", dialogue_configure_voices, name="dialogue_configure_voices"),
+    path("dialogue/<int:script_id>/generate-audio/", dialogue_generate_audio, name="dialogue_generate_audio"),
+    path("dialogue/<int:script_id>/publish/", dialogue_publish, name="dialogue_publish"),
+    
+    # 音色角色管理
+    path("voice-roles/", voice_roles_list, name="voice_roles_list"),
+    path("voice-roles/create/", voice_role_create, name="voice_role_create"),
+    path("voice-roles/<int:role_id>/delete/", voice_role_delete, name="voice_role_delete"),
 ]

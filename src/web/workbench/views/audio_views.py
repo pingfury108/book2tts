@@ -14,7 +14,7 @@ from django.db import transaction
 from django.core.paginator import Paginator
 from django.utils import timezone
 
-from ..models import Books, AudioSegment, UserTask
+from ..models import Books, AudioSegment, UserTask, DialogueScript
 from ..tasks import synthesize_audio_task
 from book2tts.tts import edge_tts_volices
 from book2tts.edgetts import EdgeTTS
@@ -39,17 +39,26 @@ def get_user_agent(request):
 
 @login_required
 def aggregated_audio_segments(request):
-    """Display aggregated audio segments grouped by book"""
+    """Display aggregated audio segments grouped by book, including dialogue audio"""
     # Get the current user's audio segments, ordered by created_at descending
     audio_segments = AudioSegment.objects.filter(user=request.user).order_by('-created_at')
+    
+    # Get published dialogue scripts
+    dialogue_scripts = DialogueScript.objects.filter(
+        user=request.user, 
+        published=True, 
+        audio_file__isnull=False
+    ).order_by('-created_at')
 
     # Aggregate by book
     aggregated_data = defaultdict(list)
     book_ids = {}  # Track book IDs for each book name
     
+    # Add traditional audio segments
     for segment in audio_segments:
         book_data = {
             "id": segment.id,
+            "type": "audio_segment",
             "title": segment.title,
             "text": segment.text,
             "book_page": segment.book_page,
@@ -59,6 +68,31 @@ def aggregated_audio_segments(request):
         }
         aggregated_data[segment.book.name].append(book_data)
         book_ids[segment.book.name] = segment.book.id  # Store book ID
+    
+    # Add dialogue audio
+    for script in dialogue_scripts:
+        book_name = script.book.name if script.book else "对话脚本"
+        book_data = {
+            "id": script.id,
+            "type": "dialogue_script",
+            "title": script.title,
+            "text": f"对话脚本 - {script.segment_count} 个片段",
+            "book_page": f"对话 ({len(script.speakers)} 个角色)",
+            "file_url": script.audio_file.url,
+            "published": script.published,
+            "created_at": script.created_at,
+            "audio_duration": script.audio_duration,
+            "speakers": script.speakers
+        }
+        aggregated_data[book_name].append(book_data)
+        if script.book:
+            book_ids[book_name] = script.book.id
+        else:
+            book_ids[book_name] = 0  # No book associated
+        
+    # Sort each book's segments by created_at descending
+    for book_name in aggregated_data:
+        aggregated_data[book_name].sort(key=lambda x: x['created_at'], reverse=True)
         
     # Prepare data structure with book IDs
     books_with_ids = {}

@@ -27,7 +27,7 @@ def logout_view(request):
 
 urlpatterns = [
     path("", include("home.urls")),
-    path("workbench/", include("workbench.urls")),
+    path('workbench/', include('workbench.urls')),
     path("admin/", admin.site.urls),
     path("__reload__/", include("django_browser_reload.urls")),
     
