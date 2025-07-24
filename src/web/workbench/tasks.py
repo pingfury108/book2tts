@@ -9,11 +9,21 @@ from django.contrib.auth.models import User
 from django.db import transaction
 from django.utils import timezone
 
-from .models import Books, AudioSegment, DialogueScript, UserTask
+from .models import Books, AudioSegment, DialogueScript, UserTask, DialogueSegment
 from book2tts.edgetts import EdgeTTS
 from book2tts.audio_utils import get_audio_duration, estimate_audio_duration_from_text
 from home.models import UserQuota, OperationRecord
 from book2tts.multi_voice_tts import MultiVoiceTTS
+
+# Import dialogue services - use lazy import to avoid circular imports
+def get_dialogue_service():
+    """延迟导入对话服务以避免循环导入"""
+    import os
+    import sys
+    sys.path.insert(0, os.path.join(settings.BASE_DIR, '..'))
+    from book2tts.dialogue_service import DialogueService
+    from book2tts.llm_service import LLMService
+    return DialogueService, LLMService
 
 # Get a logger instance for the tasks
 logger = get_task_logger(__name__)
@@ -277,6 +287,217 @@ def cleanup_old_audio_files(self):
     # 例如：删除超过30天的未发布音频文件
     
     return "Cleanup task completed"
+
+
+@shared_task(bind=True)
+def convert_text_to_dialogue_task(self, user_id, text, title, book_id=None, custom_prompt=None):
+    """将文本转换为对话脚本的异步任务"""
+    try:
+        # 更新任务状态
+        self.update_state(state='PROCESSING', meta={'message': '开始处理文本转换...'})
+        logger.info(f"Starting text to dialogue conversion for user {user_id}")
+        
+        # 获取用户对象
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            error_msg = f"用户不存在: {user_id}"
+            logger.error(error_msg)
+            raise Exception(error_msg)
+        
+        # 获取书籍对象（如果提供）
+        book = None
+        if book_id:
+            try:
+                book = Books.objects.get(pk=book_id, user=user)
+            except Books.DoesNotExist:
+                logger.warning(f"Book not found: {book_id}")
+        
+        # 更新用户任务状态
+        try:
+            user_task = UserTask.objects.get(task_id=self.request.id)
+            user_task.status = 'processing'
+            user_task.progress_message = '正在初始化AI服务...'
+            user_task.save()
+        except UserTask.DoesNotExist:
+            logger.warning(f"UserTask not found for task {self.request.id}")
+        
+        # 初始化对话服务
+        try:
+            DialogueService, LLMService = get_dialogue_service()
+            llm_service = LLMService()
+            dialogue_service = DialogueService(llm_service)
+        except Exception as e:
+            error_msg = f'LLM服务初始化失败: {str(e)}'
+            logger.error(error_msg)
+            raise Exception(error_msg)
+        
+        # 文本预处理 - 计算长度和分段
+        total_length = len(text)
+        logger.info(f"Processing text of length: {total_length}")
+        
+        # 更新任务状态
+        self.update_state(state='PROCESSING', meta={'message': '正在分析文本结构...'})
+        if 'user_task' in locals():
+            user_task.progress_message = '正在分析文本结构...'
+            user_task.save()
+        
+        # 分段处理逻辑
+        if total_length > 3000:
+            # 长文本分段处理
+            chunk_size = 3000
+            text_chunks = dialogue_service.split_long_text(text, max_length=chunk_size)
+            total_chunks = len(text_chunks)
+            
+            logger.info(f"Split text into {total_chunks} chunks for processing")
+            all_segments = []
+            
+            for i, chunk in enumerate(text_chunks):
+                progress_percent = int((i / total_chunks) * 100)
+                progress_message = f'正在处理第 {i+1}/{total_chunks} 段文本...'
+                
+                # 更新任务进度
+                self.update_state(
+                    state='PROCESSING', 
+                    meta={
+                        'message': progress_message,
+                        'progress': progress_percent,
+                        'chunk': i + 1,
+                        'total_chunks': total_chunks
+                    }
+                )
+                if 'user_task' in locals():
+                    user_task.progress_message = progress_message
+                    user_task.metadata['progress'] = progress_percent
+                    user_task.metadata['chunk'] = i + 1
+                    user_task.metadata['total_chunks'] = total_chunks
+                    user_task.save()
+                
+                # 转换当前段
+                result = dialogue_service.text_to_dialogue(
+                    chunk, 
+                    custom_prompt if custom_prompt else None
+                )
+                
+                if not result['success']:
+                    error_msg = f'第{i+1}段转换失败: {result["error"]}'
+                    logger.error(error_msg)
+                    raise Exception(error_msg)
+                
+                chunk_segments = result['dialogue_data'].get('segments', [])
+                all_segments.extend(chunk_segments)
+            
+            # 合并所有段落
+            dialogue_data = {
+                'title': title,
+                'segments': all_segments,
+                'total_chunks': total_chunks,
+                'original_length': total_length
+            }
+            
+        else:
+            # 短文本直接处理
+            self.update_state(state='PROCESSING', meta={'message': '正在转换文本为对话...'})
+            if 'user_task' in locals():
+                user_task.progress_message = '正在转换文本为对话...'
+                user_task.save()
+            
+            result = dialogue_service.text_to_dialogue(
+                text, 
+                custom_prompt if custom_prompt else None
+            )
+            
+            if not result['success']:
+                logger.error(f"Text conversion failed: {result['error']}")
+                raise Exception(f"文本转换失败: {result['error']}")
+            
+            dialogue_data = result['dialogue_data']
+            dialogue_data['original_length'] = total_length
+        
+        # 验证对话数据
+        self.update_state(state='PROCESSING', meta={'message': '正在验证对话数据...'})
+        if 'user_task' in locals():
+            user_task.progress_message = '正在验证对话数据...'
+            user_task.save()
+        
+        validation = dialogue_service.validate_dialogue_data(dialogue_data)
+        if not validation['is_valid']:
+            error_msg = f'对话数据验证失败: {"; ".join(validation["errors"])}'
+            logger.error(error_msg)
+            raise Exception(error_msg)
+        
+        # 保存到数据库
+        self.update_state(state='PROCESSING', meta={'message': '正在保存对话脚本...'})
+        if 'user_task' in locals():
+            user_task.progress_message = '正在保存对话脚本...'
+            user_task.save()
+        
+        with transaction.atomic():
+            script = DialogueScript.objects.create(
+                user=user,
+                book=book,
+                title=dialogue_data.get('title', title),
+                original_text=text,
+                script_data=dialogue_data
+            )
+            
+            # 创建对话片段记录
+            segments = dialogue_data.get('segments', [])
+            for i, segment_data in enumerate(segments):
+                DialogueSegment.objects.create(
+                    script=script,
+                    speaker=segment_data.get('speaker', '未知'),
+                    sequence=i + 1,
+                    utterance=segment_data.get('utterance', ''),
+                    dialogue_type=segment_data.get('type', 'dialogue')
+                )
+            
+            # 获取说话者列表
+            speakers = dialogue_service.get_speakers_from_dialogue(dialogue_data)
+            
+            # 更新用户任务为成功状态
+            if 'user_task' in locals():
+                user_task.status = 'success'
+                user_task.progress_message = '对话脚本创建完成'
+                user_task.result_data = {
+                    'script_id': script.id,
+                    'title': script.title,
+                    'segments_count': len(segments),
+                    'speakers': speakers,
+                    'original_length': total_length
+                }
+                user_task.completed_at = timezone.now()
+                user_task.save()
+        
+        logger.info(f"Text to dialogue conversion completed for user {user_id}, script {script.id}")
+        
+        return {
+            'success': True,
+            'script_id': script.id,
+            'title': script.title,
+            'segments_count': len(segments),
+            'speakers': speakers
+        }
+        
+    except Exception as e:
+        error_msg = f"文本转换对话失败: {str(e)}"
+        logger.error(error_msg)
+        
+        # 更新用户任务为失败状态
+        try:
+            user_task = UserTask.objects.get(task_id=self.request.id)
+            user_task.status = 'failure'
+            user_task.error_message = error_msg
+            user_task.completed_at = timezone.now()
+            user_task.save()
+        except UserTask.DoesNotExist:
+            pass
+        
+        self.update_state(
+            state='FAILURE',
+            meta={'error': error_msg}
+        )
+        raise
 
 
 @shared_task(bind=True)

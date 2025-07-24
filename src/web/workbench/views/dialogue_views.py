@@ -50,7 +50,7 @@ def dialogue_create(request):
 @csrf_exempt
 @require_POST
 def dialogue_convert_text(request):
-    """将文本转换为对话脚本的API接口"""
+    """将文本转换为对话脚本的API接口（异步版本）"""
     try:
         data = json.loads(request.body)
         text = data.get('text', '').strip()
@@ -64,101 +64,43 @@ def dialogue_convert_text(request):
         if not title:
             title = f"对话脚本 - {text[:50]}..."
         
-        # 初始化对话服务
-        try:
-            llm_service = LLMService()
-            dialogue_service = DialogueService(llm_service)
-        except Exception as e:
-            return JsonResponse({
-                'success': False, 
-                'error': f'LLM服务初始化失败: {str(e)}'
-            })
+        # 创建异步任务
+        from ..tasks import convert_text_to_dialogue_task
         
-        # 转换文本为对话
-        if len(text) > 3000:
-            # 长文本分段处理
-            text_chunks = dialogue_service.split_long_text(text, max_length=3000)
-            all_segments = []
-            
-            for i, chunk in enumerate(text_chunks):
-                result = dialogue_service.text_to_dialogue(
-                    chunk, 
-                    custom_prompt if custom_prompt else None
-                )
-                
-                if not result['success']:
-                    return JsonResponse({
-                        'success': False,
-                        'error': f'第{i+1}段转换失败: {result["error"]}'
-                    })
-                
-                chunk_segments = result['dialogue_data'].get('segments', [])
-                all_segments.extend(chunk_segments)
-            
-            # 合并所有段落
-            dialogue_data = {
-                'title': title,
-                'segments': all_segments
-            }
-        else:
-            # 短文本直接处理
-            result = dialogue_service.text_to_dialogue(
-                text, 
-                custom_prompt if custom_prompt else None
-            )
-            
-            if not result['success']:
-                return JsonResponse(result)
-            
-            dialogue_data = result['dialogue_data']
-        
-        # 验证对话数据
-        validation = dialogue_service.validate_dialogue_data(dialogue_data)
-        if not validation['is_valid']:
-            return JsonResponse({
-                'success': False,
-                'error': f'对话数据验证失败: {"; ".join(validation["errors"])}'
-            })
-        
-        # 保存到数据库
-        book = None
-        if book_id:
-            try:
-                book = Books.objects.get(id=book_id, user=request.user)
-            except Books.DoesNotExist:
-                pass
-        
-        script = DialogueScript.objects.create(
-            user=request.user,
-            book=book,
-            title=dialogue_data.get('title', title),
-            original_text=text,
-            script_data=dialogue_data
+        task_result = convert_text_to_dialogue_task.delay(
+            user_id=request.user.id,
+            text=text,
+            title=title,
+            book_id=book_id,
+            custom_prompt=custom_prompt if custom_prompt else None
         )
         
-        # 创建对话片段记录（用于后续音色配置）
-        segments = dialogue_data.get('segments', [])
-        for i, segment_data in enumerate(segments):
-            DialogueSegment.objects.create(
-                script=script,
-                speaker=segment_data.get('speaker', '未知'),
-                sequence=i + 1,
-                utterance=segment_data.get('utterance', ''),
-                dialogue_type=segment_data.get('type', 'dialogue')
-            )
+        # 创建用户任务记录
+        user_task = UserTask.objects.create(
+            user=request.user,
+            task_id=task_result.id,
+            task_type='dialogue_text_conversion',
+            book=Books.objects.get(id=book_id) if book_id else None,
+            title=f'对话转换: {title}',
+            status='pending',
+            metadata={
+                'text_length': len(text),
+                'title': title,
+                'book_id': book_id,
+                'has_custom_prompt': bool(custom_prompt)
+            }
+        )
         
         return JsonResponse({
             'success': True,
-            'script_id': script.id,
-            'title': script.title,
-            'segments_count': len(segments),
-            'speakers': dialogue_service.get_speakers_from_dialogue(dialogue_data)
+            'task_id': user_task.task_id,
+            'message': '对话转换任务已提交，正在后台处理...'
         })
         
     except json.JSONDecodeError:
         return JsonResponse({'success': False, 'error': '无效的JSON数据'})
     except Exception as e:
-        return JsonResponse({'success': False, 'error': f'转换过程中发生错误: {str(e)}'})
+        return JsonResponse({'success': False, 'error': f'任务提交失败: {str(e)}'})
 
 @login_required
 def dialogue_detail(request, script_id):
@@ -368,6 +310,32 @@ def voice_role_delete(request, role_id):
         
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'删除失败: {str(e)}'})
+
+@login_required
+def task_status(request, task_id):
+    """查询任务状态的API接口"""
+    try:
+        user_task = get_object_or_404(UserTask, task_id=task_id, user=request.user)
+        
+        return JsonResponse({
+            'success': True,
+            'task': {
+                'task_id': user_task.task_id,
+                'task_type': user_task.task_type,
+                'status': user_task.status,
+                'title': user_task.title,
+                'progress_message': user_task.progress_message,
+                'error_message': user_task.error_message,
+                'result_data': user_task.result_data,
+                'created_at': user_task.created_at.isoformat(),
+                'updated_at': user_task.updated_at.isoformat(),
+                'completed_at': user_task.completed_at.isoformat() if user_task.completed_at else None,
+                'metadata': user_task.metadata
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
 
 @login_required
 @require_POST

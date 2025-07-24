@@ -85,14 +85,78 @@
                 <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100">
                     <i class="fas fa-magic text-blue-600"></i>
                 </div>
-                <h3 class="text-lg leading-6 font-medium text-gray-900 mt-2">正在转换中...</h3>
+                <h3 class="text-lg leading-6 font-medium text-gray-900 mt-2">正在处理中...</h3>
                 <div class="mt-2 px-7 py-3">
-                    <p class="text-sm text-gray-500">
-                        AI正在分析您的文本并转换为对话格式，请稍候...
+                    <p id="progress-message" class="text-sm text-gray-500">
+                        正在提交任务到后台处理队列...
                     </p>
                     <div class="mt-4">
                         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
                     </div>
+                    <div class="mt-4">
+                        <div class="w-full bg-gray-200 rounded-full h-2.5">
+                            <div id="progress-bar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+                        </div>
+                        <p id="progress-text" class="text-xs text-gray-500 mt-1">准备中...</p>
+                    </div>
+                </div>
+                <div class="items-center px-4 py-3">
+                    <button id="cancel-task" class="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md shadow-sm hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                        取消任务
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 任务完成模态框 -->
+    <div id="completion-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <div id="completion-icon" class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+                    <i class="fas fa-check text-green-600"></i>
+                </div>
+                <h3 id="completion-title" class="text-lg leading-6 font-medium text-gray-900 mt-2">转换完成</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p id="completion-message" class="text-sm text-gray-500">
+                        对话脚本已成功创建！
+                    </p>
+                    <div id="completion-details" class="mt-4 text-sm text-gray-600">
+                        <!-- 动态填充详细信息 -->
+                    </div>
+                </div>
+                <div class="items-center px-4 py-3">
+                    <button id="go-to-detail" class="px-4 py-2 bg-blue-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300">
+                        查看详情
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 任务失败模态框 -->
+    <div id="error-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                    <i class="fas fa-exclamation-triangle text-red-600"></i>
+                </div>
+                <h3 class="text-lg leading-6 font-medium text-gray-900 mt-2">转换失败</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p id="error-message" class="text-sm text-gray-500">
+                        抱歉，对话转换过程中出现错误。
+                    </p>
+                    <div id="error-details" class="mt-4 text-sm text-red-600 bg-red-50 p-3 rounded">
+                        <!-- 动态填充错误详情 -->
+                    </div>
+                </div>
+                <div class="items-center px-4 py-3">
+                    <button id="retry-conversion" class="px-4 py-2 bg-blue-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300">
+                        重试
+                    </button>
+                    <button id="close-error" class="ml-2 px-4 py-2 bg-gray-300 text-gray-700 text-base font-medium rounded-md shadow-sm hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                        关闭
+                    </button>
                 </div>
             </div>
         </div>
@@ -103,9 +167,14 @@
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('dialogue-form');
     const convertBtn = document.getElementById('convert-btn');
-    const modal = document.getElementById('conversion-modal');
+    const progressModal = document.getElementById('conversion-modal');
+    const completionModal = document.getElementById('completion-modal');
+    const errorModal = document.getElementById('error-modal');
     const toggleBtn = document.getElementById('toggle-custom-prompt');
     const customPromptSection = document.getElementById('custom-prompt-section');
+    
+    let currentTaskId = null;
+    let pollInterval = null;
     
     // 切换自定义提示词显示
     toggleBtn.addEventListener('click', function() {
@@ -136,10 +205,20 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        submitConversionTask(data);
+    });
+    
+    function submitConversionTask(data) {
         // 显示加载状态
         convertBtn.disabled = true;
-        convertBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>转换中...';
-        modal.classList.remove('hidden');
+        convertBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>提交中...';
+        
+        // 重置进度显示
+        document.getElementById('progress-message').textContent = '正在提交任务到后台处理队列...';
+        document.getElementById('progress-bar').style.width = '0%';
+        document.getElementById('progress-text').textContent = '准备中...';
+        
+        progressModal.classList.remove('hidden');
         
         // 发送转换请求
         fetch('{% url "dialogue_convert_text" %}', {
@@ -152,23 +231,153 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(response => response.json())
         .then(result => {
-            modal.classList.add('hidden');
-            convertBtn.disabled = false;
-            convertBtn.innerHTML = '<i class="fas fa-magic mr-2"></i>转换为对话';
-            
             if (result.success) {
-                alert('对话脚本创建成功！即将跳转到详情页面。');
-                window.location.href = '/workbench/dialogue/' + result.script_id + '/';
+                currentTaskId = result.task_id;
+                startPollingTaskStatus(result.task_id);
             } else {
-                alert('转换失败：' + result.error);
+                showError(result.error);
             }
         })
         .catch(error => {
-            modal.classList.add('hidden');
-            convertBtn.disabled = false;
-            convertBtn.innerHTML = '<i class="fas fa-magic mr-2"></i>转换为对话';
-            alert('网络错误：' + error.message);
+            showError('网络错误：' + error.message);
         });
+    }
+    
+    function startPollingTaskStatus(taskId) {
+        pollInterval = setInterval(() => {
+            fetch(`/workbench/task/${taskId}/status/`)
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        updateTaskProgress(result.task);
+                        
+                        if (result.task.status === 'success') {
+                            clearInterval(pollInterval);
+                            showSuccess(result.task);
+                        } else if (result.task.status === 'failure') {
+                            clearInterval(pollInterval);
+                            showError(result.task.error_message || '转换失败');
+                        }
+                    } else {
+                        clearInterval(pollInterval);
+                        showError('获取任务状态失败：' + result.error);
+                    }
+                })
+                .catch(error => {
+                    clearInterval(pollInterval);
+                    showError('网络错误：' + error.message);
+                });
+        }, 2000); // 每2秒轮询一次
+    }
+    
+    function updateTaskProgress(task) {
+        const progressMessage = document.getElementById('progress-message');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        
+        progressMessage.textContent = task.progress_message || '处理中...';
+        
+        // 更新进度条
+        if (task.metadata && task.metadata.progress !== undefined) {
+            const progress = task.metadata.progress;
+            progressBar.style.width = `${progress}%`;
+            progressText.textContent = `${progress}%`;
+            
+            if (task.metadata.chunk && task.metadata.total_chunks) {
+                progressText.textContent = `${progress}% (${task.metadata.chunk}/${task.metadata.total_chunks})`;
+            }
+        } else {
+            // 估算进度
+            const status = task.status;
+            let estimatedProgress = 0;
+            
+            switch(status) {
+                case 'pending':
+                    estimatedProgress = 5;
+                    break;
+                case 'processing':
+                    estimatedProgress = 50;
+                    break;
+                case 'success':
+                    estimatedProgress = 100;
+                    break;
+                default:
+                    estimatedProgress = 0;
+            }
+            
+            progressBar.style.width = `${estimatedProgress}%`;
+            progressText.textContent = task.progress_message || '处理中...';
+        }
+    }
+    
+    function showSuccess(task) {
+        progressModal.classList.add('hidden');
+        
+        // 填充成功信息
+        const details = document.getElementById('completion-details');
+        if (task.result_data) {
+            details.innerHTML = `
+                <p><strong>标题：</strong> ${task.result_data.title}</p>
+                <p><strong>段落数：</strong> ${task.result_data.segments_count}</p>
+                <p><strong>角色数：</strong> ${task.result_data.speakers?.length || 0}</p>
+                <p><strong>文本长度：</strong> ${task.result_data.original_length || 0} 字符</p>
+            `;
+        }
+        
+        // 设置跳转按钮
+        document.getElementById('go-to-detail').onclick = function() {
+            if (task.result_data && task.result_data.script_id) {
+                window.location.href = '/workbench/dialogue/' + task.result_data.script_id + '/';
+            }
+        };
+        
+        completionModal.classList.remove('hidden');
+        
+        // 重置按钮状态
+        convertBtn.disabled = false;
+        convertBtn.innerHTML = '<i class="fas fa-magic mr-2"></i>转换为对话';
+    }
+    
+    function showError(message) {
+        progressModal.classList.add('hidden');
+        
+        // 填充错误信息
+        const errorDetails = document.getElementById('error-details');
+        errorDetails.textContent = message;
+        
+        errorModal.classList.remove('hidden');
+        
+        // 重置按钮状态
+        convertBtn.disabled = false;
+        convertBtn.innerHTML = '<i class="fas fa-magic mr-2"></i>转换为对话';
+    }
+    
+    // 取消任务
+    document.getElementById('cancel-task').addEventListener('click', function() {
+        if (pollInterval) {
+            clearInterval(pollInterval);
+        }
+        progressModal.classList.add('hidden');
+        convertBtn.disabled = false;
+        convertBtn.innerHTML = '<i class="fas fa-magic mr-2"></i>转换为对话';
+    });
+    
+    // 重试任务
+    document.getElementById('retry-conversion').addEventListener('click', function() {
+        errorModal.classList.add('hidden');
+        form.dispatchEvent(new Event('submit'));
+    });
+    
+    // 关闭错误模态框
+    document.getElementById('close-error').addEventListener('click', function() {
+        errorModal.classList.add('hidden');
+    });
+    
+    // 页面卸载时清除轮询
+    window.addEventListener('beforeunload', function() {
+        if (pollInterval) {
+            clearInterval(pollInterval);
+        }
     });
 });
 </script>

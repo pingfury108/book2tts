@@ -29,6 +29,7 @@ from .views.dialogue_views import (
     voice_roles_list,
     voice_role_create,
     voice_role_delete,
+    task_status,
 )
 
 urlpatterns = [
@@ -84,4 +85,7 @@ urlpatterns = [
     path("voice-roles/", voice_roles_list, name="voice_roles_list"),
     path("voice-roles/create/", voice_role_create, name="voice_role_create"),
     path("voice-roles/<int:role_id>/delete/", voice_role_delete, name="voice_role_delete"),
+    
+    # 任务状态查询
+    path("task/<str:task_id>/status/", task_status, name="task_status"),
 ]
