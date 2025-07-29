@@ -49,9 +49,21 @@
 
   <!-- 文本内容区域 -->
   <div class="bg-base-100 p-4 sm:p-6 rounded-lg shadow-md mb-6 sm:mb-8">
-    <h2 class="text-lg sm:text-xl font-bold mb-4">音频文本内容</h2>
+    <h2 class="text-lg sm:text-xl font-bold mb-4">
+      {% if segment_type == 'dialogue_script' %}
+        原始文本内容
+      {% else %}
+        音频文本内容
+      {% endif %}
+    </h2>
     <div class="prose max-w-none">
-      <p class="whitespace-pre-line text-sm sm:text-base leading-relaxed">{{ segment.text }}</p>
+      <p class="whitespace-pre-line text-sm sm:text-base leading-relaxed">
+        {% if segment_type == 'dialogue_script' %}
+          {{ segment.original_text }}
+        {% else %}
+          {{ segment.text }}
+        {% endif %}
+      </p>
     </div>
   </div>
 </div>

@@ -112,6 +112,7 @@ def get_unified_audio_content(user=None, book=None, published_only=True):
             'type': 'dialogue_script',
             'title': script.title,
             'text': f"🎭 对话脚本 ({script.segment_count}段) - {', '.join(script.speakers[:3])}{'...' if len(script.speakers) > 3 else ''}",
+            'original_text': script.original_text,  # 添加原始文本字段
             'book_page': f"对话音频 ({len(script.speakers)}个角色)",
             'file_url': script.audio_file.url if script.audio_file else None,
             'file_size': script.audio_file.size if script.audio_file else 0,

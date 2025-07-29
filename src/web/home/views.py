@@ -422,25 +422,18 @@ def audio_rss_feed_by_token(request, token, book_id=None):
             else:
                 image_url = request.build_absolute_uri('/static/images/default_cover.png')
             
-            # 筛选该用户特定书籍的已发布音频片段
-            segments = AudioSegment.objects.filter(
-                published=True, 
-                book__user=user,
-                book_id=book_id
-            ).order_by('-updated_at')
+            # 使用统一函数获取该用户特定书籍的音频内容
+            audio_items = get_unified_audio_content(user=user, book=book, published_only=True)
         else:
             title = f"{user.username}的有声书合集"
             description = f"{user.username}的有声书作品集"
             image_url = request.build_absolute_uri('/static/images/logo.png')
-            # 筛选该用户的已发布音频片段
-            segments = AudioSegment.objects.filter(
-                published=True, 
-                book__user=user
-            ).order_by('-updated_at')
+            # 使用统一函数获取该用户的所有音频内容
+            audio_items = get_unified_audio_content(user=user, published_only=True)
         
         # 如果找不到音频片段，仍然返回空的feed
-        if not segments.exists():
-            segments = []
+        if not audio_items:
+            audio_items = []
     except Exception as e:
         from django.http import Http404
         raise Http404("找不到该RSS订阅源")
@@ -461,43 +454,49 @@ def audio_rss_feed_by_token(request, token, book_id=None):
         author_email=user.email if user.email else ""
     )
 
-    for segment in segments:
+    for item in audio_items:
         # 使用音频文件直接URL而不是网页URL
-        audio_url = request.build_absolute_uri(segment.file.url) if segment.file else None
+        audio_url = request.build_absolute_uri(item['file_url']) if item['file_url'] else None
         # 备用页面链接，如果没有音频文件
-        item_link = audio_url or request.build_absolute_uri(reverse('audio_detail', args=[segment.id]))
+        item_link = audio_url or request.build_absolute_uri(reverse('audio_detail', args=[item['id']]))
 
-        # 估计音频时长
-        duration_seconds, formatted_duration = estimate_audio_duration(segment.file if segment.file else None)
+        # 处理音频时长
+        if item['type'] == 'dialogue_script' and item.get('audio_duration'):
+            # 对话脚本有精确的时长
+            duration_seconds = int(item['audio_duration'])
+            formatted_duration = f"{duration_seconds//3600:02d}:{(duration_seconds%3600)//60:02d}:{duration_seconds%60:02d}"
+        else:
+            # 估计音频时长
+            duration_seconds, formatted_duration = estimate_audio_duration(item.get('file') if item.get('file') else None)
         
         # 准备简短文本描述
-        description = segment.text or ''
+        description = item['text'] or ''
         # 截取文本，保留前300个字符
         short_description = description[:300] + ('...' if len(description) > 300 else '')
         
-        # 尝试获取段落的图片或使用书籍的封面图
+        # 尝试获取图片或使用书籍的封面图
         item_image_url = None
-        if hasattr(segment.book, 'cover_image') and segment.book.cover_image:
-            item_image_url = request.build_absolute_uri(segment.book.cover_image.url)
+        if item['book'] and hasattr(item['book'], 'cover_image') and item['book'].cover_image:
+            item_image_url = request.build_absolute_uri(item['book'].cover_image.url)
         else:
             item_image_url = image_url
 
         # 添加条目
         add_podcast_entry(
             feed=feed,
-            title=f"{segment.book.name} - {segment.title}",
+            title=f"{item['book'].name if item['book'] else '对话脚本'} - {item['title']}",
             audio_url=audio_url,
-            audio_size=segment.file.size if segment.file else 0,
+            audio_size=item['file_size'],
             link=item_link,
             description=short_description,
-            pubdate=segment.updated_at,
-            author=user.username,
+            pubdate=item['updated_at'],
+            author=item['user'].username if item['user'] else "未知作者",
             duration_formatted=formatted_duration,
             duration_seconds=duration_seconds,
             image_url=item_image_url,
-            episode_number=segment.id,
-            season_number=segment.book.id if segment.book else None,
-            unique_id=str(segment.id)
+            episode_number=item['id'],
+            season_number=item['book'].id if item['book'] else None,
+            unique_id=f"{item['type']}_{item['id']}"
         )
 
     # 生成XML

@@ -67,7 +67,8 @@ def book_details_htmx(request, book_id):
             segment_data.update({
                 'audio_duration': item.get('audio_duration'),
                 'speakers': item.get('speakers', []),
-                'segment_count': item.get('segment_count', 0)
+                'segment_count': item.get('segment_count', 0),
+                'original_text': item.get('original_text', '')  # 添加原始文本字段
             })
         segments.append(segment_data)
     

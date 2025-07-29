@@ -250,13 +250,13 @@ function updateSegmentPublishButton(buttonElement, data) {
                             <h3 class="text-lg sm:text-xl font-bold text-gray-900 leading-tight break-words">
                                 {% if segment.type == 'dialogue_script' %}
                                     🎭 {{ segment.title }}
-                                    {% if segment.speakers %}
-                                        <span class="text-sm text-gray-500 ml-2">({{ segment.speakers|length }}个角色)</span>
-                                    {% endif %}
                                 {% else %}
                                     🔖 {{ segment.title }}
                                 {% endif %}
                             </h3>
+                            {% if segment.type == 'dialogue_script' and segment.speakers %}
+                                <p class="text-sm text-gray-500 mt-1">{{ segment.speakers|length }}个角色</p>
+                            {% endif %}
                         </div>
                         
                         <!-- 操作按钮组 - 优化桌面端布局 -->
@@ -345,11 +345,6 @@ function updateSegmentPublishButton(buttonElement, data) {
                                         
                                         <!-- 页面信息或对话脚本特殊信息 -->
                                         {% if segment.type == 'dialogue_script' %}
-                                            <div class="flex items-center justify-center sm:justify-start space-x-2">
-                                                <i class="fas fa-users h-3 w-3 sm:h-4 sm:w-4"></i>
-                                                <span class="font-medium">片段:</span>
-                                                <span>{{ segment.segment_count|default:0 }}个</span>
-                                            </div>
                                             {% if segment.audio_duration %}
                                             <div class="flex items-center justify-center sm:justify-start space-x-2">
                                                 <i class="fas fa-clock h-3 w-3 sm:h-4 sm:w-4"></i>
@@ -431,7 +426,13 @@ function updateSegmentPublishButton(buttonElement, data) {
                                         </label>
                                         <div class="collapse-content max-h-32 sm:max-h-40 lg:max-h-64 overflow-y-auto 
                                                     text-xs sm:text-sm px-3 sm:px-4 pb-3 sm:pb-4">
-                                            <p class="text-base-content opacity-80 whitespace-pre-wrap leading-relaxed">{{ segment.text }}</p>
+                                            <p class="text-base-content opacity-80 whitespace-pre-wrap leading-relaxed">
+                                                {% if segment.type == 'dialogue_script' %}
+                                                    {{ segment.original_text }}
+                                                {% else %}
+                                                    {{ segment.text }}
+                                                {% endif %}
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
