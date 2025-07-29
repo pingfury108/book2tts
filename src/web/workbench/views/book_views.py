@@ -256,7 +256,8 @@ def my_upload_list(request):
     if page_size not in page_size_options:
         page_size = 10
     
-    books = Books.objects.filter(user=request.user).order_by('-created_at')
+    # 过滤掉虚拟类型的书籍，只显示真实上传的书籍
+    books = Books.objects.filter(user=request.user).exclude(file_type='.virtual').order_by('-created_at')
     
     # Setup pagination
     paginator = Paginator(books, page_size)
