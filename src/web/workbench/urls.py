@@ -26,6 +26,12 @@ from .views.dialogue_views import (
     dialogue_configure_voices,
     dialogue_generate_audio,
     dialogue_publish,
+    dialogue_delete,
+    dialogue_update_title,
+    dialogue_update_book,
+    dialogue_segment_delete,
+    dialogue_segment_update,
+    dialogue_segment_preview,
     voice_roles_list,
     voice_role_create,
     voice_role_delete,
@@ -80,6 +86,14 @@ urlpatterns = [
     path("dialogue/<int:script_id>/configure-voices/", dialogue_configure_voices, name="dialogue_configure_voices"),
     path("dialogue/<int:script_id>/generate-audio/", dialogue_generate_audio, name="dialogue_generate_audio"),
     path("dialogue/<int:script_id>/publish/", dialogue_publish, name="dialogue_publish"),
+    path("dialogue/<int:script_id>/delete/", dialogue_delete, name="dialogue_delete"),
+    path("dialogue/<int:script_id>/update-title/", dialogue_update_title, name="dialogue_update_title"),
+    path("dialogue/<int:script_id>/update-book/", dialogue_update_book, name="dialogue_update_book"),
+    
+    # 对话片段管理
+    path("dialogue/segment/<int:segment_id>/delete/", dialogue_segment_delete, name="dialogue_segment_delete"),
+    path("dialogue/segment/<int:segment_id>/update/", dialogue_segment_update, name="dialogue_segment_update"),
+    path("dialogue/segment/<int:segment_id>/preview/", dialogue_segment_preview, name="dialogue_segment_preview"),
     
     # 音色角色管理
     path("voice-roles/", voice_roles_list, name="voice_roles_list"),

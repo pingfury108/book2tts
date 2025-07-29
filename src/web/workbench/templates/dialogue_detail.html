@@ -33,11 +33,21 @@
     <div class="mb-6">
         <div class="flex justify-between items-center">
             <div>
-                <h1 class="text-3xl font-bold text-gray-900">{{ script.title }}</h1>
-                <p class="text-gray-600 mt-2">
-                    {% if script.book %}关联书籍：{{ script.book.name }}{% endif %}
-                    | 创建时间：{{ script.created_at|date:"Y-m-d H:i" }}
-                </p>
+                <div class="flex items-center">
+                    <h1 class="text-3xl font-bold text-gray-900 mr-3" id="script-title-display">{{ script.title }}</h1>
+                    <button type="button" 
+                            id="edit-script-btn"
+                            class="btn btn-ghost btn-sm text-blue-600 hover:text-blue-800">
+                        <i class="fas fa-edit"></i> 编辑
+                    </button>
+                </div>
+                <div class="mt-2">
+                    <span class="text-gray-600">关联书籍：</span>
+                    <span id="script-book-display" class="text-gray-600">
+                        {% if script.book %}{{ script.book.name }}{% else %}无关联书籍{% endif %}
+                    </span>
+                    <span class="text-gray-600 ml-4">| 创建时间：{{ script.created_at|date:"Y-m-d H:i" }}</span>
+                </div>
             </div>
             <div class="flex space-x-3">
                 <a href="{% url 'dialogue_list' %}" 
@@ -48,26 +58,32 @@
                 <form style="display: inline;" 
                       method="post" 
                       action="{% url 'dialogue_publish' script.id %}"
-                      onsubmit="return confirm('确定要发布这个对话音频吗？')">
+                      id="publish-form">
                     {% csrf_token %}
-                    <button type="submit" 
+                    <button type="button" 
+                            id="publish-btn"
                             class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg">
                         <i class="fas fa-upload mr-2"></i>发布音频
                     </button>
                 </form>
                 {% endif %}
+                <button type="button" 
+                        id="delete-script-btn"
+                        class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg">
+                    <i class="fas fa-trash mr-2"></i>删除脚本
+                </button>
             </div>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[80vh]">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6  min-h-[80vh]">
         <!-- 对话内容预览 -->
         <div class="lg:col-span-2">
-            <div class="bg-white shadow-md rounded-lg p-6 h-full flex flex-col relative">
-                <h2 class="text-xl font-semibold mb-4">对话内容</h2>
-                <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 relative">
+            <div class="bg-white shadow-md rounded-lg h-full flex flex-col relative">
+                <h2 class="text-xl font-semibold p-6 pb-4 border-b border-gray-200 flex-shrink-0">对话内容</h2>
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-6 pt-4 min-h-[60vh] max-h-[73.5vh]">
                     {% for segment in segments %}
-                    <div class="mb-3 p-4 rounded-lg transition-all {% if segment.dialogue_type == 'narration' %}bg-gray-50 hover:bg-gray-100{% else %}bg-blue-50 hover:bg-blue-100{% endif %} border border-transparent hover:border-gray-200">
+                    <div class="mb-3 p-4 rounded-lg transition-all {% if segment.dialogue_type == 'narration' %}bg-gray-50 hover:bg-gray-100{% else %}bg-blue-50 hover:bg-blue-100{% endif %} border border-transparent hover:border-gray-200 group">
                         <div class="flex items-center justify-between mb-2">
                             <span class="font-medium text-sm 
                                 {% if segment.dialogue_type == 'narration' %}text-gray-600{% else %}text-blue-600{% endif %}">
@@ -78,16 +94,39 @@
                                     </span>
                                 {% endif %}
                             </span>
-                            <span class="text-xs text-gray-500">
-                                #{{ segment.sequence }}
-                            </span>
+                            <div class="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span class="text-xs text-gray-500">#{{ segment.sequence }}</span>
+                                {% if segment.voice_role %}
+                                <button type="button" 
+                                        data-segment-id="{{ segment.id }}"
+                                        class="preview-segment-btn text-green-600 hover:text-green-800 p-1" 
+                                        title="听见">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                                {% endif %}
+                                <button type="button" 
+                                        data-segment-id="{{ segment.id }}"
+                                        data-speaker="{{ segment.speaker|escapejs }}"
+                                        data-text="{{ segment.utterance|escapejs }}"
+                                        data-sequence="{{ segment.sequence }}"
+                                        class="edit-segment-btn text-blue-600 hover:text-blue-800 p-1" 
+                                        title="编辑">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" 
+                                        data-segment-id="{{ segment.id }}"
+                                        class="delete-segment-btn text-red-600 hover:text-red-800 p-1" 
+                                        title="删除">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </div>
-                        <p class="text-gray-800">{{ segment.utterance }}</p>
+                        <p class="text-gray-800" id="segment-text-{{ segment.id }}">{{ segment.utterance }}</p>
                     </div>
                     {% endfor %}
                 </div>
                 <!-- 滚动渐变提示 -->
-                <div class="absolute bottom-6 left-6 right-6 h-6 bg-gradient-to-t from-white to-transparent pointer-events-none opacity-0 transition-opacity duration-300" id="scroll-fade"></div>
+                <div class="absolute bottom-0 left-6 right-6 h-8 bg-gradient-to-t from-white via-white/90 to-transparent pointer-events-none opacity-0 transition-opacity duration-300" id="scroll-fade"></div>
             </div>
         </div>
 
@@ -188,112 +227,663 @@
     </div>
 </div>
 
+<!-- DaisyUI Modals -->
+<!-- 脚本编辑对话框 -->
+<div id="edit-script-modal" class="modal">
+    <div class="modal-box w-11/12 max-w-2xl">
+        <h3 class="font-bold text-lg mb-4">编辑脚本信息</h3>
+        <div class="space-y-4">
+            <!-- 标题编辑 -->
+            <div>
+                <label class="label">
+                    <span class="label-text">脚本标题</span>
+                </label>
+                <input type="text" 
+                       id="edit-script-title" 
+                       class="input input-bordered w-full" 
+                       placeholder="请输入脚本标题"
+                       value="{{ script.title }}">
+            </div>
+            
+            <!-- 关联书籍编辑 -->
+            <div>
+                <label class="label">
+                    <span class="label-text">关联书籍</span>
+                </label>
+                <select id="edit-script-book" class="select select-bordered w-full">
+                    <option value="">无关联书籍</option>
+                    {% for book in books %}
+                    <option value="{{ book.id }}" 
+                        {% if script.book and script.book.id == book.id %}selected{% endif %}>
+                        {{ book.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div class="modal-action">
+            <button class="btn" id="cancel-script-edit">取消</button>
+            <button class="btn btn-primary" id="save-script-edit">
+                <i class="fas fa-save mr-2"></i>保存
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 确认对话框 -->
+<div id="confirm-modal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg" id="confirm-title">确认操作</h3>
+        <p class="py-4" id="confirm-message">确定要执行此操作吗？</p>
+        <div class="modal-action">
+            <button class="btn" id="confirm-cancel">取消</button>
+            <button class="btn btn-error" id="confirm-ok">确定</button>
+        </div>
+    </div>
+</div>
+
+<!-- 输入对话框 -->
+<div id="prompt-modal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg" id="prompt-title">输入信息</h3>
+        <div class="py-4">
+            <label class="label">
+                <span class="label-text" id="prompt-label">请输入内容：</span>
+            </label>
+            <input type="text" id="prompt-input" class="input input-bordered w-full" placeholder="请输入内容">
+        </div>
+        <div class="modal-action">
+            <button class="btn" id="prompt-cancel">取消</button>
+            <button class="btn btn-primary" id="prompt-ok">确定</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast 容器 -->
+<div id="toast-container" class="toast toast-end z-50"></div>
+
 <script>
+
+// DaisyUI 对话框和通知功能
+function showToast(message, type = 'info', duration = 3000) {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    
+    let alertClass = 'alert-info';
+    let icon = 'fas fa-info-circle';
+    
+    switch(type) {
+        case 'success':
+            alertClass = 'alert-success';
+            icon = 'fas fa-check-circle';
+            break;
+        case 'error':
+            alertClass = 'alert-error';
+            icon = 'fas fa-exclamation-circle';
+            break;
+        case 'warning':
+            alertClass = 'alert-warning';
+            icon = 'fas fa-exclamation-triangle';
+            break;
+    }
+    
+    toast.className = `alert ${alertClass} mb-2`;
+    toast.innerHTML = `
+        <i class="${icon}"></i>
+        <span>${message}</span>
+    `;
+    
+    container.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, duration);
+}
+
+function showConfirm(title, message, onConfirm, onCancel = null) {
+    const modal = document.getElementById('confirm-modal');
+    const titleEl = document.getElementById('confirm-title');
+    const messageEl = document.getElementById('confirm-message');
+    const confirmBtn = document.getElementById('confirm-ok');
+    const cancelBtn = document.getElementById('confirm-cancel');
+    
+    titleEl.textContent = title;
+    messageEl.textContent = message;
+    
+    // 清除之前的事件监听器
+    const newConfirmBtn = confirmBtn.cloneNode(true);
+    const newCancelBtn = cancelBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+    cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+    
+    // 添加新的事件监听器
+    newConfirmBtn.addEventListener('click', () => {
+        modal.classList.remove('modal-open');
+        if (onConfirm) onConfirm();
+    });
+    
+    newCancelBtn.addEventListener('click', () => {
+        modal.classList.remove('modal-open');
+        if (onCancel) onCancel();
+    });
+    
+    modal.classList.add('modal-open');
+}
+
+function showPrompt(title, label, defaultValue = '', onConfirm, onCancel = null) {
+    const modal = document.getElementById('prompt-modal');
+    const titleEl = document.getElementById('prompt-title');
+    const labelEl = document.getElementById('prompt-label');
+    const inputEl = document.getElementById('prompt-input');
+    const confirmBtn = document.getElementById('prompt-ok');
+    const cancelBtn = document.getElementById('prompt-cancel');
+    
+    titleEl.textContent = title;
+    labelEl.textContent = label;
+    inputEl.value = defaultValue;
+    
+    // 清除之前的事件监听器
+    const newConfirmBtn = confirmBtn.cloneNode(true);
+    const newCancelBtn = cancelBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+    cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+    
+    // 添加新的事件监听器
+    newConfirmBtn.addEventListener('click', () => {
+        const value = inputEl.value.trim();
+        if (value) {
+            modal.classList.remove('modal-open');
+            if (onConfirm) onConfirm(value);
+        } else {
+            showToast('请输入内容', 'warning');
+        }
+    });
+    
+    newCancelBtn.addEventListener('click', () => {
+        modal.classList.remove('modal-open');
+        if (onCancel) onCancel();
+    });
+    
+    // 支持回车键确认
+    inputEl.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            newConfirmBtn.click();
+        }
+    });
+    
+    modal.classList.add('modal-open');
+    setTimeout(() => {
+        inputEl.focus();
+        inputEl.select();
+    }, 100);
+}
+
+// 编辑脚本信息（标题和关联书籍）
+function editScript() {
+    const modal = document.getElementById('edit-script-modal');
+    const titleInput = document.getElementById('edit-script-title');
+    const bookSelect = document.getElementById('edit-script-book');
+    
+    // 设置当前值
+    titleInput.value = document.getElementById('script-title-display').textContent;
+    
+    // 显示弹窗
+    modal.classList.add('modal-open');
+    
+    // 聚焦标题输入框
+    setTimeout(() => {
+        titleInput.focus();
+        titleInput.select();
+    }, 100);
+}
+
+// 保存脚本信息
+function saveScript() {
+    const titleInput = document.getElementById('edit-script-title');
+    const bookSelect = document.getElementById('edit-script-book');
+    const saveBtn = document.getElementById('save-script-edit');
+    
+    const newTitle = titleInput.value.trim();
+    const newBookId = bookSelect.value;
+    const newBookName = bookSelect.options[bookSelect.selectedIndex].text;
+    
+    if (!newTitle) {
+        showToast('标题不能为空', 'warning');
+        return;
+    }
+    
+    // 显示加载状态
+    const originalText = saveBtn.innerHTML;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>保存中...';
+    saveBtn.disabled = true;
+    
+    // 准备请求数据
+    const promises = [];
+    const currentTitle = document.getElementById('script-title-display').textContent;
+    const currentBookText = document.getElementById('script-book-display').textContent;
+    
+    // 如果标题有变化，发送标题更新请求
+    if (newTitle !== currentTitle) {
+        promises.push(
+            fetch('{% url "dialogue_update_title" script.id %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ title: newTitle })
+            }).then(response => response.json())
+        );
+    }
+    
+    // 如果书籍有变化，发送书籍更新请求
+    const currentBookName = currentBookText === '无关联书籍' ? '' : currentBookText;
+    const selectedBookName = newBookId ? newBookName : '';
+    if (selectedBookName !== currentBookName) {
+        promises.push(
+            fetch('{% url "dialogue_update_book" script.id %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ book_id: newBookId || null })
+            }).then(response => response.json())
+        );
+    }
+    
+    // 如果没有变化，直接关闭弹窗
+    if (promises.length === 0) {
+        cancelScriptEdit();
+        return;
+    }
+    
+    // 执行所有请求
+    Promise.all(promises)
+        .then(results => {
+            saveBtn.innerHTML = originalText;
+            saveBtn.disabled = false;
+            
+            // 检查是否所有请求都成功
+            const allSuccess = results.every(result => result.success);
+            
+            if (allSuccess) {
+                // 更新页面显示
+                document.getElementById('script-title-display').textContent = newTitle;
+                document.getElementById('script-book-display').textContent = newBookId ? newBookName : '无关联书籍';
+                document.title = newTitle + ' - 对话脚本';
+                
+                showToast('脚本信息已更新', 'success');
+                cancelScriptEdit();
+            } else {
+                // 显示错误信息
+                const errors = results.filter(result => !result.success).map(result => result.error);
+                showToast('更新失败：' + errors.join(', '), 'error');
+            }
+        })
+        .catch(error => {
+            saveBtn.innerHTML = originalText;
+            saveBtn.disabled = false;
+            showToast('网络错误：' + error.message, 'error');
+        });
+}
+
+// 取消编辑脚本
+function cancelScriptEdit() {
+    const modal = document.getElementById('edit-script-modal');
+    modal.classList.remove('modal-open');
+}
+
+// 删除脚本
+function deleteScript() {
+    showConfirm('删除脚本', '确定要删除这个对话脚本吗？此操作不可恢复！', () => {
+        fetch('{% url "dialogue_delete" script.id %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showToast(result.message, 'success');
+                setTimeout(() => {
+                    window.location.href = '{% url "dialogue_list" %}';
+                }, 1500);
+            } else {
+                showToast('删除失败：' + result.error, 'error');
+            }
+        })
+        .catch(error => {
+            showToast('网络错误：' + error.message, 'error');
+        });
+    });
+}
+
+// 编辑片段
+function editSegment(segmentId, currentSpeaker, currentText, currentSequence) {
+    showPrompt('编辑说话者', '请输入说话者：', currentSpeaker, (newSpeaker) => {
+        showPrompt('编辑对话内容', '请输入对话内容：', currentText, (newText) => {
+            fetch(`/workbench/dialogue/segment/${segmentId}/update/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    speaker: newSpeaker,
+                    text: newText,
+                    sequence: currentSequence
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showToast('片段已更新', 'success');
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showToast('更新失败：' + result.error, 'error');
+                }
+            })
+            .catch(error => {
+                showToast('网络错误：' + error.message, 'error');
+            });
+        });
+    });
+}
+
+// 删除片段
+function deleteSegment(segmentId) {
+    showConfirm('删除片段', '确定要删除这个对话片段吗？此操作不可恢复！', () => {
+        fetch(`/workbench/dialogue/segment/${segmentId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showToast(result.message, 'success');
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showToast('删除失败：' + result.error, 'error');
+            }
+        })
+        .catch(error => {
+            showToast('网络错误：' + error.message, 'error');
+        });
+    });
+}
+
+// 预览片段音频
+function previewSegment(segmentId) {
+    showConfirm('生成预览音频', '将为这个片段生成预览音频，是否继续？', () => {
+        fetch(`/workbench/dialogue/segment/${segmentId}/preview/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showToast('预览音频生成任务已开始，请在任务队列中查看进度', 'success');
+                window.open('{% url "task_queue" %}', '_blank');
+            } else {
+                showToast('任务创建失败：' + result.error, 'error');
+            }
+        })
+        .catch(error => {
+            showToast('网络错误：' + error.message, 'error');
+        });
+    });
+}
+
+// 监听任务完成状态
+function checkTaskStatus(taskId, callback) {
+    fetch(`/workbench/task/${taskId}/status/`)
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            callback(result.task);
+        }
+    });
+}
+
+// 显示预览音频
+function showPreviewAudio(audioUrl, segmentId) {
+    // 创建音频播放元素
+    const audioContainer = document.createElement('div');
+    audioContainer.className = 'mt-2 p-2 bg-gray-100 rounded';
+    audioContainer.innerHTML = `
+        <audio controls class="w-full">
+            <source src="${audioUrl}" type="audio/wav">
+            您的浏览器不支持音频播放。
+        </audio>
+    `;
+    
+    const segmentElement = document.querySelector(`#segment-text-${segmentId}`);
+    if (segmentElement) {
+        segmentElement.parentNode.insertBefore(audioContainer, segmentElement.nextSibling);
+    }
+}
+
+// 页面加载完成后初始化
+function initializePreviewCheck() {
+    // 检查是否有预览任务在运行
+    const urlParams = new URLSearchParams(window.location.search);
+    const taskId = urlParams.get('preview_task');
+    if (taskId) {
+        // 轮询检查任务状态
+        const checkInterval = setInterval(() => {
+            checkTaskStatus(taskId, (task) => {
+                if (task.status === 'success') {
+                    clearInterval(checkInterval);
+                    showPreviewAudio(task.result_data.audio_file, task.metadata.segment_id);
+                } else if (task.status === 'failure') {
+                    clearInterval(checkInterval);
+                    showToast('预览音频生成失败：' + task.error_message, 'error');
+                }
+            });
+        }, 2000);
+    }
+}
+
+// 确保所有函数在DOM加载后绑定事件 - 只保留这一个DOMContentLoaded监听器
 document.addEventListener('DOMContentLoaded', function() {
     const voiceConfigForm = document.getElementById('voice-config-form');
     const audioGenerationForm = document.getElementById('audio-generation-form');
     const generateAudioBtn = document.getElementById('generate-audio-btn');
     
-    // 滚动提示功能
-    const scrollContainer = document.querySelector('.custom-scrollbar');
-    const scrollFade = document.getElementById('scroll-fade');
+    // 绑定按钮事件
+    const editScriptBtn = document.getElementById('edit-script-btn');
+    const deleteScriptBtn = document.getElementById('delete-script-btn');
+    const publishBtn = document.getElementById('publish-btn');
     
-    function updateScrollFade() {
-        if (scrollContainer) {
-            const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
-            const isScrollable = scrollHeight > clientHeight;
-            const isNearBottom = scrollTop + clientHeight >= scrollHeight - 10;
+    // 绑定脚本编辑按钮
+    if (editScriptBtn) {
+        editScriptBtn.addEventListener('click', editScript);
+    }
+    
+    // 绑定发布按钮
+    if (publishBtn) {
+        publishBtn.addEventListener('click', function() {
+            showConfirm('发布音频', '确定要发布这个对话音频吗？', () => {
+                const form = document.getElementById('publish-form');
+                form.submit();
+            });
+        });
+    }
+    
+    // 绑定脚本编辑弹窗的保存和取消按钮
+    const saveScriptBtn = document.getElementById('save-script-edit');
+    const cancelScriptBtn = document.getElementById('cancel-script-edit');
+    
+    if (saveScriptBtn) {
+        saveScriptBtn.addEventListener('click', saveScript);
+    }
+    
+    if (cancelScriptBtn) {
+        cancelScriptBtn.addEventListener('click', cancelScriptEdit);
+    }
+    
+    // 绑定删除脚本按钮
+    if (deleteScriptBtn) {
+        deleteScriptBtn.addEventListener('click', deleteScript);
+    }
+    
+    // 绑定片段按钮事件
+    document.querySelectorAll('.preview-segment-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const segmentId = this.dataset.segmentId;
+            previewSegment(segmentId);
+        });
+    });
+    
+    document.querySelectorAll('.edit-segment-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const segmentId = this.dataset.segmentId;
+            const speaker = this.dataset.speaker;
+            const text = this.dataset.text;
+            const sequence = parseInt(this.dataset.sequence);
+            editSegment(segmentId, speaker, text, sequence);
+        });
+    });
+    
+    document.querySelectorAll('.delete-segment-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const segmentId = this.dataset.segmentId;
+            deleteSegment(segmentId);
+        });
+    });
+    
+    // 绑定表单事件
+    if (voiceConfigForm) {
+        voiceConfigForm.addEventListener('submit', function(e) {
+            e.preventDefault();
             
-            if (isScrollable && !isNearBottom) {
-                scrollFade.style.opacity = '1';
-            } else {
-                scrollFade.style.opacity = '0';
+            const formData = new FormData(voiceConfigForm);
+            const voiceMapping = {};
+            
+            // 构建音色映射数据
+            for (const [key, value] of formData.entries()) {
+                if (key.startsWith('voice_mapping[') && key.endsWith('][voice_role_id]') && value) {
+                    const speaker = key.match(/voice_mapping\[(.+?)\]\[voice_role_id\]/)[1];
+                    voiceMapping[speaker] = {
+                        voice_role_id: value
+                    };
+                }
             }
-        }
-    }
-    
-    if (scrollContainer) {
-        scrollContainer.addEventListener('scroll', updateScrollFade);
-        // 初始检查
-        setTimeout(updateScrollFade, 100);
-    }
-    
-    // 保存音色配置
-    voiceConfigForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const formData = new FormData(voiceConfigForm);
-        const voiceMapping = {};
-        
-        // 构建音色映射数据
-        for (const [key, value] of formData.entries()) {
-            if (key.startsWith('voice_mapping[') && key.endsWith('][voice_role_id]') && value) {
-                const speaker = key.match(/voice_mapping\[(.+?)\]\[voice_role_id\]/)[1];
-                voiceMapping[speaker] = {
-                    voice_role_id: value
-                };
-            }
-        }
-        
-        fetch('{% url "dialogue_configure_voices" script.id %}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: JSON.stringify({
-                voice_mapping: voiceMapping
+            
+            fetch('{% url "dialogue_configure_voices" script.id %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    voice_mapping: voiceMapping
+                })
             })
-        })
-        .then(response => response.json())
-        .then(result => {
-            if (result.success) {
-                alert('音色配置已保存');
-                location.reload();
-            } else {
-                alert('保存失败：' + result.error);
-            }
-        })
-        .catch(error => {
-            alert('网络错误：' + error.message);
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showToast('音色配置已保存', 'success');
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showToast('保存失败：' + result.error, 'error');
+                }
+            })
+            .catch(error => {
+                showToast('网络错误：' + error.message, 'error');
+            });
         });
-    });
+    }
     
-    // 生成音频
-    audioGenerationForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        // 显示加载状态
-        generateAudioBtn.disabled = true;
-        generateAudioBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>生成中...';
-        
-        fetch('{% url "dialogue_generate_audio" script.id %}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: JSON.stringify({})
-        })
-        .then(response => response.json())
-        .then(result => {
-            generateAudioBtn.disabled = false;
-            generateAudioBtn.innerHTML = '<i class="fas fa-microphone mr-2"></i>生成音频';
+    if (audioGenerationForm) {
+        audioGenerationForm.addEventListener('submit', function(e) {
+            e.preventDefault();
             
-            if (result.success) {
-                alert('音频生成任务已开始，请在任务队列中查看进度');
-                // 可以选择跳转到任务队列页面
-                window.open('{% url "task_queue" %}', '_blank');
-            } else {
-                alert('任务创建失败：' + result.error);
-            }
-        })
-        .catch(error => {
-            generateAudioBtn.disabled = false;
-            generateAudioBtn.innerHTML = '<i class="fas fa-microphone mr-2"></i>生成音频';
-            alert('网络错误：' + error.message);
+            // 显示加载状态
+            generateAudioBtn.disabled = true;
+            generateAudioBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>生成中...';
+            
+            fetch('{% url "dialogue_generate_audio" script.id %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => response.json())
+            .then(result => {
+                generateAudioBtn.disabled = false;
+                generateAudioBtn.innerHTML = '<i class="fas fa-microphone mr-2"></i>生成音频';
+                
+                if (result.success) {
+                    showToast('音频生成任务已开始，请在任务队列中查看进度', 'success');
+                    window.open('{% url "task_queue" %}', '_blank');
+                } else {
+                    showToast('任务创建失败：' + result.error, 'error');
+                }
+            })
+            .catch(error => {
+                generateAudioBtn.disabled = false;
+                generateAudioBtn.innerHTML = '<i class="fas fa-microphone mr-2"></i>生成音频';
+                showToast('网络错误：' + error.message, 'error');
+            });
         });
-    });
+    }
+    
+    // 滚动提示功能
+    const scrollContainer = document.querySelector('.lg\\:col-span-2 .overflow-y-auto');
+    if (scrollContainer) {
+        scrollContainer.addEventListener('scroll', function() {
+            const scrollFade = document.getElementById('scroll-fade');
+            if (scrollFade) {
+                const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+                const isScrollable = scrollHeight > clientHeight;
+                const isNearBottom = scrollTop + clientHeight >= scrollHeight - 20;
+                
+                if (isScrollable && !isNearBottom) {
+                    scrollFade.style.opacity = '1';
+                } else {
+                    scrollFade.style.opacity = '0';
+                }
+            }
+        });
+        
+        // 初始检查
+        setTimeout(() => {
+            const scrollFade = document.getElementById('scroll-fade');
+            if (scrollFade) {
+                const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+                const isScrollable = scrollHeight > clientHeight;
+                const isNearBottom = scrollTop + clientHeight >= scrollHeight - 20;
+                
+                if (isScrollable && !isNearBottom) {
+                    scrollFade.style.opacity = '1';
+                } else {
+                    scrollFade.style.opacity = '0';
+                }
+            }
+        }, 100);
+    }
+    
+    // 初始化预览检查
+    initializePreviewCheck();
 });
 </script>
 {% endblock %} 

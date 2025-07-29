@@ -11,93 +11,103 @@
             </a>
         </div>
         <div class="bg-white shadow-md rounded-lg overflow-hidden">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            标题
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            关联书籍
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            片段数
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            状态
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            创建时间
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            操作
-                        </th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    {% for script in scripts %}
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm font-medium text-gray-900">
-                                {{ script.title|truncatechars:50 }}
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm text-gray-500">
-                                {% if script.book %}
-                                    {{ script.book.name|truncatechars:30 }}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                                标题
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                                关联书籍
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                                片段数
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                                状态
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                                创建时间
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                                操作
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for script in scripts %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900 max-w-xs">
+                                    <div class="truncate">{{ script.title }}</div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-500 max-w-xs">
+                                    {% if script.book %}
+                                        <div class="truncate">{{ script.book.name }}</div>
+                                    {% else %}
+                                        <span class="text-gray-400">无关联书籍</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">
+                                    {{ script.segment_count }} 个片段
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if script.audio_file %}
+                                    {% if script.published %}
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                            已发布
+                                        </span>
+                                    {% else %}
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                            已生成
+                                        </span>
+                                    {% endif %}
                                 {% else %}
-                                    无关联书籍
-                                {% endif %}
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm text-gray-900">
-                                {{ script.segment_count }} 个片段
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            {% if script.audio_file %}
-                                {% if script.published %}
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                        已发布
-                                    </span>
-                                {% else %}
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                                        已生成
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                                        未生成
                                     </span>
                                 {% endif %}
-                            {% else %}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
-                                    未生成
-                                </span>
-                            {% endif %}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {{ script.created_at|date:"Y-m-d H:i" }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <a href="{% url 'dialogue_detail' script.id %}" 
-                               class="text-indigo-600 hover:text-indigo-900 mr-3">
-                                详情
-                            </a>
-                            {% if script.audio_file and not script.published %}
-                                <form style="display: inline;" 
-                                      method="post" 
-                                      action="{% url 'dialogue_publish' script.id %}"
-                                      onsubmit="return confirm('确定要发布这个对话音频吗？')">
-                                    {% csrf_token %}
-                                    <button type="submit" 
-                                            class="text-green-600 hover:text-green-900 mr-3 bg-transparent border-none cursor-pointer underline">
-                                        发布
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ script.created_at|date:"Y-m-d H:i" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <div class="flex items-center space-x-3">
+                                    <a href="{% url 'dialogue_detail' script.id %}" 
+                                       class="text-indigo-600 hover:text-indigo-900">
+                                        详情
+                                    </a>
+                                    {% if script.audio_file and not script.published %}
+                                        <form style="display: inline;" 
+                                              method="post" 
+                                              action="{% url 'dialogue_publish' script.id %}"
+                                              id="publish-form-{{ script.id }}">
+                                            {% csrf_token %}
+                                            <button type="button" 
+                                                    onclick="publishScript({{ script.id }})"
+                                                    class="text-green-600 hover:text-green-900 bg-transparent border-none cursor-pointer underline">
+                                                发布
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                    <button type="button" 
+                                            onclick="deleteScript({{ script.id }}, '{{ script.title|escapejs }}')" 
+                                            class="text-red-600 hover:text-red-900 bg-transparent border-none cursor-pointer underline">
+                                        删除
                                     </button>
-                                </form>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <!-- 分页 -->
@@ -141,4 +151,121 @@
         </div>
     {% endif %}
 </div>
+
+<!-- DaisyUI Modals -->
+<!-- 确认对话框 -->
+<div id="confirm-modal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg" id="confirm-title">确认操作</h3>
+        <p class="py-4" id="confirm-message">确定要执行此操作吗？</p>
+        <div class="modal-action">
+            <button class="btn" id="confirm-cancel">取消</button>
+            <button class="btn btn-error" id="confirm-ok">确定</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast 容器 -->
+<div id="toast-container" class="toast toast-end z-50"></div>
+
+<script>
+// DaisyUI 对话框和通知功能
+function showToast(message, type = 'info', duration = 3000) {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    
+    let alertClass = 'alert-info';
+    let icon = 'fas fa-info-circle';
+    
+    switch(type) {
+        case 'success':
+            alertClass = 'alert-success';
+            icon = 'fas fa-check-circle';
+            break;
+        case 'error':
+            alertClass = 'alert-error';
+            icon = 'fas fa-exclamation-circle';
+            break;
+        case 'warning':
+            alertClass = 'alert-warning';
+            icon = 'fas fa-exclamation-triangle';
+            break;
+    }
+    
+    toast.className = `alert ${alertClass} mb-2`;
+    toast.innerHTML = `
+        <i class="${icon}"></i>
+        <span>${message}</span>
+    `;
+    
+    container.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, duration);
+}
+
+function showConfirm(title, message, onConfirm, onCancel = null) {
+    const modal = document.getElementById('confirm-modal');
+    const titleEl = document.getElementById('confirm-title');
+    const messageEl = document.getElementById('confirm-message');
+    const confirmBtn = document.getElementById('confirm-ok');
+    const cancelBtn = document.getElementById('confirm-cancel');
+    
+    titleEl.textContent = title;
+    messageEl.textContent = message;
+    
+    // 清除之前的事件监听器
+    const newConfirmBtn = confirmBtn.cloneNode(true);
+    const newCancelBtn = cancelBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+    cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+    
+    // 添加新的事件监听器
+    newConfirmBtn.addEventListener('click', () => {
+        modal.classList.remove('modal-open');
+        if (onConfirm) onConfirm();
+    });
+    
+    newCancelBtn.addEventListener('click', () => {
+        modal.classList.remove('modal-open');
+        if (onCancel) onCancel();
+    });
+    
+    modal.classList.add('modal-open');
+}
+
+function publishScript(scriptId) {
+    showConfirm('发布音频', '确定要发布这个对话音频吗？', () => {
+        const form = document.getElementById(`publish-form-${scriptId}`);
+        form.submit();
+    });
+}
+
+function deleteScript(scriptId, title) {
+    showConfirm('删除脚本', `确定要删除对话脚本「${title}」吗？此操作不可恢复！`, () => {
+        fetch(`/workbench/dialogue/${scriptId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showToast(result.message, 'success');
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showToast('删除失败：' + result.error, 'error');
+            }
+        })
+        .catch(error => {
+            showToast('网络错误：' + error.message, 'error');
+        });
+    });
+}
+</script>
 {% endblock %} 

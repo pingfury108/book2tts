@@ -111,6 +111,9 @@ def dialogue_detail(request, script_id):
     # 获取用户的音色角色
     voice_roles = VoiceRole.objects.filter(user=request.user).order_by('name')
     
+    # 获取用户的书籍列表
+    books = Books.objects.filter(user=request.user).order_by('name')
+    
     # 获取可用音色列表
     multi_voice_tts = MultiVoiceTTS()
     edge_voices = multi_voice_tts.get_available_voices('edge_tts')
@@ -119,6 +122,7 @@ def dialogue_detail(request, script_id):
         'script': script,
         'segments': segments,
         'voice_roles': voice_roles,
+        'books': books,
         'edge_voices_json': json.dumps(edge_voices),
         'speakers': script.speakers
     })
@@ -356,4 +360,180 @@ def dialogue_publish(request, script_id):
         
     except Exception as e:
         messages.error(request, f'发布失败: {str(e)}')
-        return redirect('dialogue_detail', script_id=script.id) 
+        return redirect('dialogue_detail', script_id=script.id)
+
+@login_required
+@csrf_exempt
+@require_POST
+def dialogue_delete(request, script_id):
+    """删除对话脚本"""
+    try:
+        script = get_object_or_404(DialogueScript, id=script_id, user=request.user)
+        script_title = script.title
+        script.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'对话脚本 "{script_title}" 已删除'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'删除失败: {str(e)}'})
+
+@login_required
+@csrf_exempt
+@require_POST
+def dialogue_update_title(request, script_id):
+    """更新对话脚本标题"""
+    try:
+        script = get_object_or_404(DialogueScript, id=script_id, user=request.user)
+        data = json.loads(request.body)
+        new_title = data.get('title', '').strip()
+        
+        if not new_title:
+            return JsonResponse({'success': False, 'error': '标题不能为空'})
+        
+        script.title = new_title
+        script.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': '标题已更新',
+            'title': script.title
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': '无效的JSON数据'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'更新失败: {str(e)}'})
+
+@login_required
+@csrf_exempt
+@require_POST
+def dialogue_update_book(request, script_id):
+    """更新对话脚本关联书籍"""
+    try:
+        script = get_object_or_404(DialogueScript, id=script_id, user=request.user)
+        data = json.loads(request.body)
+        book_id = data.get('book_id')
+        
+        if book_id:
+            # 验证书籍是否属于当前用户
+            book = get_object_or_404(Books, id=book_id, user=request.user)
+            script.book = book
+        else:
+            script.book = None
+        
+        script.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': '关联书籍已更新',
+            'book_name': script.book.name if script.book else None
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': '无效的JSON数据'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'更新失败: {str(e)}'})
+
+@login_required
+@csrf_exempt
+@require_POST
+def dialogue_segment_delete(request, segment_id):
+    """删除对话片段"""
+    try:
+        segment = get_object_or_404(DialogueSegment, id=segment_id, script__user=request.user)
+        segment.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': '片段已删除'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'删除失败: {str(e)}'})
+
+@login_required
+@csrf_exempt
+@require_POST
+def dialogue_segment_update(request, segment_id):
+    """更新对话片段"""
+    try:
+        segment = get_object_or_404(DialogueSegment, id=segment_id, script__user=request.user)
+        data = json.loads(request.body)
+        
+        # 更新允许字段
+        if 'speaker' in data:
+            segment.speaker = data['speaker'].strip()
+        if 'text' in data:
+            segment.text = data['text'].strip()
+        if 'sequence' in data:
+            segment.sequence = int(data['sequence'])
+        
+        segment.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': '片段已更新',
+            'segment': {
+                'id': segment.id,
+                'speaker': segment.speaker,
+                'text': segment.text,
+                'sequence': segment.sequence
+            }
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': '无效的JSON数据'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'更新失败: {str(e)}'})
+
+@login_required
+@csrf_exempt
+@require_POST
+def dialogue_segment_preview(request, segment_id):
+    """预览单个对话片段的音频"""
+    try:
+        segment = get_object_or_404(DialogueSegment, id=segment_id, script__user=request.user)
+        
+        if not segment.voice_role:
+            return JsonResponse({
+                'success': False,
+                'error': '该片段尚未配置音色角色'
+            })
+        
+        # 创建异步任务生成预览音频
+        from ..tasks import generate_segment_preview_task
+        
+        task_result = generate_segment_preview_task.delay(
+            segment_id=segment.id,
+            voice_config={
+                'provider': segment.voice_role.tts_provider,
+                'voice_name': segment.voice_role.voice_name
+            }
+        )
+        
+        # 创建用户任务记录
+        user_task = UserTask.objects.create(
+            user=request.user,
+            task_id=task_result.id,
+            task_type='segment_preview',
+            book=segment.script.book,
+            title=f'片段预览: {segment.text[:30]}...',
+            status='pending',
+            metadata={
+                'segment_id': segment.id,
+                'text': segment.text,
+                'speaker': segment.speaker
+            }
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'task_id': user_task.task_id,
+            'message': '预览音频生成中...'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'预览生成失败: {str(e)}'}) 
