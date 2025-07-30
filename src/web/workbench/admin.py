@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 # Register your models here.
-from .models import Books, AudioSegment, VoiceRole, DialogueScript, DialogueSegment
+from .models import Books, AudioSegment, VoiceRole, DialogueScript, DialogueSegment, UserProfile
 
 
 class BooksAdmin(admin.ModelAdmin):
@@ -51,3 +51,19 @@ class DialogueSegmentAdmin(admin.ModelAdmin):
     search_fields = ('script__title', 'speaker', 'utterance')
     readonly_fields = ('created_at', 'updated_at')
     ordering = ['script', 'sequence']
+
+
+@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = ('user', 'rss_token', 'get_user_email', 'get_user_date_joined')
+    list_filter = ('user',)
+    search_fields = ('user__username', 'user__email', 'rss_token')
+    readonly_fields = ('rss_token',)
+    
+    def get_user_email(self, obj):
+        return obj.user.email
+    get_user_email.short_description = "用户邮箱"
+    
+    def get_user_date_joined(self, obj):
+        return obj.user.date_joined
+    get_user_date_joined.short_description = "注册时间"
