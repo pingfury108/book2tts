@@ -444,7 +444,47 @@ def dialogue_segment_delete(request, segment_id):
     """删除对话片段"""
     try:
         segment = get_object_or_404(DialogueSegment, id=segment_id, script__user=request.user)
+        script = segment.script
+        
+        # 获取要删除的片段信息
+        segment_sequence = segment.sequence
+        
+        # 删除片段
         segment.delete()
+        
+        # 使用同步方法确保数据一致性
+        script.sync_script_data_with_segments()
+        
+        # 注释掉之前的手动同步逻辑，因为sync_script_data_with_segments已经处理了
+        # # 同步更新 script_data 中的 segments
+        # if script.script_data and 'segments' in script.script_data:
+        #     segments_data = script.script_data['segments']
+        #     
+        #     # 找到并删除对应的片段数据
+        #     # 由于sequence可能不连续，我们需要找到对应的片段
+        #     segments_to_keep = []
+        #     deleted_found = False
+        #     
+        #     for i, segment_data in enumerate(segments_data):
+        #         # 跳过要删除的片段（基于sequence匹配）
+        #         if not deleted_found and i + 1 == segment_sequence:
+        #             deleted_found = True
+        #             continue
+        #         segments_to_keep.append(segment_data)
+        #     
+        #     # 更新script_data
+        #     script.script_data['segments'] = segments_to_keep
+        #     script.save(update_fields=['script_data'])
+        
+        # 更新剩余片段的sequence，确保连续性
+        remaining_segments = script.segments.all().order_by('sequence')
+        for index, seg in enumerate(remaining_segments, 1):
+            if seg.sequence != index:
+                seg.sequence = index
+                seg.save(update_fields=['sequence'])
+        
+        # 再次同步以确保sequence更新后的一致性
+        script.sync_script_data_with_segments()
         
         return JsonResponse({
             'success': True,
@@ -463,15 +503,40 @@ def dialogue_segment_update(request, segment_id):
         segment = get_object_or_404(DialogueSegment, id=segment_id, script__user=request.user)
         data = json.loads(request.body)
         
+        old_speaker = segment.speaker
+        old_text = segment.utterance  # 使用正确的字段名
+        script_data_updated = False
+        
         # 更新允许字段
         if 'speaker' in data:
             segment.speaker = data['speaker'].strip()
         if 'text' in data:
-            segment.text = data['text'].strip()
+            segment.utterance = data['text'].strip()  # 更新正确的字段
         if 'sequence' in data:
             segment.sequence = int(data['sequence'])
         
         segment.save()
+        
+        # 同步更新 script_data 中的对应片段
+        script = segment.script
+        if script.script_data and 'segments' in script.script_data:
+            segments_data = script.script_data['segments']
+            
+            # 找到对应的片段数据并更新
+            for i, segment_data in enumerate(segments_data):
+                # 通过sequence匹配片段（注意：数组索引从0开始，sequence从1开始）
+                if i + 1 == segment.sequence:
+                    if 'speaker' in data:
+                        segment_data['speaker'] = segment.speaker
+                        script_data_updated = True
+                    if 'text' in data:
+                        segment_data['utterance'] = segment.utterance  # 使用正确的字段名
+                        script_data_updated = True
+                    break
+            
+            # 如果有更新，保存script_data
+            if script_data_updated:
+                script.save(update_fields=['script_data'])
         
         return JsonResponse({
             'success': True,
@@ -479,7 +544,7 @@ def dialogue_segment_update(request, segment_id):
             'segment': {
                 'id': segment.id,
                 'speaker': segment.speaker,
-                'text': segment.text,
+                'text': segment.utterance,  # 返回给前端时仍使用text字段名
                 'sequence': segment.sequence
             }
         })

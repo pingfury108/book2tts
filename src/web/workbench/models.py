@@ -195,6 +195,32 @@ class DialogueScript(models.Model):
             for segment in self.script_data['segments']:
                 speakers.add(segment.get('speaker', ''))
         return list(speakers)
+    
+    def sync_script_data_with_segments(self):
+        """同步script_data与DialogueSegment表数据"""
+        segments = self.segments.all().order_by('sequence')
+        
+        if not segments.exists():
+            # 如果没有片段，清空script_data
+            self.script_data = {'segments': []}
+            self.save(update_fields=['script_data'])
+            return
+        
+        # 重建script_data中的segments数组
+        segments_data = []
+        for segment in segments:
+            segments_data.append({
+                'speaker': segment.speaker,
+                'utterance': segment.utterance,  # 使用正确的字段名
+                'dialogue_type': segment.dialogue_type
+            })
+        
+        # 更新script_data
+        if not self.script_data:
+            self.script_data = {}
+        
+        self.script_data['segments'] = segments_data
+        self.save(update_fields=['script_data'])
 
 
 class DialogueSegment(models.Model):
