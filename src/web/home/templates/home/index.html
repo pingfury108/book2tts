@@ -61,6 +61,20 @@
                   <a href="{% url 'audio_detail' segment.id %}" class="btn btn-xs sm:btn-sm border-purple-700 text-purple-700 hover:bg-purple-100">
                     详情
                   </a>
+                  
+                  <!-- 字幕功能按钮 - 移动端 -->
+                  {% if segment.subtitle_file %}
+                  <div class="dropdown dropdown-end">
+                    <div tabindex="0" role="button" class="btn btn-xs btn-outline btn-secondary">
+                      <i class="fas fa-closed-captioning"></i>
+                    </div>
+                    <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-[1] w-32 p-2 shadow">
+                      <li><a href="{{ segment.subtitle_file.url }}" download><i class="fas fa-download"></i>下载</a></li>
+                      <li><a href="#" class="view-subtitles" data-segment-id="{{ segment.id }}" data-subtitle-url="{{ segment.subtitle_file.url }}"><i class="fas fa-eye"></i>查看</a></li>
+                    </ul>
+                  </div>
+                  {% endif %}
+                  
                   <button 
                     class="btn btn-circle bg-purple-700 hover:bg-purple-800 border-none text-white btn-sm play-audio-btn hover:scale-105 transition-transform" 
                     data-audio-url="{{ segment.file_url }}"
@@ -105,6 +119,21 @@
                 <a href="{% url 'audio_detail' segment.id %}" class="btn btn-sm border-purple-700 text-purple-700 hover:bg-purple-100">
                   详情
                 </a>
+                
+                <!-- 字幕功能按钮 - 桌面端 -->
+                {% if segment.subtitle_file %}
+                <div class="flex gap-1">
+                  <a href="{{ segment.subtitle_file.url }}" class="btn btn-sm btn-outline btn-secondary" download title="下载字幕">
+                    <i class="fas fa-download"></i>
+                  </a>
+                  <button class="btn btn-sm btn-outline btn-secondary view-subtitles" 
+                          data-segment-id="{{ segment.id }}" 
+                          data-subtitle-url="{{ segment.subtitle_file.url }}" 
+                          title="查看字幕">
+                    <i class="fas fa-closed-captioning"></i>
+                  </button>
+                </div>
+                {% endif %}
                 
                 <button 
                   class="btn btn-circle bg-purple-700 hover:bg-purple-800 border-none text-white btn-lg play-audio-btn hover:scale-105 transition-transform" 
@@ -200,6 +229,32 @@
   {% endif %}
 </div>
 
+<!-- 字幕查看模态窗口 -->
+<div id="subtitle-modal" class="modal">
+  <div class="modal-box w-11/12 max-w-3xl">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="font-bold text-lg">字幕内容</h3>
+      <button class="btn btn-sm btn-circle btn-ghost" onclick="closeSubtitleModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <div id="subtitle-content" class="max-h-96 overflow-y-auto">
+      <div class="text-center text-gray-500">
+        <i class="fas fa-spinner fa-spin mr-2"></i>
+        加载字幕中...
+      </div>
+    </div>
+    
+    <div class="modal-action">
+      <button class="btn btn-secondary" id="download-subtitle-btn">
+        <i class="fas fa-download mr-2"></i>下载字幕
+      </button>
+      <button class="btn" onclick="closeSubtitleModal()">关闭</button>
+    </div>
+  </div>
+</div>
+
 <!-- 音频播放器 -->
 <div id="audio-player-container" class="fixed bottom-0 left-0 right-0 bg-white shadow-lg transform transition-transform duration-300 translate-y-full z-50">
   <div class="container mx-auto flex flex-col gap-2 p-3 sm:p-4">
@@ -259,6 +314,32 @@
     const closePlayerMobile = document.getElementById('close-player-mobile');
     const closePlayerDesktop = document.getElementById('close-player-desktop');
     const playButtons = document.querySelectorAll('.play-audio-btn');
+    const viewSubtitlesButtons = document.querySelectorAll('.view-subtitles');
+    const subtitleModal = document.getElementById('subtitle-modal');
+    const subtitleContent = document.getElementById('subtitle-content');
+    const downloadSubtitleBtn = document.getElementById('download-subtitle-btn');
+    
+    let currentSubtitleUrl = '';
+    
+    // 字幕查看功能
+    viewSubtitlesButtons.forEach(button => {
+      button.addEventListener('click', function(e) {
+        e.preventDefault();
+        const subtitleUrl = this.getAttribute('data-subtitle-url');
+        currentSubtitleUrl = subtitleUrl;
+        showSubtitleModal(subtitleUrl);
+      });
+    });
+    
+    // 下载字幕按钮
+    downloadSubtitleBtn.addEventListener('click', function() {
+      if (currentSubtitleUrl) {
+        const link = document.createElement('a');
+        link.href = currentSubtitleUrl;
+        link.download = '';
+        link.click();
+      }
+    });
     
     // 添加播放按钮事件监听
     playButtons.forEach(button => {
@@ -316,6 +397,90 @@
       audioPlayerMobile.pause();
     });
   });
+  
+  // 字幕功能函数
+  function showSubtitleModal(subtitleUrl) {
+    const modal = document.getElementById('subtitle-modal');
+    const content = document.getElementById('subtitle-content');
+    
+    // 重置内容
+    content.innerHTML = `
+      <div class="text-center text-gray-500">
+        <i class="fas fa-spinner fa-spin mr-2"></i>
+        加载字幕中...
+      </div>
+    `;
+    
+    // 显示模态窗口
+    modal.classList.add('modal-open');
+    
+    // 加载字幕内容
+    fetch(subtitleUrl)
+      .then(response => response.text())
+      .then(subtitleText => {
+        content.innerHTML = formatSubtitles(subtitleText);
+      })
+      .catch(error => {
+        content.innerHTML = `
+          <div class="text-center text-red-500">
+            <i class="fas fa-exclamation-triangle mr-2"></i>
+            加载字幕失败
+          </div>
+        `;
+      });
+  }
+  
+  function closeSubtitleModal() {
+    const modal = document.getElementById('subtitle-modal');
+    modal.classList.remove('modal-open');
+  }
+  
+  function formatSubtitles(srtText) {
+    if (!srtText.trim()) {
+      return '<div class="text-center text-gray-500">暂无字幕内容</div>';
+    }
+    
+    // 解析SRT格式字幕
+    const entries = srtText.trim().split('\n\n');
+    let html = '<div class="space-y-3">';
+    
+    entries.forEach(entry => {
+      const lines = entry.trim().split('\n');
+      if (lines.length >= 3) {
+        const number = lines[0];
+        const timestamp = lines[1];
+        let text = lines.slice(2).join('\n');
+        
+        // 清理多余空格
+        text = cleanSubtitleText(text);
+        
+        html += `
+          <div class="border-l-4 border-primary pl-4 py-2 bg-base-200 rounded-r-lg">
+            <div class="text-xs text-gray-500 mb-1 font-mono">${timestamp}</div>
+            <div class="text-sm leading-relaxed">${text}</div>
+          </div>
+        `;
+      }
+    });
+    
+    html += '</div>';
+    return html;
+  }
+  
+  // 清理字幕文本中的多余空格
+  function cleanSubtitleText(text) {
+    // 去除多余的空格
+    text = text.replace(/\s+/g, ' ');
+    
+    // 去除标点符号前的空格
+    text = text.replace(/\s+([，。！？；：、）】』」}])/g, '$1');
+    
+    // 去除标点符号后多余的空格
+    text = text.replace(/([，。！？；：、（【『「{])\s+/g, '$1');
+    
+    // 去除开头和结尾的空格
+    return text.trim();
+  }
   
   // 处理每页显示数量变化
   function changePageSize(newSize) {

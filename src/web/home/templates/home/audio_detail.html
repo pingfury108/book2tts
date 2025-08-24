@@ -36,7 +36,7 @@
         {% endif %}
       </div>
     </div>
-    <div class="flex justify-center lg:justify-end">
+    <div class="flex flex-wrap gap-2 justify-center lg:justify-end">
       <button 
         class="btn btn-circle btn-primary btn-lg play-audio-btn hover:scale-105 transition-transform" 
         data-audio-url="{{ segment.file.url }}"
@@ -44,8 +44,38 @@
       >
         <i class="fas fa-play text-white text-2xl"></i>
       </button>
+      
+      <!-- 字幕下载和查看按钮 -->
+      {% if segment.subtitle_file or segment_type == 'dialogue_script' and segment.subtitle_file %}
+      <div class="flex gap-2">
+        <a href="{{ segment.subtitle_file.url }}" class="btn btn-secondary btn-lg" download>
+          <i class="fas fa-download"></i>
+          <span class="hidden sm:inline ml-2">下载字幕</span>
+        </a>
+        <button id="toggle-subtitles-btn" class="btn btn-outline btn-lg">
+          <i class="fas fa-closed-captioning"></i>
+          <span class="hidden sm:inline ml-2">查看字幕</span>
+        </button>
+      </div>
+      {% endif %}
     </div>
   </div>
+
+  <!-- 字幕显示区域 -->
+  {% if segment.subtitle_file or segment_type == 'dialogue_script' and segment.subtitle_file %}
+  <div id="subtitles-container" class="bg-base-100 p-4 sm:p-6 rounded-lg shadow-md mb-6 sm:mb-8 hidden">
+    <h2 class="text-lg sm:text-xl font-bold mb-4 flex items-center">
+      <i class="fas fa-closed-captioning mr-2"></i>
+      字幕内容
+    </h2>
+    <div id="subtitles-content" class="prose max-w-none">
+      <div class="text-center text-gray-500">
+        <i class="fas fa-spinner fa-spin mr-2"></i>
+        加载字幕中...
+      </div>
+    </div>
+  </div>
+  {% endif %}
 
   <!-- 文本内容区域 -->
   <div class="bg-base-100 p-4 sm:p-6 rounded-lg shadow-md mb-6 sm:mb-8">
@@ -127,6 +157,102 @@
     const closePlayerMobile = document.getElementById('close-player-mobile');
     const closePlayerDesktop = document.getElementById('close-player-desktop');
     const playButtons = document.querySelectorAll('.play-audio-btn');
+    const toggleSubtitlesBtn = document.getElementById('toggle-subtitles-btn');
+    const subtitlesContainer = document.getElementById('subtitles-container');
+    const subtitlesContent = document.getElementById('subtitles-content');
+    
+    // 字幕功能
+    let subtitlesLoaded = false;
+    
+    if (toggleSubtitlesBtn && subtitlesContainer) {
+      toggleSubtitlesBtn.addEventListener('click', function() {
+        if (subtitlesContainer.classList.contains('hidden')) {
+          // 显示字幕
+          subtitlesContainer.classList.remove('hidden');
+          this.classList.add('btn-active');
+          this.querySelector('span').textContent = '隐藏字幕';
+          
+          // 如果还没加载过字幕，则加载
+          if (!subtitlesLoaded) {
+            loadSubtitles();
+          }
+        } else {
+          // 隐藏字幕
+          subtitlesContainer.classList.add('hidden');
+          this.classList.remove('btn-active');
+          this.querySelector('span').textContent = '查看字幕';
+        }
+      });
+    }
+    
+    // 加载字幕内容
+    function loadSubtitles() {
+      const subtitleUrl = '{{ segment.subtitle_file.url|default:"" }}';
+      if (!subtitleUrl) return;
+      
+      fetch(subtitleUrl)
+        .then(response => response.text())
+        .then(subtitleText => {
+          subtitlesContent.innerHTML = formatSubtitles(subtitleText);
+          subtitlesLoaded = true;
+        })
+        .catch(error => {
+          subtitlesContent.innerHTML = `
+            <div class="text-center text-red-500">
+              <i class="fas fa-exclamation-triangle mr-2"></i>
+              加载字幕失败
+            </div>
+          `;
+        });
+    }
+    
+    // 格式化字幕内容
+    function formatSubtitles(srtText) {
+      if (!srtText.trim()) {
+        return '<div class="text-center text-gray-500">暂无字幕内容</div>';
+      }
+      
+      // 解析SRT格式字幕
+      const entries = srtText.trim().split('\n\n');
+      let html = '<div class="space-y-3">';
+      
+      entries.forEach(entry => {
+        const lines = entry.trim().split('\n');
+        if (lines.length >= 3) {
+          const number = lines[0];
+          const timestamp = lines[1];
+          let text = lines.slice(2).join('\n');
+          
+          // 清理多余空格
+          text = cleanSubtitleText(text);
+          
+          html += `
+            <div class="border-l-4 border-primary pl-4 py-2">
+              <div class="text-xs text-gray-500 mb-1">${timestamp}</div>
+              <div class="text-sm leading-relaxed">${text}</div>
+            </div>
+          `;
+        }
+      });
+      
+      html += '</div>';
+      return html;
+    }
+    
+    // 清理字幕文本中的多余空格
+    function cleanSubtitleText(text) {
+      // 去除多余的空格
+      text = text.replace(/\s+/g, ' ');
+      
+      // 去除标点符号前的空格
+      text = text.replace(/\s+([，。！？；：、）】』」}])/g, '$1');
+      
+      // 去除标点符号后多余的空格
+      text = text.replace(/([，。！？；：、（【『「{])\s+/g, '$1');
+      
+      // 去除开头和结尾的空格
+      return text.trim();
+    }
     
     // 添加播放按钮事件监听
     playButtons.forEach(button => {

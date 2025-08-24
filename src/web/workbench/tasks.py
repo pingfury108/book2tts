@@ -1,6 +1,7 @@
 import os
 import time
 import tempfile
+import asyncio
 from celery import shared_task
 from celery.utils.log import get_task_logger
 from django.conf import settings
@@ -14,6 +15,7 @@ from book2tts.edgetts import EdgeTTS
 from book2tts.audio_utils import get_audio_duration, estimate_audio_duration_from_text
 from home.models import UserQuota, OperationRecord
 from book2tts.multi_voice_tts import MultiVoiceTTS
+from .utils.subtitle_utils import convert_vtt_to_srt, save_srt_subtitle
 
 # Import dialogue services - use lazy import to avoid circular imports
 def get_dialogue_service():
@@ -27,6 +29,55 @@ def get_dialogue_service():
 
 # Get a logger instance for the tasks
 logger = get_task_logger(__name__)
+
+
+def _generate_simple_subtitle(text: str, duration: float) -> str:
+    """生成简单的单条字幕"""
+    if not text or duration <= 0:
+        return ""
+    
+    return f"""1
+00:00:00,000 --> {_format_srt_time(duration)}
+{text}
+
+"""
+
+
+def _generate_fallback_subtitle(text: str, duration: float) -> str:
+    """生成回退字幕（基于文本分段）"""
+    if not text or duration <= 0:
+        return ""
+    
+    # 简单按句子分割
+    sentences = [s.strip() for s in text.split('。') if s.strip()]
+    if not sentences:
+        sentences = [text]
+    
+    # 计算每个句子的时长
+    time_per_sentence = duration / len(sentences)
+    
+    srt_lines = []
+    for i, sentence in enumerate(sentences):
+        start_time = i * time_per_sentence
+        end_time = (i + 1) * time_per_sentence
+        
+        srt_lines.extend([
+            str(i + 1),
+            f"{_format_srt_time(start_time)} --> {_format_srt_time(end_time)}",
+            sentence + "。" if not sentence.endswith('。') else sentence,
+            ""
+        ])
+    
+    return "\n".join(srt_lines)
+
+
+def _format_srt_time(seconds: float) -> str:
+    """格式化SRT时间戳"""
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    secs = int(seconds % 60)
+    millis = int((seconds % 1) * 1000)
+    return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
 
 
 def get_client_ip_from_task(task_kwargs):
@@ -64,10 +115,10 @@ def start_audio_synthesis_on_commit(user_id, text, voice_name, book_id, **kwargs
 
 @shared_task(bind=True)
 def synthesize_audio_task(self, user_id, text, voice_name, book_id, title="", book_page="", page_display_name="", audio_title="", ip_address="127.0.0.1", user_agent=""):
-    """异步音频合成任务"""
+    """异步音频合成任务（支持字幕生成）"""
     try:
         # 更新任务状态为开始处理
-        self.update_state(state='PROCESSING', meta={'message': '开始音频合成...'})
+        self.update_state(state='PROCESSING', meta={'message': '开始音频合成和字幕生成...'})
         logger.info(f"Starting audio synthesis task for user {user_id}, book {book_id}")
         
         # 获取用户和书籍对象
@@ -124,20 +175,50 @@ def synthesize_audio_task(self, user_id, text, voice_name, book_id, title="", bo
             raise Exception(error_msg)
         
         # 更新任务状态
-        self.update_state(state='PROCESSING', meta={'message': '正在生成音频文件...'})
+        self.update_state(state='PROCESSING', meta={'message': '正在生成音频和字幕文件...'})
         
         # 创建临时文件
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
-            temp_path = temp_file.name
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as audio_file:
+            audio_path = audio_file.name
+        
+        with tempfile.NamedTemporaryFile(suffix=".vtt", delete=False) as subtitle_file:
+            subtitle_path = subtitle_file.name
         
         try:
-            # 使用 EdgeTTS 合成音频
+            # 使用改进的EdgeTTS合成音频和字幕
             logger.info(f"Starting TTS synthesis with voice {voice_name}")
-            tts = EdgeTTS(voice_name=voice_name)
-            success = tts.synthesize_long_text(text=text, output_file=temp_path)
             
-            if not success:
-                error_msg = "EdgeTTS合成失败"
+            # 获取当前事件循环或创建新的
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_closed():
+                    raise RuntimeError("Event loop is closed")
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            
+            # 使用改进的字幕生成方法
+            tts = EdgeTTS(voice_name=voice_name)
+            synthesis_result = loop.run_until_complete(
+                tts.synthesize_with_subtitles_v2(
+                    text=text, 
+                    output_file=audio_path, 
+                    subtitle_file=subtitle_path,
+                    words_in_cue=8  # 每个字幕条目8个词
+                )
+            )
+            
+            # 详细的结果验证和日志
+            logger.info(f"Synthesis result: {synthesis_result}")
+            
+            if not synthesis_result["success"]:
+                error_details = []
+                if not synthesis_result["audio_generated"]:
+                    error_details.append("音频生成失败")
+                if not synthesis_result["subtitle_generated"]:
+                    error_details.append("字幕生成失败")
+                
+                error_msg = f"TTS合成失败: {', '.join(error_details)}"
                 logger.error(error_msg)
                 OperationRecord.objects.create(
                     user=user,
@@ -151,18 +232,66 @@ def synthesize_audio_task(self, user_id, text, voice_name, book_id, title="", bo
                         'estimated_duration': estimated_duration_seconds,
                         'text_length': len(text),
                         'voice_name': voice_name,
-                        'error_reason': 'tts_synthesis_failed'
+                        'error_reason': 'tts_synthesis_failed',
+                        'synthesis_details': synthesis_result
                     },
                     ip_address=ip_address,
                     user_agent=user_agent
                 )
                 raise Exception(error_msg)
             
+            # 字幕文件处理 - 增加多重验证
+            vtt_content = ""
+            srt_content = ""
+            
+            if os.path.exists(subtitle_path):
+                file_size = os.path.getsize(subtitle_path)
+                logger.info(f"Subtitle file found: {subtitle_path}, size: {file_size}")
+                
+                if file_size > 0:
+                    with open(subtitle_path, 'r', encoding='utf-8') as f:
+                        vtt_content = f.read()
+                        logger.info(f"VTT content length: {len(vtt_content)}")
+                        
+                    # 转换为SRT并验证
+                    srt_content = convert_vtt_to_srt(vtt_content) if vtt_content else ""
+                    logger.info(f"SRT content length: {len(srt_content)}")
+                    
+                    if not srt_content:
+                        logger.warning("VTT to SRT conversion resulted in empty content")
+                else:
+                    logger.warning("Subtitle file exists but is empty")
+            else:
+                logger.warning(f"Subtitle file not found: {subtitle_path}")
+            
+            # 如果字幕仍然为空，尝试生成基础字幕
+            if not srt_content:
+                logger.info("No subtitle content found, generating fallback subtitle from text")
+                actual_duration_seconds = get_audio_duration(audio_path, text)
+                srt_content = _generate_fallback_subtitle(text, actual_duration_seconds)
+                logger.info(f"Generated fallback subtitle length: {len(srt_content)}")
+            
+            # 读取生成的VTT字幕（保留原逻辑作为备用）
+            if not vtt_content and os.path.exists(subtitle_path):
+                with open(subtitle_path, 'r', encoding='utf-8') as f:
+                    vtt_content = f.read()
+            
+            # 转换为SRT格式（如果还没转换）
+            if not srt_content and vtt_content:
+                srt_content = convert_vtt_to_srt(vtt_content)
+            
+            # 确保有字幕内容
+            if not srt_content:
+                logger.warning("Still no subtitle content after all attempts, generating simple subtitle")
+                actual_duration_seconds = get_audio_duration(audio_path, text)
+                srt_content = _generate_simple_subtitle(text, actual_duration_seconds)
+                logger.info(f"Generated simple subtitle length: {len(srt_content)}")
+            
             # 更新任务状态
-            self.update_state(state='PROCESSING', meta={'message': '音频生成完成，正在保存...'})
+            self.update_state(state='PROCESSING', meta={'message': '音频和字幕生成完成，正在保存...'})
             
             # 获取实际音频时长
-            actual_duration_seconds = get_audio_duration(temp_path, text)
+            actual_duration_seconds = get_audio_duration(audio_path, text)
             logger.info(f"Audio synthesis completed. Duration: {actual_duration_seconds} seconds")
             
             # 使用自定义音频标题或默认标题
@@ -189,8 +318,20 @@ def synthesize_audio_task(self, user_id, text, voice_name, book_id, title="", bo
                 filename = f"audio_{book_id}_{int(time.time())}.wav"
                 
                 # 保存音频文件到 AudioSegment
-                with open(temp_path, "rb") as f:
+                with open(audio_path, "rb") as f:
                     audio_segment.file.save(filename, ContentFile(f.read()))
+                
+                # 保存字幕文件 - 确保总是保存字幕
+                if srt_content:
+                    logger.info(f"Saving subtitle with {len(srt_content)} characters")
+                    save_srt_subtitle(audio_segment, srt_content, 'subtitle_file')
+                else:
+                    logger.warning("No subtitle content to save - this should not happen")
+                    # 作为最后的保证，创建一个基本字幕
+                    simple_srt = _generate_simple_subtitle(text, actual_duration_seconds)
+                    if simple_srt:
+                        save_srt_subtitle(audio_segment, simple_srt, 'subtitle_file')
+                        logger.info("Saved emergency fallback subtitle")
                 
                 # 保存 AudioSegment
                 audio_segment.save()
@@ -219,7 +360,7 @@ def synthesize_audio_task(self, user_id, text, voice_name, book_id, title="", bo
                         'text_length': len(text),
                         'voice_name': voice_name,
                         'file_path': audio_segment.file.name,
-                        'file_size': os.path.getsize(temp_path) if os.path.exists(temp_path) else 0
+                        'file_size': os.path.getsize(audio_path) if os.path.exists(audio_path) else 0
                     },
                     ip_address=ip_address,
                     user_agent=user_agent
@@ -230,17 +371,21 @@ def synthesize_audio_task(self, user_id, text, voice_name, book_id, title="", bo
             # 返回成功结果
             return {
                 'status': 'SUCCESS',
-                'message': '音频合成完成',
+                'message': '音频和字幕合成完成',
                 'audio_url': audio_segment.file.url,
+                'subtitle_url': audio_segment.subtitle_file.url if audio_segment.subtitle_file else None,
                 'audio_id': audio_segment.id,
                 'audio_duration': actual_duration_seconds,
-                'remaining_quota': user_quota.remaining_audio_duration
+                'remaining_quota': user_quota.remaining_audio_duration,
+                'subtitle_generated': bool(audio_segment.subtitle_file),
+                'synthesis_method': synthesis_result.get('method', 'unknown')
             }
             
         finally:
             # 清理临时文件
-            if os.path.exists(temp_path):
-                os.remove(temp_path)
+            for path in [audio_path, subtitle_path]:
+                if os.path.exists(path):
+                    os.remove(path)
     
     except Exception as e:
         logger.error(f"Audio synthesis task failed for user {user_id}: {str(e)}")
@@ -502,10 +647,10 @@ def convert_text_to_dialogue_task(self, user_id, text, title, book_id=None, cust
 
 @shared_task(bind=True)
 def generate_dialogue_audio_task(self, script_id, voice_mapping):
-    """生成对话音频的异步任务"""
+    """生成对话音频的异步任务（支持字幕生成和时间戳校对）"""
     try:
         # 更新任务状态
-        self.update_state(state='PROCESSING', meta={'message': '开始生成对话音频...'})
+        self.update_state(state='PROCESSING', meta={'message': '开始生成对话音频和字幕...'})
         logger.info(f"Starting dialogue audio generation for script {script_id}")
         
         # 获取对话脚本
@@ -520,7 +665,7 @@ def generate_dialogue_audio_task(self, script_id, voice_mapping):
         try:
             user_task = UserTask.objects.get(task_id=self.request.id)
             user_task.status = 'processing'
-            user_task.progress_message = '正在生成对话音频...'
+            user_task.progress_message = '正在生成对话音频和字幕...'
             user_task.save()
         except UserTask.DoesNotExist:
             logger.warning(f"UserTask not found for task {self.request.id}")
@@ -529,18 +674,22 @@ def generate_dialogue_audio_task(self, script_id, voice_mapping):
         multi_voice_tts = MultiVoiceTTS()
         
         # 创建临时输出文件
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
-            temp_output_path = temp_file.name
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as audio_file:
+            temp_output_path = audio_file.name
+        
+        with tempfile.NamedTemporaryFile(suffix=".srt", delete=False) as subtitle_file:
+            temp_subtitle_path = subtitle_file.name
         
         try:
             # 更新任务状态
-            self.update_state(state='PROCESSING', meta={'message': '正在合成多角色音频...'})
+            self.update_state(state='PROCESSING', meta={'message': '正在合成多角色音频和字幕...'})
             
-            # 生成对话音频
-            synthesis_result = multi_voice_tts.synthesize_dialogue(
+            # 使用改进的方法生成对话音频和字幕（已包含时间戳校对）
+            synthesis_result = multi_voice_tts.synthesize_dialogue_with_subtitles_v2(
                 dialogue_data=script.script_data,
                 voice_mapping=voice_mapping,
-                output_file=temp_output_path
+                output_file=temp_output_path,
+                subtitle_file=temp_subtitle_path
             )
             
             if not synthesis_result['success']:
@@ -556,13 +705,47 @@ def generate_dialogue_audio_task(self, script_id, voice_mapping):
                 raise Exception(error_msg)
             
             # 更新任务状态
-            self.update_state(state='PROCESSING', meta={'message': '音频生成完成，正在保存...'})
+            self.update_state(state='PROCESSING', meta={'message': '音频和字幕生成完成，正在保存...'})
             
             # 保存音频文件到对话脚本
             filename = f"dialogue_{script_id}_{int(time.time())}.wav"
             
             with open(temp_output_path, "rb") as f:
                 script.audio_file.save(filename, ContentFile(f.read()))
+            
+            # 保存字幕文件到对话脚本
+            try:
+                logger.info(f"Checking subtitle file: {temp_subtitle_path}")
+                logger.info(f"Subtitle file exists: {os.path.exists(temp_subtitle_path)}")
+                
+                if os.path.exists(temp_subtitle_path):
+                    logger.info(f"Subtitle file size: {os.path.getsize(temp_subtitle_path)}")
+                
+                with open(temp_subtitle_path, "r", encoding='utf-8') as f:
+                    srt_content = f.read()
+                
+                logger.info(f"Read subtitle content, length: {len(srt_content) if srt_content else 0}")
+                if srt_content:
+                    logger.info(f"Subtitle content preview: {srt_content[:200] if srt_content else 'None'}")
+                
+                if srt_content and srt_content.strip():
+                    subtitle_filename = f"dialogue_subtitle_{script_id}_{int(time.time())}.srt"
+                    logger.info(f"Saving subtitle file: {subtitle_filename}")
+                    script.subtitle_file.save(subtitle_filename, ContentFile(srt_content.encode('utf-8')))
+                    # 重要：保存后需要刷新实例以确保字段正确更新
+                    script.save(update_fields=['subtitle_file'])
+                    script.refresh_from_db()
+                    logger.info(f"Subtitle file saved: {script.subtitle_file.url if script.subtitle_file else 'None'}")
+                    logger.info(f"Subtitle file name: {script.subtitle_file.name if script.subtitle_file else 'None'}")
+                else:
+                    logger.warning("No subtitle content to save or content is empty")
+                    # 检查临时文件内容
+                    if os.path.exists(temp_subtitle_path):
+                        with open(temp_subtitle_path, "rb") as f:
+                            raw_content = f.read()
+                            logger.warning(f"Raw subtitle file content (bytes): {raw_content[:200] if raw_content else 'None'}")
+            except Exception as e:
+                logger.error(f"Error reading or saving subtitle file: {e}", exc_info=True)
             
             # 获取音频时长
             try:
@@ -577,32 +760,42 @@ def generate_dialogue_audio_task(self, script_id, voice_mapping):
             # 更新用户任务为成功状态
             if 'user_task' in locals():
                 user_task.status = 'success'
-                user_task.progress_message = '对话音频生成完成'
+                user_task.progress_message = '对话音频和字幕生成完成'
                 user_task.result_data = {
                     'audio_file': script.audio_file.url if script.audio_file else None,
+                    'subtitle_file': script.subtitle_file.url if script.subtitle_file else None,
                     'audio_duration': script.audio_duration,
                     'segments_count': synthesis_result.get('segments_count', 0),
-                    'speakers': synthesis_result.get('speakers', [])
+                    'subtitle_entries': synthesis_result.get('subtitle_entries', 0)
                 }
                 user_task.completed_at = timezone.now()
                 user_task.save()
             
-            logger.info(f"Dialogue audio generation completed for script {script_id}")
+            logger.info(f"Dialogue audio generation with subtitles completed for script {script_id}")
+            
+            # 确保返回正确的URL
+            audio_file_url = script.audio_file.url if script.audio_file else None
+            subtitle_file_url = script.subtitle_file.url if script.subtitle_file else None
+            
+            logger.info(f"Returning - Audio file: {audio_file_url}")
+            logger.info(f"Returning - Subtitle file: {subtitle_file_url}")
             
             return {
                 'success': True,
                 'script_id': script_id,
-                'audio_file': script.audio_file.url if script.audio_file else None,
+                'audio_file': audio_file_url,
+                'subtitle_file': subtitle_file_url,
                 'audio_duration': script.audio_duration
             }
             
         finally:
             # 清理临时文件
-            if os.path.exists(temp_output_path):
-                try:
-                    os.unlink(temp_output_path)
-                except Exception as e:
-                    logger.warning(f"Failed to cleanup temp file {temp_output_path}: {e}")
+            for path in [temp_output_path, temp_subtitle_path]:
+                if os.path.exists(path):
+                    try:
+                        os.unlink(path)
+                    except Exception as e:
+                        logger.warning(f"Failed to cleanup temp file {path}: {e}")
     
     except Exception as e:
         error_msg = f"对话音频生成任务失败: {str(e)}"

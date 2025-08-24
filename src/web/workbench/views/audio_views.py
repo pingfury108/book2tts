@@ -127,6 +127,7 @@ def get_unified_audio_content(user=None, book=None, published_only=True):
             'segment_count': script.segment_count,
             # 为了兼容性添加的字段
             'file': script.audio_file,
+            'subtitle_file': script.subtitle_file,  # 添加字幕文件支持
         })
     
     # 按创建时间倒序排列
@@ -205,7 +206,8 @@ def aggregated_audio_segments(request):
             # 保留对话脚本特有的字段，但不影响通用处理
             "audio_duration": script.audio_duration,
             "speakers": script.speakers,
-            "segment_count": script.segment_count
+            "segment_count": script.segment_count,
+            "subtitle_file": script.subtitle_file,  # 添加字幕文件支持
         }
         aggregated_data[book_name].append(book_data)
         book_ids[book_name] = target_book.id  # 始终关联真实的Book ID

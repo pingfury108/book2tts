@@ -232,7 +232,8 @@ def audio_rss_feed(request, user_id=None):
             image_url=image_url,
             episode_number=item['id'],
             season_number=item['book'].id if item['book'] else None,
-            unique_id=f"{item['type']}_{item['id']}"
+            unique_id=f"{item['type']}_{item['id']}",
+            subtitle_url=request.build_absolute_uri(item['subtitle_file'].url) if item.get('subtitle_file') else None
         )
 
     # 生成XML
@@ -371,7 +372,8 @@ def audio_rss_feed_by_book(request, token, book_id):
             image_url=image_url,
             episode_number=item['id'],
             season_number=book.id,
-            unique_id=f"{item['type']}_{item['id']}"
+            unique_id=f"{item['type']}_{item['id']}",
+            subtitle_url=request.build_absolute_uri(item['subtitle_file'].url) if item.get('subtitle_file') else None
         )
 
     # 生成XML
@@ -496,7 +498,8 @@ def audio_rss_feed_by_token(request, token, book_id=None):
             image_url=item_image_url,
             episode_number=item['id'],
             season_number=item['book'].id if item['book'] else None,
-            unique_id=f"{item['type']}_{item['id']}"
+            unique_id=f"{item['type']}_{item['id']}",
+            subtitle_url=request.build_absolute_uri(item['subtitle_file'].url) if item.get('subtitle_file') else None
         )
 
     # 生成XML

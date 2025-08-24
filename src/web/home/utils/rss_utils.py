@@ -198,9 +198,10 @@ def create_podcast_feed(title, link, description, language, author_name, image_u
 
 def add_podcast_entry(feed, title, audio_url, audio_size, link, description, pubdate, 
                      author, duration_formatted, duration_seconds, image_url=None, 
-                     episode_number=None, season_number=None, unique_id=None):
+                     episode_number=None, season_number=None, unique_id=None,
+                     subtitle_url=None):
     """
-    向podcast feed添加一个条目
+    向podcast feed添加一个条目（支持字幕）
     """
     fe = feed.add_entry()
     fe.id(unique_id if unique_id else link)
@@ -212,6 +213,11 @@ def add_podcast_entry(feed, title, audio_url, audio_size, link, description, pub
     # 添加音频附件
     if audio_url:
         fe.enclosure(audio_url, str(audio_size), 'audio/mpeg')
+    
+    # 添加字幕附件（如果存在）
+    if subtitle_url:
+        # 为字幕创建单独的enclosure
+        fe.enclosure(subtitle_url, 'text/plain', 'application/x-subrip')
     
     # 添加iTunes特定元数据
     fe.podcast.itunes_author(author)

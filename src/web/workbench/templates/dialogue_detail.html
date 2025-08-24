@@ -125,6 +125,32 @@
                     </div>
                     {% endfor %}
                 </div>
+                <!-- 字幕下载和查看按钮 -->
+                {% if script.subtitle_file %}
+                <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+                    <div class="flex gap-2">
+                        <a href="{{ script.subtitle_file.url }}" class="btn btn-secondary btn-sm" download>
+                            <i class="fas fa-download"></i>
+                            <span class="ml-2">下载字幕</span>
+                        </a>
+                        <button id="toggle-subtitles-btn" class="btn btn-outline btn-sm">
+                            <i class="fas fa-closed-captioning"></i>
+                            <span class="ml-2">查看字幕</span>
+                        </button>
+                    </div>
+                    
+                    <!-- 字幕内容显示区域 -->
+                    <div id="subtitles-content" class="mt-4 hidden">
+                        <h4 class="font-medium text-sm text-gray-700 mb-2">字幕内容</h4>
+                        <div id="subtitles-text" class="text-xs text-gray-600 max-h-40 overflow-y-auto custom-scrollbar p-3 bg-white rounded border">
+                            <div class="text-center text-gray-400">
+                                <i class="fas fa-spinner fa-spin mr-2"></i>
+                                加载字幕中...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
                 <!-- 滚动渐变提示 -->
                 <div class="absolute bottom-0 left-6 right-6 h-8 bg-gradient-to-t from-white via-white/90 to-transparent pointer-events-none opacity-0 transition-opacity duration-300" id="scroll-fade"></div>
             </div>
@@ -703,6 +729,102 @@ document.addEventListener('DOMContentLoaded', function() {
     const voiceConfigForm = document.getElementById('voice-config-form');
     const audioGenerationForm = document.getElementById('audio-generation-form');
     const generateAudioBtn = document.getElementById('generate-audio-btn');
+    const toggleSubtitlesBtn = document.getElementById('toggle-subtitles-btn');
+    const subtitlesContent = document.getElementById('subtitles-content');
+    const subtitlesText = document.getElementById('subtitles-text');
+    
+    // 字幕功能
+    let subtitlesLoaded = false;
+    
+    if (toggleSubtitlesBtn && subtitlesContent) {
+      toggleSubtitlesBtn.addEventListener('click', function() {
+        if (subtitlesContent.classList.contains('hidden')) {
+          // 显示字幕
+          subtitlesContent.classList.remove('hidden');
+          this.classList.add('btn-active');
+          this.querySelector('span').textContent = '隐藏字幕';
+          
+          // 如果还没加载过字幕，则加载
+          if (!subtitlesLoaded) {
+            loadSubtitles();
+          }
+        } else {
+          // 隐藏字幕
+          subtitlesContent.classList.add('hidden');
+          this.classList.remove('btn-active');
+          this.querySelector('span').textContent = '查看字幕';
+        }
+      });
+    }
+    
+    // 加载字幕内容
+    function loadSubtitles() {
+      const subtitleUrl = '{{ script.subtitle_file.url|default:"" }}';
+      if (!subtitleUrl) return;
+      
+      fetch(subtitleUrl)
+        .then(response => response.text())
+        .then(subtitleText => {
+          subtitlesText.innerHTML = formatSubtitles(subtitleText);
+          subtitlesLoaded = true;
+        })
+        .catch(error => {
+          subtitlesText.innerHTML = `
+            <div class="text-center text-red-500">
+              <i class="fas fa-exclamation-triangle mr-2"></i>
+              加载字幕失败
+            </div>
+          `;
+        });
+    }
+    
+    // 格式化字幕内容
+    function formatSubtitles(srtText) {
+      if (!srtText.trim()) {
+        return '<div class="text-center text-gray-500">暂无字幕内容</div>';
+      }
+      
+      // 解析SRT格式字幕
+      const entries = srtText.trim().split('\n\n');
+      let html = '<div class="space-y-2">';
+      
+      entries.forEach(entry => {
+        const lines = entry.trim().split('\n');
+        if (lines.length >= 3) {
+          const number = lines[0];
+          const timestamp = lines[1];
+          let text = lines.slice(2).join('\n');
+          
+          // 清理多余空格
+          text = cleanSubtitleText(text);
+          
+          html += `
+            <div class="border-l-2 border-blue-300 pl-3 py-1">
+              <div class="text-xs text-gray-500 mb-1">${timestamp}</div>
+              <div class="text-sm">${text}</div>
+            </div>
+          `;
+        }
+      });
+      
+      html += '</div>';
+      return html;
+    }
+    
+    // 清理字幕文本中的多余空格
+    function cleanSubtitleText(text) {
+      // 去除多余的空格
+      text = text.replace(/\s+/g, ' ');
+      
+      // 去除标点符号前的空格
+      text = text.replace(/\s+([，。！？；：、）】』」}])/g, '$1');
+      
+      // 去除标点符号后多余的空格
+      text = text.replace(/([，。！？；：、（【『「{])\s+/g, '$1');
+      
+      // 去除开头和结尾的空格
+      return text.trim();
+    }
     
     // 绑定按钮事件
     const editScriptBtn = document.getElementById('edit-script-btn');
