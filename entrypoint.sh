@@ -18,4 +18,4 @@ python manage.py collectstatic --no-input --clear
 
 # Start application
 echo "Starting application..."
-exec gunicorn --bind 0.0.0.0:8000 --timeout 300 book_tts.wsgi:application
+exec gunicorn --bind 0.0.0.0:8000 --timeout 600 --access-logfile - --error-logfile -  book_tts.wsgi:application
