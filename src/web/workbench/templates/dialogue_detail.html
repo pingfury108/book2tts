@@ -126,7 +126,7 @@
                     {% endfor %}
                 </div>
                 <!-- 字幕下载和查看按钮 -->
-                {% if script.subtitle_file %}
+                {% if script.subtitle_file and script.subtitle_file.name %}
                 <div class="mt-4 p-4 bg-gray-50 rounded-lg">
                     <div class="flex gap-2">
                         <a href="{{ script.subtitle_file.url }}" class="btn btn-secondary btn-sm" download>
@@ -759,7 +759,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 加载字幕内容
     function loadSubtitles() {
-      const subtitleUrl = '{{ script.subtitle_file.url|default:"" }}';
+      const subtitleUrl = '{% if script.subtitle_file and script.subtitle_file.name %}{{ script.subtitle_file.url }}{% endif %}';
       if (!subtitleUrl) return;
       
       fetch(subtitleUrl)
