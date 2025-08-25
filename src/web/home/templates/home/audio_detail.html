@@ -46,7 +46,7 @@
       </button>
       
       <!-- 字幕下载和查看按钮 -->
-      {% if segment.subtitle_file or segment_type == 'dialogue_script' and segment.subtitle_file %}
+      {% if segment.subtitle_file and segment.subtitle_file.name %}
       <div class="flex gap-2">
         <a href="{{ segment.subtitle_file.url }}" class="btn btn-secondary btn-lg" download>
           <i class="fas fa-download"></i>
@@ -62,7 +62,7 @@
   </div>
 
   <!-- 字幕显示区域 -->
-  {% if segment.subtitle_file or segment_type == 'dialogue_script' and segment.subtitle_file %}
+  {% if segment.subtitle_file and segment.subtitle_file.name %}
   <div id="subtitles-container" class="bg-base-100 p-4 sm:p-6 rounded-lg shadow-md mb-6 sm:mb-8 hidden">
     <h2 class="text-lg sm:text-xl font-bold mb-4 flex items-center">
       <i class="fas fa-closed-captioning mr-2"></i>
@@ -187,7 +187,7 @@
     
     // 加载字幕内容
     function loadSubtitles() {
-      const subtitleUrl = '{{ segment.subtitle_file.url|default:"" }}';
+      const subtitleUrl = '{% if segment.subtitle_file and segment.subtitle_file.name %}{{ segment.subtitle_file.url }}{% endif %}';
       if (!subtitleUrl) return;
       
       fetch(subtitleUrl)
