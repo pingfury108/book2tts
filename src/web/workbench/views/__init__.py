@@ -8,6 +8,9 @@ from .book_views import (
     text_by_toc,
     text_by_page,
     update_book_name,
+    update_pdf_type,
+    detect_scanned_pdf,
+    get_page_image,
     delete_book,
 )
 
@@ -41,6 +44,9 @@ __all__ = [
     'text_by_toc',
     'text_by_page',
     'update_book_name',
+    'update_pdf_type',
+    'detect_scanned_pdf',
+    'get_page_image',
     'delete_book',
     
     # Audio views

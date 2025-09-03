@@ -5,11 +5,13 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, HttpResponse
 from django.core.paginator import Paginator
+from django.conf import settings
 
 from ..forms import UploadFileForm
 from ..models import Books
 from book2tts.ebook import open_ebook, ebook_toc, get_content_with_href, ebook_pages
-from book2tts.pdf import open_pdf
+from book2tts.pdf import open_pdf, detect_scanned_pdf, get_page_image_data
+from ..utils.ocr_utils import perform_ocr_with_cache
 from ebooklib import epub
 
 
@@ -174,6 +176,7 @@ def index(request, book_id):
             request,
             "index.html",
             {
+                "book": book,  # Pass the entire book object for access to pdf_type
                 "book_id": book.id,
                 "title": book.name,  # Always use the database book name
                 "tocs": [
@@ -201,6 +204,7 @@ def index(request, book_id):
             request,
             "index.html",
             {
+                "book": book,  # Pass the entire book object for access to pdf_type
                 "book_id": book.id,
                 "title": book.name,  # Always use the database book name
                 "tocs": [
@@ -364,7 +368,7 @@ def pages(request, book_id):
 @csrf_exempt
 @require_http_methods(["POST"])
 def text_by_toc(request, book_id):
-    """Extract text content by table of contents"""
+    """Extract text content by table of contents with OCR support"""
     book = get_object_or_404(Books, pk=book_id)
     
     # Get names from POST data
@@ -375,34 +379,166 @@ def text_by_toc(request, book_id):
             "message": "No names provided"
         }, status=400)
     
+    # Check OCR settings
+    # Priority: 1. Manual user request, 2. Book's pdf_type setting
+    use_ocr_manual = request.POST.get('use_ocr', '').lower() == 'true'
+    use_ocr_auto = book.should_use_ocr()  # Based on pdf_type field
+    
+    # Use OCR if either manual request or auto-detection suggests it
+    use_ocr = use_ocr_manual or use_ocr_auto
+    
     # Support multiple names separated by comma, maintain order
     names = names_param.split(',')
     combined_texts = []
+    ocr_results = []  # Store OCR metadata
     
     for single_name in names:
         text_content = ""
         
         if book.file_type == ".pdf":
             try:
-                pbook = open_pdf(book.file.path)
-                
-                # 检查是否是页面范围格式 (start-end)
-                if '-' in single_name:
-                    start_page, end_page = map(int, single_name.split('-'))
-                    # 获取页面范围内所有页面的文本
-                    page_texts = []
-                    for page_num in range(start_page, end_page + 1):
+                # Check if OCR should be used
+                if use_ocr:
+                    ak = getattr(settings, 'VOLC_AK', None)
+                    sk = getattr(settings, 'VOLC_SK', None)
+                    
+                    if ak and sk:
                         try:
-                            page_text = pbook[page_num].get_text()
-                            if page_text.strip():  # 只添加非空页面
-                                page_texts.append(page_text)
-                        except IndexError:
-                            # 如果页面不存在，跳过
-                            continue
-                    text_content = "\n\n".join(page_texts)
+                            # 检查是否是页面范围格式 (start-end)
+                            if '-' in single_name:
+                                start_page, end_page = map(int, single_name.split('-'))
+                                # 获取页面范围内所有页面的OCR文本
+                                page_texts = []
+                                for page_num in range(start_page, end_page + 1):
+                                    try:
+                                        # Get page image data and perform OCR
+                                        image_data = get_page_image_data(book.file.path, page_num)
+                                        ocr_result = perform_ocr_with_cache(image_data, ak, sk, 'page_image')
+                                        
+                                        if 'error' not in ocr_result:
+                                            page_text = ocr_result.get('text', '')
+                                            if page_text.strip():  # 只添加非空页面
+                                                page_texts.append(page_text)
+                                            ocr_results.append({
+                                                'page': page_num,
+                                                'cached': ocr_result.get('cached', False),
+                                                'image_md5': ocr_result.get('image_md5', ''),
+                                                'auto_ocr': use_ocr_auto
+                                            })
+                                        else:
+                                            # Fall back to regular text extraction on OCR error
+                                            pbook = open_pdf(book.file.path)
+                                            fallback_text = pbook[page_num].get_text()
+                                            if fallback_text.strip():
+                                                page_texts.append(fallback_text)
+                                            ocr_results.append({
+                                                'page': page_num,
+                                                'error': ocr_result['error'],
+                                                'auto_ocr': use_ocr_auto
+                                            })
+                                    except IndexError:
+                                        # 如果页面不存在，跳过
+                                        continue
+                                    except Exception as page_error:
+                                        # Fall back to regular text extraction on error
+                                        try:
+                                            pbook = open_pdf(book.file.path)
+                                            fallback_text = pbook[page_num].get_text()
+                                            if fallback_text.strip():
+                                                page_texts.append(fallback_text)
+                                        except:
+                                            pass
+                                        ocr_results.append({
+                                            'page': page_num,
+                                            'error': str(page_error),
+                                            'auto_ocr': use_ocr_auto
+                                        })
+                                text_content = "\n\n".join(page_texts)
+                            else:
+                                # 单页模式
+                                page_num = int(single_name)
+                                image_data = get_page_image_data(book.file.path, page_num)
+                                ocr_result = perform_ocr_with_cache(image_data, ak, sk, 'page_image')
+                                
+                                if 'error' not in ocr_result:
+                                    text_content = ocr_result.get('text', '')
+                                    ocr_results.append({
+                                        'page': single_name,
+                                        'cached': ocr_result.get('cached', False),
+                                        'image_md5': ocr_result.get('image_md5', ''),
+                                        'auto_ocr': use_ocr_auto
+                                    })
+                                else:
+                                    # Fall back to regular text extraction on OCR error
+                                    pbook = open_pdf(book.file.path)
+                                    text_content = pbook[int(single_name)].get_text()
+                                    ocr_results.append({
+                                        'page': single_name,
+                                        'error': ocr_result['error'],
+                                        'auto_ocr': use_ocr_auto
+                                    })
+                        except Exception as ocr_error:
+                            # Fall back to regular text extraction on OCR error
+                            pbook = open_pdf(book.file.path)
+                            if '-' in single_name:
+                                start_page, end_page = map(int, single_name.split('-'))
+                                page_texts = []
+                                for page_num in range(start_page, end_page + 1):
+                                    try:
+                                        page_text = pbook[page_num].get_text()
+                                        if page_text.strip():
+                                            page_texts.append(page_text)
+                                    except IndexError:
+                                        continue
+                                text_content = "\n\n".join(page_texts)
+                            else:
+                                text_content = pbook[int(single_name)].get_text()
+                            ocr_results.append({
+                                'page': single_name,
+                                'error': str(ocr_error),
+                                'auto_ocr': use_ocr_auto
+                            })
+                    else:
+                        # OCR not configured, use regular extraction
+                        pbook = open_pdf(book.file.path)
+                        if '-' in single_name:
+                            start_page, end_page = map(int, single_name.split('-'))
+                            page_texts = []
+                            for page_num in range(start_page, end_page + 1):
+                                try:
+                                    page_text = pbook[page_num].get_text()
+                                    if page_text.strip():
+                                        page_texts.append(page_text)
+                                except IndexError:
+                                    continue
+                            text_content = "\n\n".join(page_texts)
+                        else:
+                            text_content = pbook[int(single_name)].get_text()
+                        if use_ocr_auto:
+                            ocr_results.append({
+                                'page': single_name,
+                                'error': 'OCR credentials not configured',
+                                'auto_ocr': True
+                            })
                 else:
-                    # 单页模式（保持向后兼容）
-                    text_content = pbook[int(single_name)].get_text()
+                    # Regular text extraction
+                    pbook = open_pdf(book.file.path)
+                    if '-' in single_name:
+                        start_page, end_page = map(int, single_name.split('-'))
+                        # 获取页面范围内所有页面的文本
+                        page_texts = []
+                        for page_num in range(start_page, end_page + 1):
+                            try:
+                                page_text = pbook[page_num].get_text()
+                                if page_text.strip():  # 只添加非空页面
+                                    page_texts.append(page_text)
+                            except IndexError:
+                                # 如果页面不存在，跳过
+                                continue
+                        text_content = "\n\n".join(page_texts)
+                    else:
+                        # 单页模式（保持向后兼容）
+                        text_content = pbook[int(single_name)].get_text()
                     
             except Exception as e:
                 text_content = f"Error extracting text: {str(e)}"
@@ -430,19 +566,31 @@ def text_by_toc(request, book_id):
     # Join all texts with double newlines
     texts = "\n\n".join(combined_texts)
     
-    # Return JSON response
-    return JsonResponse({
+    # Prepare response data
+    response_data = {
         "status": "success",
         "texts": texts,
         "count": len(names)
-    })
+    }
+    
+    # Add OCR metadata if OCR was used
+    if use_ocr and (ocr_results or use_ocr_auto):
+        response_data["ocr_used"] = True
+        response_data["auto_ocr"] = use_ocr_auto  # Indicate if OCR was used automatically
+        response_data["manual_ocr"] = use_ocr_manual  # Indicate if OCR was requested manually
+        if ocr_results:
+            response_data["ocr_results"] = ocr_results
+            response_data["cached_count"] = sum(1 for r in ocr_results if r.get('cached', False))
+    
+    # Return JSON response
+    return JsonResponse(response_data)
 
 
 @login_required
 @csrf_exempt
 @require_http_methods(["POST"])
 def text_by_page(request, book_id):
-    """Extract text content by page with filtering options"""
+    """Extract text content by page with filtering options and OCR support"""
     book = get_object_or_404(Books, pk=book_id)
     
     # Get names from POST data
@@ -460,17 +608,77 @@ def text_by_page(request, book_id):
     if line_count:
         line_count = int(line_count)
     
+    # Check OCR settings
+    # Priority: 1. Manual user request, 2. Book's pdf_type setting
+    use_ocr_manual = request.POST.get('use_ocr', '').lower() == 'true'
+    use_ocr_auto = book.should_use_ocr()  # Based on pdf_type field
+    
+    # Use OCR if either manual request or auto-detection suggests it
+    use_ocr = use_ocr_manual or use_ocr_auto
+    
     # Support multiple names separated by comma, maintain order
     names = names_param.split(',')
     combined_texts = []
+    ocr_results = []  # Store OCR metadata
     
     for page_name in names:
         page_text = ""
         
         if book.file_type == ".pdf":
             try:
-                pbook = open_pdf(book.file.path)
-                page_text = pbook[int(page_name)].get_text()
+                # Check if OCR should be used
+                if use_ocr:
+                    ak = getattr(settings, 'VOLC_AK', None)
+                    sk = getattr(settings, 'VOLC_SK', None)
+                    
+                    if ak and sk:
+                        try:
+                            page_num = int(page_name)
+                            # Get page image data and perform OCR
+                            image_data = get_page_image_data(book.file.path, page_num)
+                            ocr_result = perform_ocr_with_cache(image_data, ak, sk, 'page_image')
+                            
+                            if 'error' not in ocr_result:
+                                page_text = ocr_result.get('text', '')
+                                ocr_results.append({
+                                    'page': page_name,
+                                    'cached': ocr_result.get('cached', False),
+                                    'image_md5': ocr_result.get('image_md5', ''),
+                                    'auto_ocr': use_ocr_auto  # Mark if OCR was used automatically
+                                })
+                            else:
+                                # Fall back to regular text extraction on OCR error
+                                pbook = open_pdf(book.file.path)
+                                page_text = pbook[int(page_name)].get_text()
+                                ocr_results.append({
+                                    'page': page_name,
+                                    'error': ocr_result['error'],
+                                    'auto_ocr': use_ocr_auto
+                                })
+                        except Exception as ocr_error:
+                            # Fall back to regular text extraction on OCR error
+                            pbook = open_pdf(book.file.path)
+                            page_text = pbook[int(page_name)].get_text()
+                            ocr_results.append({
+                                'page': page_name,
+                                'error': str(ocr_error),
+                                'auto_ocr': use_ocr_auto
+                            })
+                    else:
+                        # OCR not configured, use regular extraction
+                        pbook = open_pdf(book.file.path)
+                        page_text = pbook[int(page_name)].get_text()
+                        if use_ocr_auto:
+                            # Add note that OCR was suggested but not available
+                            ocr_results.append({
+                                'page': page_name,
+                                'error': 'OCR credentials not configured',
+                                'auto_ocr': True
+                            })
+                else:
+                    # Regular text extraction
+                    pbook = open_pdf(book.file.path)
+                    page_text = pbook[int(page_name)].get_text()
                 
                 # Apply line filtering to individual page content
                 if head_cut > 0 or tail_cut > 0 or line_count:
@@ -537,12 +745,24 @@ def text_by_page(request, book_id):
     # Combine all texts with double newlines
     texts = "\n\n".join(combined_texts)
     
-    # Return JSON response
-    return JsonResponse({
+    # Prepare response data
+    response_data = {
         "status": "success",
         "texts": texts,
         "count": len(names)
-    })
+    }
+    
+    # Add OCR metadata if OCR was used
+    if use_ocr and (ocr_results or use_ocr_auto):
+        response_data["ocr_used"] = True
+        response_data["auto_ocr"] = use_ocr_auto  # Indicate if OCR was used automatically
+        response_data["manual_ocr"] = use_ocr_manual  # Indicate if OCR was requested manually
+        if ocr_results:
+            response_data["ocr_results"] = ocr_results
+            response_data["cached_count"] = sum(1 for r in ocr_results if r.get('cached', False))
+    
+    # Return JSON response
+    return JsonResponse(response_data)
 
 
 @login_required
@@ -586,6 +806,151 @@ def update_book_name(request, book_id):
         else:
             # For non-HTMX requests, return JSON
             return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
+
+@login_required
+@csrf_exempt
+@require_http_methods(["POST"])
+def update_pdf_type(request, book_id):
+    """Update the PDF type of a book"""
+    # Get the book or return 404 if not found
+    book = get_object_or_404(Books, pk=book_id)
+    
+    # Check if the user owns this book
+    if book.user != request.user:
+        return JsonResponse({"status": "error", "message": "You don't have permission to update this book"}, status=403)
+    
+    # Check if it's a PDF file
+    if book.file_type != ".pdf":
+        return JsonResponse({"status": "error", "message": "This is not a PDF file"}, status=400)
+    
+    try:
+        import json
+        
+        # Get the new PDF type from the request
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+            new_pdf_type = data.get("pdf_type")
+        else:
+            new_pdf_type = request.POST.get("pdf_type")
+        
+        # Validate the PDF type
+        valid_types = [choice[0] for choice in Books.PDF_TYPE_CHOICES]
+        if new_pdf_type not in valid_types:
+            return JsonResponse({"status": "error", "message": f"Invalid PDF type. Must be one of: {valid_types}"}, status=400)
+        
+        # Update the PDF type
+        old_pdf_type = book.pdf_type
+        book.pdf_type = new_pdf_type
+        book.save(update_fields=['pdf_type', 'updated_at'])
+        
+        # If type is set to 'unknown', try to auto-detect
+        if new_pdf_type == 'unknown':
+            try:
+                book.detect_and_update_pdf_type()
+                # Get the updated type after auto-detection
+                book.refresh_from_db()
+                new_pdf_type = book.pdf_type
+            except Exception as e:
+                # Auto-detection failed, keep as unknown
+                pass
+        
+        # Return success response
+        return JsonResponse({
+            "status": "success", 
+            "message": f"PDF类型已从'{book.get_pdf_type_display_name()}更新为'{dict(Books.PDF_TYPE_CHOICES)[new_pdf_type]}'",
+            "old_type": old_pdf_type,
+            "new_type": new_pdf_type,
+            "display_name": dict(Books.PDF_TYPE_CHOICES)[new_pdf_type]
+        })
+    
+    except json.JSONDecodeError:
+        return JsonResponse({"status": "error", "message": "Invalid JSON data"}, status=400)
+    except Exception as e:
+        print(f"Error in update_pdf_type: {str(e)}")
+        return JsonResponse({"status": "error", "message": f"更新失败: {str(e)}"}, status=500)
+
+
+@login_required
+@csrf_exempt  
+@require_http_methods(["POST"])
+def detect_scanned_pdf(request, book_id):
+    """Detect if a PDF is scanned or text-based"""
+    # Get the book or return 404 if not found
+    book = get_object_or_404(Books, pk=book_id)
+    
+    # Check if the user owns this book
+    if book.user != request.user:
+        return JsonResponse({"status": "error", "message": "You don't have permission to access this book"}, status=403)
+    
+    # Check if it's a PDF file
+    if book.file_type != ".pdf":
+        return JsonResponse({"status": "error", "message": "This is not a PDF file"}, status=400)
+    
+    try:
+        from book2tts.pdf import detect_scanned_pdf as detect_scanned
+        
+        # Perform detection
+        result = detect_scanned(book.file.path, sample_pages=5)
+        
+        # Update book's pdf_type if it was previously unknown
+        if book.pdf_type == 'unknown':
+            book.pdf_type = 'scanned' if result['is_scanned'] else 'text'
+            book.save(update_fields=['pdf_type', 'updated_at'])
+        
+        # Return detection result
+        return JsonResponse({
+            "status": "success",
+            "is_scanned": result['is_scanned'],
+            "scanned_ratio": result['scanned_ratio'],
+            "sample_pages": result['sample_pages'],
+            "current_type": book.pdf_type,
+            "message": f"检测完成：{'扫描版' if result['is_scanned'] else '文本版'}PDF"
+        })
+    
+    except Exception as e:
+        print(f"Error in detect_scanned_pdf: {str(e)}")
+        return JsonResponse({"status": "error", "message": f"检测失败: {str(e)}"}, status=500)
+
+
+@login_required
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_page_image(request, book_id, page_number):
+    """Get page image for scanned PDF viewing"""
+    book = get_object_or_404(Books, pk=book_id)
+    
+    # Check if the user owns this book
+    if book.user != request.user:
+        return JsonResponse({"status": "error", "message": "You don't have permission to access this book"}, status=403)
+    
+    # Check if it's a PDF file
+    if book.file_type != ".pdf":
+        return JsonResponse({"status": "error", "message": "This is not a PDF file"}, status=400)
+    
+    try:
+        from book2tts.pdf import get_page_image_data
+        import base64
+        
+        # Convert page_number to int
+        page_num = int(page_number)
+        
+        # Get page image data
+        image_data = get_page_image_data(book.file.path, page_num, resolution=200)  # Higher resolution for viewing
+        
+        # Convert to base64 for web display
+        image_base64 = base64.b64encode(image_data).decode('utf-8')
+        
+        return JsonResponse({
+            "status": "success",
+            "image_data": f"data:image/png;base64,{image_base64}",
+            "page_number": page_num,
+            "book_name": book.name
+        })
+    
+    except Exception as e:
+        print(f"Error getting page image: {str(e)}")
+        return JsonResponse({"status": "error", "message": f"获取页面图片失败: {str(e)}"}, status=500)
 
 
 @login_required

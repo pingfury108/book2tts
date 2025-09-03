@@ -197,6 +197,10 @@ CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
 CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60  # 25 minutes
 CELERY_WORKER_SEND_TASK_EVENTS = True
+
+# OCR Configuration
+VOLC_AK = os.getenv("VOLC_AK", "")
+VOLC_SK = os.getenv("VOLC_SK", "")
 CELERY_TASK_SEND_SENT_EVENT = True
 
 # Database transport settings (only needed for non-eager mode)

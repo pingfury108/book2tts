@@ -6,7 +6,6 @@
 <div class="flex p-2 w-full h-screen bg-base-100">
     <div class="grow h-full w-1/5 overflow-hidden rounded-lg flex flex-col">
       <div class="container text-center p-2">
-        <h2 class="text-lg font-bold mb-2">📚 {{ title }}</h2>
         <div role="tablist" class="tabs tabs-bordered">
           <a role="tab" class="tab tab-active" id="tab_toc"
              hx-get="{% url 'toc' book_id=book_id %}"
@@ -38,6 +37,13 @@
                     <div class="flex gap-2 items-center">
                         <div class="badge badge-primary p-3 text-sm">章节内容</div>
                         <div class="badge badge-outline p-2 text-xs" id="word-count-badge">0 字</div>
+                        <!-- 页面图片查看按钮 - 只在扫描版PDF时显示 -->
+                        <button class="btn btn-xs btn-outline" id="view-page-image-btn" style="display: none;" title="查看页面原图">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-4.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
+                            </svg>
+                            查看原图
+                        </button>
                     </div>
                     <div class="flex gap-2">
                         <button class="btn btn-xs btn-outline" id="format-text-btn">自动排版</button>
@@ -85,20 +91,20 @@
                 <div class="card-body p-4">
                     <h3 class="card-title text-lg font-bold">🔊 音频处理</h3>
                     <div class="space-y-1">
-                        <select class="select select-bordered w-full" id="tts-provider">
+                        <select class="select select-bordered w-full text-sm" id="tts-provider">
                             <option disabled selected>TTS 供应商</option>
                             <option value="azure">azure</option>
                             <option value="edge-tts" selected>edge-tts</option>
                         </select>
-                        <select class="select select-bordered w-full" id="voice-model"
+                        <select class="select select-bordered w-full text-sm" id="voice-model"
                                 hx-get="{% url 'voice_list' %}"
                                 hx-trigger="load"
                                 hx-target="this"
                                 hx-swap="innerHTML">
                             <option disabled selected>语音模型</option>
                         </select>
-                        <input type="text" id="audio-title-input" class="input input-bordered w-full" placeholder="音频标题（选填）" />
-                        <button class="btn btn-primary w-full" id="synthesize-btn">合成音频</button>
+                        <input type="text" id="audio-title-input" class="input input-bordered w-full text-sm" placeholder="音频标题（选填）" />
+                        <button class="btn btn-primary w-full text-sm h-10" id="synthesize-btn">合成音频</button>
                         <div id="audio-player-container" class="hidden mt-2 p-3 bg-base-300 rounded-lg">
                             <div class="text-center mb-3">
                                 <div class="inline-block bg-primary text-primary-content px-3 py-2 rounded-lg text-sm font-medium leading-relaxed max-w-full break-words" id="audio-title" style="min-height: 2.5rem; line-height: 1.4;"></div>
@@ -107,13 +113,13 @@
                             <div id="audio-status" class="text-sm mt-1 text-center font-medium text-success"></div>
                         </div>
                         <div class="flex gap-2 mt-2">
-                            <button class="btn btn-secondary flex-1" id="download-btn" disabled>
-                                <i class="fas fa-download h-5 w-5 mr-1"></i>
+                            <button class="btn btn-secondary flex-1 text-sm h-9" id="download-btn" disabled>
+                                <i class="fas fa-download h-4 w-4 mr-1"></i>
                                 下载
                             </button>
-                            <button class="btn btn-accent flex-1" id="publish-btn" disabled
+                            <button class="btn btn-accent flex-1 text-sm h-9" id="publish-btn" disabled
                                     onclick="handlePublishClick()">
-                                <i class="fas fa-upload h-5 w-5 mr-1"></i>
+                                <i class="fas fa-upload h-4 w-4 mr-1"></i>
                                 发布
                             </button>
                         </div>
@@ -123,6 +129,24 @@
             </div>
         </div>
     </div>
+</div>
+
+<!-- 页面图片查看模态框 -->
+<div id="page-image-modal" class="modal">
+  <div class="modal-box max-w-6xl max-h-[90vh]">
+    <h3 class="font-bold text-lg mb-4">页面原图</h3>
+    <div id="page-images-container" class="flex justify-center">
+      <!-- 图片将通过JavaScript动态添加到这里 -->
+    </div>
+    <div id="image-loading" class="flex justify-center items-center h-64">
+      <span class="loading loading-spinner loading-lg"></span>
+      <span class="ml-2">加载页面图片中...</span>
+    </div>
+    <div class="modal-action">
+      <button class="btn" onclick="document.getElementById('page-image-modal').classList.remove('modal-open')">关闭</button>
+    </div>
+  </div>
+  <div class="modal-backdrop" onclick="document.getElementById('page-image-modal').classList.remove('modal-open')"></div>
 </div>
 {% endblock %}
 
@@ -281,6 +305,8 @@
  window.currentPageId = window.currentPageId || ''; // Actual page ID
  window.activeTab = window.activeTab || 'tab_toc'; // Track which tab is currently active
  window.currentAudioSegmentId = window.currentAudioSegmentId || 0;
+window.currentBookPdfType = window.currentBookPdfType || 'unknown'; // Track book PDF type
+window.currentSelectedPages = window.currentSelectedPages || []; // Track selected pages for multi-page viewing
 
  // Tab switching
  $(document).ready(function() {
@@ -1007,6 +1033,255 @@
      publishBtn.title = '发布';
    }
  }
+
+// 页面图片查看功能（仅支持PDF）
+function showPageImageButton() {
+  const viewImageBtn = document.getElementById('view-page-image-btn');
+  
+  // 只在PDF文件且为扫描版时显示按钮
+  if (viewImageBtn && 
+      window.currentBookPdfType === 'scanned' && 
+      '{{ book.file_type|default:"" }}' === '.pdf' &&
+      (window.currentPageId || window.currentSelectedPages.length > 0)) {
+    viewImageBtn.style.display = 'inline-flex';
+    
+    // 更新按钮文本显示选中页面数量
+    const pageCount = window.currentSelectedPages.length || 1;
+    const buttonText = pageCount > 1 ? `查看原图 (${pageCount}页)` : '查看原图';
+    viewImageBtn.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3">
+        <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-4.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
+      </svg>
+      ${buttonText}
+    `;
+  } else if (viewImageBtn) {
+    viewImageBtn.style.display = 'none';
+  }
+}
+
+// 点击查看页面图片（支持多页面）
+function handleViewPageImage() {
+  const pagesToView = window.currentSelectedPages.length > 0 ? 
+                     window.currentSelectedPages : 
+                     (window.currentPageId ? [window.currentPageId] : []);
+  
+  if (pagesToView.length === 0) {
+    if (typeof showToast === 'function') {
+      showToast('请先选择要查看的页面', 'warning');
+    }
+    return;
+  }
+  
+  const modal = document.getElementById('page-image-modal');
+  const pageImagesContainer = document.getElementById('page-images-container');
+  const loadingIndicator = document.getElementById('image-loading');
+  
+  if (!modal || !pageImagesContainer || !loadingIndicator) {
+    console.error('模态框元素未找到');
+    return;
+  }
+  
+  // 显示模态框和加载状态
+  modal.classList.add('modal-open');
+  pageImagesContainer.innerHTML = '';
+  pageImagesContainer.style.display = 'none';
+  loadingIndicator.style.display = 'flex';
+  loadingIndicator.innerHTML = `
+    <span class="loading loading-spinner loading-lg"></span>
+    <span class="ml-2">加载 ${pagesToView.length} 个页面图片中...</span>
+  `;
+  
+  // 更新模态框标题
+  const modalTitle = modal.querySelector('h3');
+  if (modalTitle) {
+    modalTitle.textContent = pagesToView.length > 1 ? 
+      `页面原图 (共${pagesToView.length}页)` : '页面原图';
+  }
+  
+  // 并行获取所有页面图片
+  const imagePromises = pagesToView.map((pageId, index) => {
+    const imageUrl = `{% url 'get_page_image' book_id=book_id page_number=0 %}`.replace('0', pageId);
+    
+    return fetch(imageUrl, {
+      method: 'GET',
+      headers: {
+        'X-CSRFToken': '{{ csrf_token }}'
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.status === 'success') {
+        return {
+          success: true,
+          pageId: pageId,
+          imageData: data.image_data,
+          index: index
+        };
+      } else {
+        throw new Error(data.message || `第${pageId}页图片获取失败`);
+      }
+    })
+    .catch(error => {
+      return {
+        success: false,
+        pageId: pageId,
+        error: error.message,
+        index: index
+      };
+    });
+  });
+  
+  // 等待所有图片加载完成
+  Promise.all(imagePromises).then(results => {
+    loadingIndicator.style.display = 'none';
+    pageImagesContainer.style.display = 'block';
+    
+    // 创建图片网格容器
+    const gridContainer = document.createElement('div');
+    gridContainer.className = pagesToView.length > 1 ? 
+      'grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[70vh] overflow-y-auto' : 
+      'flex justify-center';
+    
+    let successCount = 0;
+    results.forEach(result => {
+      const imageWrapper = document.createElement('div');
+      imageWrapper.className = 'flex flex-col items-center';
+      
+      if (result.success) {
+        const img = document.createElement('img');
+        img.src = result.imageData;
+        img.alt = `第${result.pageId}页`;
+        img.className = 'max-w-full max-h-96 object-contain rounded-lg shadow-lg cursor-zoom-in';
+        img.onclick = function() {
+          // 点击图片放大查看
+          openImageFullscreen(result.imageData, `第${result.pageId}页`);
+        };
+        
+        const caption = document.createElement('p');
+        caption.className = 'text-sm text-gray-600 mt-2';
+        caption.textContent = `第${result.pageId}页`;
+        
+        imageWrapper.appendChild(img);
+        imageWrapper.appendChild(caption);
+        successCount++;
+      } else {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'text-center p-4 border border-error rounded-lg';
+        errorDiv.innerHTML = `
+          <i class="fas fa-exclamation-triangle text-error text-2xl mb-2"></i>
+          <p class="text-error text-sm">第${result.pageId}页加载失败</p>
+          <p class="text-xs text-gray-500">${result.error}</p>
+        `;
+        imageWrapper.appendChild(errorDiv);
+      }
+      
+      gridContainer.appendChild(imageWrapper);
+    });
+    
+    pageImagesContainer.appendChild(gridContainer);
+    
+    // 显示加载结果统计
+    if (successCount < pagesToView.length) {
+      const errorCount = pagesToView.length - successCount;
+      if (typeof showToast === 'function') {
+        showToast(`已加载${successCount}页图片，${errorCount}页加载失败`, 'warning', 5000);
+      }
+    }
+  });
+}
+
+// 全屏查看单个图片
+function openImageFullscreen(imageData, title) {
+  const fullscreenModal = document.createElement('div');
+  fullscreenModal.className = 'modal modal-open';
+  fullscreenModal.innerHTML = `
+    <div class="modal-box max-w-full max-h-full w-full h-full p-0 bg-black">
+      <div class="relative w-full h-full flex items-center justify-center">
+        <img src="${imageData}" alt="${title}" class="max-w-full max-h-full object-contain" />
+        <button class="btn btn-circle btn-ghost absolute top-4 right-4 text-white bg-black bg-opacity-50"
+                onclick="this.closest('.modal').remove()">✕</button>
+        <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-white bg-black bg-opacity-50 px-4 py-2 rounded">
+          ${title}
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // 点击模态框背景关闭
+  fullscreenModal.addEventListener('click', function(e) {
+    if (e.target === fullscreenModal) {
+      fullscreenModal.remove();
+    }
+  });
+  
+  // ESC键关闭
+  const escHandler = function(e) {
+    if (e.key === 'Escape') {
+      fullscreenModal.remove();
+      document.removeEventListener('keydown', escHandler);
+    }
+  };
+  document.addEventListener('keydown', escHandler);
+  
+  document.body.appendChild(fullscreenModal);
+}
+
+// 解析PDF页码范围的简单函数
+function parsePdfPageIds(href) {
+  const pageIds = [];
+  if (!href) return pageIds;
+  
+  // PDF格式：start-end 或单页
+  if (href.includes('-')) {
+    const [start, end] = href.split('-').map(num => parseInt(num));
+    for (let i = start; i <= end; i++) {
+      pageIds.push(i.toString());
+    }
+  } else {
+    pageIds.push(href.toString());
+  }
+  
+  return pageIds;
+}
+
+// 全局函数，供其他组件调用来更新PDF类型
+window.updateBookPdfType = function(pdfType) {
+  window.currentBookPdfType = pdfType;
+  showPageImageButton();
+};
+
+// 全局函数，供TOC和pages组件调用来更新当前页面状态
+window.updateCurrentPageState = function(pageId, pageName, pdfType, selectedPages) {
+  window.currentPageId = pageId;
+  window.currentPageName = pageName;
+  if (pdfType) {
+    window.currentBookPdfType = pdfType;
+  }
+  
+  // 更新选中的页面列表
+  if (selectedPages && Array.isArray(selectedPages)) {
+    window.currentSelectedPages = selectedPages;
+  } else {
+    window.currentSelectedPages = pageId ? [pageId] : [];
+  }
+  
+  showPageImageButton();
+};
+
+// 页面加载完成后设置图片查看按钮点击事件
+$(document).ready(function() {
+  // 设置图片查看按钮点击事件
+  const viewImageBtn = document.getElementById('view-page-image-btn');
+  if (viewImageBtn) {
+    viewImageBtn.addEventListener('click', handleViewPageImage);
+  }
+  
+  // 设置初始的PDF类型（从Django模板传递）
+  {% if book %}
+    window.currentBookPdfType = '{{ book.pdf_type|default:"unknown" }}';
+    showPageImageButton();
+  {% endif %}
+});
 </script>
 
 {% endblock %}

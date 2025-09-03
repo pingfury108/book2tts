@@ -10,6 +10,9 @@ from .views import (
     delete_audio_segment,
     book_details_htmx,
     update_book_name,
+    update_pdf_type,
+    detect_scanned_pdf,
+    get_page_image,
     delete_book,
     toggle_publish_audio_segment,
 )
@@ -36,6 +39,11 @@ from .views.dialogue_views import (
     voice_role_create,
     voice_role_delete,
     task_status,
+)
+from .views.ocr_views import (
+    detect_pdf_scanned,
+    ocr_pdf_page,
+    ocr_pdf_pages_batch,
 )
 
 urlpatterns = [
@@ -72,6 +80,9 @@ urlpatterns = [
         name="toggle_publish_audio_segment",
     ),
     path("book/<int:book_id>/update-name/", update_book_name, name="update_book_name"),
+    path("book/<int:book_id>/update-pdf-type/", update_pdf_type, name="update_pdf_type"),
+    path("book/<int:book_id>/detect-scanned/", detect_scanned_pdf, name="detect_scanned_pdf"),
+    path("book/<int:book_id>/page-image/<int:page_number>/", get_page_image, name="get_page_image"),
     path("book/<int:book_id>/delete/", delete_book, name="delete_book"),
     # 任务队列相关路由
     path("tasks/", task_queue, name="task_queue"),
@@ -102,4 +113,8 @@ urlpatterns = [
     
     # 任务状态查询
     path("task/<str:task_id>/status/", task_status, name="task_status"),
+    
+    # OCR功能路由
+    path("book/<int:book_id>/ocr/page/", ocr_pdf_page, name="ocr_pdf_page"),  
+    path("book/<int:book_id>/ocr/batch/", ocr_pdf_pages_batch, name="ocr_pdf_pages_batch"),
 ]

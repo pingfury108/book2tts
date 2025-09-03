@@ -96,6 +96,18 @@ $(document).ready(function() {
     }
   }
   
+  // Function to get selected items in TOC display order
+  function getSelectedItemsInOrder() {
+    const sortedSelectedItems = [];
+    $('.toc-link').each(function() {
+      const href = $(this).data('toc-href');
+      if (selectedTocItems.has(href)) {
+        sortedSelectedItems.push(href);
+      }
+    });
+    return sortedSelectedItems;
+  }
+  
   // Function to load selected TOC items
   function loadSelectedTocItems() {
     if (selectedTocItems.size === 0) return;
@@ -105,7 +117,10 @@ $(document).ready(function() {
     
     // Get the URL from any toc link (they're all the same)
     const url = $('.toc-link:first').data('text-url');
-    const names = Array.from(selectedTocItems).join(',');
+    
+    // 按照TOC在页面中的显示顺序排序，而不是选中的操作顺序
+    const sortedSelectedItems = getSelectedItemsInOrder();
+    const names = sortedSelectedItems.join(',');
     
     // Reset audio display if function exists
     if (typeof resetAudioDisplay === 'function') {
@@ -127,18 +142,48 @@ $(document).ready(function() {
           // Update the textarea with the texts from JSON response
           $('#src-text').val(response.texts);
           
+          // 如果使用了OCR，显示额外信息
+          if (response.ocr_used) {
+            showOCRResultInfo(response);
+          }
+          
           // Update UI to show multiple selections
           $('.toc-link').removeClass('bg-base-300 active');
-          selectedTocItems.forEach(href => {
-            $(`.toc-link[data-toc-href="${href}"]`).addClass('bg-base-300');
+          // 按照TOC顺序高亮选中的项目
+          $('.toc-link').each(function() {
+            const href = $(this).data('toc-href');
+            if (selectedTocItems.has(href)) {
+              $(this).addClass('bg-base-300');
+            }
           });
           
-          // Update page state (use first selected item's info)
-          const firstSelectedHref = Array.from(selectedTocItems)[0];
+          // Update page state (use first selected item's info based on TOC order)
+          const sortedSelectedItems = getSelectedItemsInOrder();
+          const firstSelectedHref = sortedSelectedItems[0]; // 使用排序后的第一个
           const firstSelectedLink = $(`.toc-link[data-toc-href="${firstSelectedHref}"]`);
           if (firstSelectedLink.length) {
             window.currentPageName = firstSelectedLink.find('span').text().trim();
             window.currentPageId = firstSelectedHref;
+            
+            // 收集所有选中项的页码（仅对PDF有效），按TOC顺序排序
+            let allSelectedPages = [];
+            // 使用排序后的选中项确保页码也按正确顺序
+            sortedSelectedItems.forEach(href => {
+              if (typeof parsePdfPageIds === 'function') {
+                const pageIds = parsePdfPageIds(href);
+                allSelectedPages.push(...pageIds);
+              }
+            });
+            
+            // Update current page state for image viewing
+            if (typeof window.updateCurrentPageState === 'function') {
+              window.updateCurrentPageState(
+                window.currentPageId, 
+                window.currentPageName, 
+                null, // 不改变PDF类型
+                allSelectedPages // 传递所有页码
+              );
+            }
             
             // Update audio title placeholder with count info
             const titleInput = document.getElementById('audio-title-input');
@@ -157,12 +202,22 @@ $(document).ready(function() {
           }
         } else {
           console.error('Error in response:', response);
-          alert('加载内容失败：' + (response.message || '未知错误'));
+          const errorMessage = '加载内容失败：' + (response.message || '未知错误');
+          if (typeof showToast === 'function') {
+            showToast(errorMessage, 'error');
+          } else {
+            showSimpleToast(errorMessage, 'error');
+          }
         }
       },
       error: function(xhr, status, error) {
         console.error('Error loading text content:', error);
-        alert('加载内容失败：' + error);
+        const errorMessage = '加载内容失败：' + error;
+        if (typeof showToast === 'function') {
+          showToast(errorMessage, 'error');
+        } else {
+          showSimpleToast(errorMessage, 'error');
+        }
       },
       complete: function() {
         // Hide loading indicator
@@ -220,6 +275,100 @@ $(document).ready(function() {
     e.preventDefault();
     loadSelectedTocItems();
   });
+  
+  // 显示OCR结果信息
+  function showOCRResultInfo(response) {
+    if (response.ocr_results && response.ocr_results.length > 0) {
+      const cachedCount = response.cached_count || 0;
+      const totalCount = response.ocr_results.length;
+      const errorCount = response.ocr_results.filter(r => r.error).length;
+      
+      let message = `OCR识别完成：处理${totalCount}页`;
+      if (cachedCount > 0) {
+        message += `，其中${cachedCount}页使用缓存`;
+      }
+      if (errorCount > 0) {
+        message += `，${errorCount}页识别失败`;
+      }
+      if (response.auto_ocr) {
+        message += ` (自动OCR)`;
+      }
+      
+      // 显示临时提示
+      if (typeof showToast === 'function') {
+        showToast(message, 'info', 3000);
+      } else {
+        console.log(message);
+        // 创建简单的临时提示
+        showSimpleToast(message, 'info');
+      }
+    }
+  }
+
+  // 简单的Toast提示（如果全局showToast不可用）
+  function showSimpleToast(message, type = 'info') {
+    // 移除已存在的toast
+    $('.simple-toast').remove();
+    
+    // 根据类型选择图标
+    let icon;
+    switch(type) {
+      case 'error':
+        icon = `
+          <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        `;
+        break;
+      case 'success':
+        icon = `
+          <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        `;
+        break;
+      case 'warning':
+        icon = `
+          <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+          </svg>
+        `;
+        break;
+      default: // info
+        icon = `
+          <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        `;
+    }
+    
+    const toast = $(`
+      <div class="simple-toast fixed top-4 right-4 z-50 max-w-sm">
+        <div class="alert alert-${type} shadow-lg transform transition-all duration-300 ease-in-out opacity-0">
+          <div>
+            ${icon}
+            <span>${message}</span>
+          </div>
+        </div>
+      </div>
+    `);
+    
+    $('body').append(toast);
+    
+    // 显示动画
+    setTimeout(() => {
+      toast.find('.alert').removeClass('opacity-0').addClass('opacity-100');
+    }, 10);
+    
+    // 自动隐藏时间根据类型调整
+    const hideDelay = type === 'error' ? 5000 : 3000; // 错误消息显示更久
+    setTimeout(() => {
+      toast.find('.alert').removeClass('opacity-100').addClass('opacity-0');
+      setTimeout(() => {
+        toast.remove();
+      }, 300);
+    }, hideDelay);
+  }
   
   // Auto-load the first TOC item (for backward compatibility)
   if ($('.toc-link').length > 0) {

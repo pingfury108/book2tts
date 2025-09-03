@@ -43,6 +43,7 @@
       {% endwith %}
     </div>
     
+    <!-- 页面导航和控制区域 -->
     <div class="flex flex-wrap gap-1 mb-2">
       <div class="border rounded-full px-4 py-1 flex items-center justify-between w-auto">
         <span class="inline-flex items-center text-xs">掐头</span>
@@ -92,190 +93,267 @@
     // 添加jQuery处理页面链接点击事件
     $('.page-link').off('click').on('click', function(e) {
       e.preventDefault();
-      
-      // Get URL and data from attributes
-      const url = $(this).data('text-url');
-      const names = $(this).data('names');
-      const skipStart = $('#skip-start-input').val() || 0;
-      const skipEnd = $('#skip-end-input').val() || 0;
-      
-      // Reset audio display if function exists
-      if (typeof resetAudioDisplay === 'function') {
-        resetAudioDisplay();
-      }
-      
-      console.log('Requesting page content using POST');
-      
-      // Fetch the text content using POST
-      $.ajax({
-        url: url,
-        type: 'POST',
-        dataType: 'json',
-        data: {
-          'names': names,
-          'head_cut': skipStart,
-          'tail_cut': skipEnd,
-          'csrfmiddlewaretoken': '{{ csrf_token }}'
-        },
-        success: function(response) {
-          console.log('Page content received:', response);
-          // Handle JSON response
-          if (response.status === 'success') {
-            // Update the textarea with the texts from JSON response
-            $('#src-text').val(response.texts);
-            
-            // Highlight the clicked item
-            $('.page-link').parent().removeClass('active');
-            $(e.currentTarget).parent().addClass('active');
-            
-            // Scroll to the active item
-            scrollActiveLinkIntoView();
-            
-            // Update page state (required for other functionality)
-            window.currentPageName = $(e.currentTarget).find('span').text().trim();
-            window.currentPageId = $(e.currentTarget).data('page-number');
-            
-            // Update audio title placeholder
-            const titleInput = document.getElementById('audio-title-input');
-            if (titleInput) {
-              titleInput.placeholder = `音频标题 (默认: ${window.currentPageName})`;
-            }
-            
-            // Log state change
-            if (typeof logState === 'function') {
-              logState('Page content loaded with jQuery');
-            }
-          } else {
-            console.error('Error in response:', response);
-            alert('加载页面内容失败：' + (response.message || '未知错误'));
-          }
-        },
-        error: function(xhr, status, error) {
-          console.error('Error loading page content:', error);
-          alert('加载页面内容失败：' + error);
-        }
-      });
+      handlePageClick(this);
     });
     
     // 添加首末页按钮点击事件处理
     $('#goto-first, #goto-last').off('click').on('click', function(e) {
       e.preventDefault();
-      
-      // Get URL and data from attributes
-      const url = $(this).data('text-url');
-      const names = $(this).data('names');
-      const skipStart = $('#skip-start-input').val() || 0;
-      const skipEnd = $('#skip-end-input').val() || 0;
-      
-      // Reset audio display if function exists
-      if (typeof resetAudioDisplay === 'function') {
-        resetAudioDisplay();
-      }
-      
-      console.log('Requesting first/last page content using POST');
-      
-      // Fetch the text content using POST
-      $.ajax({
-        url: url,
-        type: 'POST',
-        dataType: 'json',
-        data: {
-          'names': names,
-          'head_cut': skipStart,
-          'tail_cut': skipEnd,
-          'csrfmiddlewaretoken': '{{ csrf_token }}'
-        },
-        success: function(response) {
-          console.log('First/last page content received:', response);
-          // Handle JSON response
-          if (response.status === 'success') {
-            // Update the textarea with the texts from JSON response
-            $('#src-text').val(response.texts);
-            
-            // Log state change
-            if (typeof logState === 'function') {
-              logState('Page content loaded with jQuery (first/last)');
-            }
-          } else {
-            console.error('Error in response:', response);
-            alert('加载页面内容失败：' + (response.message || '未知错误'));
-          }
-        },
-        error: function(xhr, status, error) {
-          console.error('Error loading page content:', error);
-          alert('加载页面内容失败：' + error);
-        }
-      });
+      handleFirstLastPageClick(this);
     });
     
     // Batch extraction button functionality
     const batchExtractBtn = document.getElementById('batch-extract');
     if (batchExtractBtn) {
-      $(batchExtractBtn).off('click').on('click', function() {
-        console.log('Batch extract button clicked');
-        
-        // Reset audio display if function exists
-        if (typeof resetAudioDisplay === 'function') {
-          resetAudioDisplay();
-        }
-        
-        // Get all checked checkboxes
-        const checkedBoxes = document.querySelectorAll('.page-checkbox:checked');
-        const checkedPages = Array.from(checkedBoxes).map(box => box.value);
-        console.log('Selected pages:', checkedPages);
-        
-        // Only proceed if checkboxes are selected
-        if (checkedPages.length > 0) {
-          // 使用新的批量处理逻辑，通过逗号分隔的页面列表一次请求
-          // Get skip lines parameters
-          const skipStart = $('#skip-start-input').val() || 0;
-          const skipEnd = $('#skip-end-input').val() || 0;
-          
-          // 处理页面名称，用逗号连接（保持顺序）
-          const pageListForNames = checkedPages.join(',');
-          
-          // 构建批量请求URL
-          const url = '{% url "text_by_page" book_id=book_id %}';
-          
-          console.log(`Requesting batch content for ${checkedPages.length} pages using POST`);
-          
-          // 发起单个POST请求获取所有选中页面的内容
-          $.ajax({
-            url: url,
-            type: 'POST',
-            dataType: 'json',
-            data: {
-              'names': pageListForNames,
-              'head_cut': skipStart,
-              'tail_cut': skipEnd,
-              'csrfmiddlewaretoken': '{{ csrf_token }}'
-            },
-            success: function(response) {
-              console.log('Batch content received:', response);
-              // Handle JSON response
-              if (response.status === 'success') {
-                // Update the textarea with the combined texts from JSON response
-                $('#src-text').val(response.texts);
-                
-                // Log state change
-                if (typeof logState === 'function') {
-                  logState('Batch content loaded with jQuery (single request)');
-                }
-              } else {
-                console.error('Error in batch response:', response);
-                alert('批量加载内容失败：' + (response.message || '未知错误'));
-              }
-            },
-            error: function(xhr, status, error) {
-              console.error('Error loading batch content:', error);
-              alert('批量加载内容失败：' + error);
-            }
-          });
+      $(batchExtractBtn).off('click').on('click', handleBatchExtract);
+    }
+  }
+
+  // 处理页面点击
+  function handlePageClick(linkElement) {
+    // Get URL and data from attributes
+    const url = $(linkElement).data('text-url');
+    const names = $(linkElement).data('names');
+    const skipStart = $('#skip-start-input').val() || 0;
+    const skipEnd = $('#skip-end-input').val() || 0;
+    
+    // Reset audio display if function exists
+    if (typeof resetAudioDisplay === 'function') {
+      resetAudioDisplay();
+    }
+    
+    console.log('Requesting page content using POST');
+    
+    // Fetch the text content using POST (OCR will be automatically determined by server)
+    $.ajax({
+      url: url,
+      type: 'POST',
+      dataType: 'json',
+      data: {
+        'names': names,
+        'head_cut': skipStart,
+        'tail_cut': skipEnd,
+        'csrfmiddlewaretoken': '{{ csrf_token }}'
+      },
+      success: function(response) {
+        console.log('Page content received:', response);
+        handleTextResponse(response, linkElement);
+      },
+      error: function(xhr, status, error) {
+        console.error('Error loading page content:', error);
+        if (typeof showToast === 'function') {
+          showToast('加载页面内容失败：' + error, 'error');
         } else {
-          // Alert if no checkboxes selected
-          alert('请先选择要提取的页面！');
+          alert('加载页面内容失败：' + error);
+        }
+      }
+    });
+  }
+
+  // 处理首末页点击
+  function handleFirstLastPageClick(buttonElement) {
+    // Get URL and data from attributes
+    const url = $(buttonElement).data('text-url');
+    const names = $(buttonElement).data('names');
+    const skipStart = $('#skip-start-input').val() || 0;
+    const skipEnd = $('#skip-end-input').val() || 0;
+    
+    // Reset audio display if function exists
+    if (typeof resetAudioDisplay === 'function') {
+      resetAudioDisplay();
+    }
+    
+    console.log('Requesting first/last page content using POST');
+    
+    // Fetch the text content using POST (OCR will be automatically determined by server)
+    $.ajax({
+      url: url,
+      type: 'POST',
+      dataType: 'json',
+      data: {
+        'names': names,
+        'head_cut': skipStart,
+        'tail_cut': skipEnd,
+        'csrfmiddlewaretoken': '{{ csrf_token }}'
+      },
+      success: function(response) {
+        console.log('First/last page content received:', response);
+        handleTextResponse(response);
+      },
+      error: function(xhr, status, error) {
+        console.error('Error loading page content:', error);
+        if (typeof showToast === 'function') {
+          showToast('加载页面内容失败：' + error, 'error');
+        } else {
+          alert('加载页面内容失败：' + error);
+        }
+      }
+    });
+  }
+
+  // 处理批量提取
+  function handleBatchExtract() {
+    console.log('Batch extract button clicked');
+    
+    // Reset audio display if function exists
+    if (typeof resetAudioDisplay === 'function') {
+      resetAudioDisplay();
+    }
+    
+    // Get all checked checkboxes
+    const checkedBoxes = document.querySelectorAll('.page-checkbox:checked');
+    const checkedPages = Array.from(checkedBoxes).map(box => box.value);
+    console.log('Selected pages:', checkedPages);
+    
+    // Only proceed if checkboxes are selected
+    if (checkedPages.length > 0) {
+      // Get skip lines parameters
+      const skipStart = $('#skip-start-input').val() || 0;
+      const skipEnd = $('#skip-end-input').val() || 0;
+      
+      // 处理页面名称，用逗号连接（保持顺序）
+      const pageListForNames = checkedPages.join(',');
+      
+      // 构建批量请求URL
+      const url = '{% url "text_by_page" book_id=book_id %}';
+      
+      console.log(`Requesting batch content for ${checkedPages.length} pages using POST`);
+      
+      // 发起单个POST请求获取所有选中页面的内容
+      $.ajax({
+        url: url,
+        type: 'POST',
+        dataType: 'json',
+        data: {
+          'names': pageListForNames,
+          'head_cut': skipStart,
+          'tail_cut': skipEnd,
+          'csrfmiddlewaretoken': '{{ csrf_token }}'
+        },
+        success: function(response) {
+          console.log('Batch content received:', response);
+          handleTextResponse(response);
+        },
+        error: function(xhr, status, error) {
+          console.error('Error loading batch content:', error);
+          if (typeof showToast === 'function') {
+            showToast('批量加载内容失败：' + error, 'error');
+          } else {
+            alert('批量加载内容失败：' + error);
+          }
         }
       });
+    } else {
+      // Alert if no checkboxes selected
+      if (typeof showToast === 'function') {
+        showToast('请先选择要提取的页面！', 'warning');
+      } else {
+        alert('请先选择要提取的页面！');
+      }
+    }
+  }
+
+  // 统一处理文本响应
+  function handleTextResponse(response, linkElement = null) {
+    if (response.status === 'success') {
+      // Update the textarea with the texts from JSON response
+      $('#src-text').val(response.texts);
+      
+      // 如果使用了OCR，显示额外信息
+      if (response.ocr_used) {
+        showOCRResultInfo(response);
+      }
+      
+      // Highlight the clicked item (if applicable)
+      if (linkElement) {
+        $('.page-link').parent().removeClass('active');
+        $(linkElement).parent().addClass('active');
+        
+        // Scroll to the active item
+        scrollActiveLinkIntoView();
+        
+        // Update page state
+        window.currentPageName = $(linkElement).find('span').text().trim();
+        window.currentPageId = $(linkElement).data('page-number');
+        
+        // Update current page state and PDF type for image viewing
+        if (typeof window.updateCurrentPageState === 'function') {
+          window.updateCurrentPageState(window.currentPageId, window.currentPageName, null, [window.currentPageId.toString()]);
+        }
+        
+        // Update audio title placeholder
+        const titleInput = document.getElementById('audio-title-input');
+        if (titleInput) {
+          titleInput.placeholder = `音频标题 (默认: ${window.currentPageName})`;
+        }
+      } else {
+        // 处理批量选择的情况
+        const checkedBoxes = document.querySelectorAll('.page-checkbox:checked');
+        if (checkedBoxes.length > 0) {
+          const selectedPages = Array.from(checkedBoxes).map(box => box.value);
+          const firstPageName = checkedBoxes[0].closest('li').querySelector('.page-link span').textContent.trim();
+          
+          // 更新状态为批量选择
+          window.currentPageName = firstPageName;
+          window.currentPageId = selectedPages[0];
+          
+          // Update current page state for image viewing with all selected pages
+          if (typeof window.updateCurrentPageState === 'function') {
+            window.updateCurrentPageState(
+              window.currentPageId, 
+              `${firstPageName} 等${selectedPages.length}页`, 
+              null, 
+              selectedPages.map(p => p.toString())
+            );
+          }
+          
+          // Update audio title placeholder for batch
+          const titleInput = document.getElementById('audio-title-input');
+          if (titleInput) {
+            titleInput.placeholder = `音频标题 (默认: ${firstPageName} 等${selectedPages.length}页)`;
+          }
+        }
+      }
+      
+      // Log state change
+      if (typeof logState === 'function') {
+        logState('Content loaded');
+      }
+    } else {
+      console.error('Error in response:', response);
+      const errorMessage = '加载内容失败：' + (response.message || '未知错误');
+      if (typeof showToast === 'function') {
+        showToast(errorMessage, 'error');
+      } else {
+        alert(errorMessage);
+      }
+    }
+  }
+
+  // 显示OCR结果信息
+  function showOCRResultInfo(response) {
+    if (response.ocr_results && response.ocr_results.length > 0) {
+      const cachedCount = response.cached_count || 0;
+      const totalCount = response.ocr_results.length;
+      const errorCount = response.ocr_results.filter(r => r.error).length;
+      
+      let message = `OCR识别完成：处理${totalCount}页`;
+      if (cachedCount > 0) {
+        message += `，其中${cachedCount}页使用缓存`;
+      }
+      if (errorCount > 0) {
+        message += `，${errorCount}页识别失败`;
+      }
+      if (response.auto_ocr) {
+        message += ` (自动OCR)`;
+      }
+      
+      // 显示临时提示
+      if (typeof showToast === 'function') {
+        showToast(message, 'info', 3000);
+      } else {
+        console.log(message);
+      }
     }
   }
 

@@ -1,14 +1,21 @@
 from django.contrib import admin
 
 # Register your models here.
-from .models import Books, AudioSegment, VoiceRole, DialogueScript, DialogueSegment, UserProfile
+from .models import Books, AudioSegment, VoiceRole, DialogueScript, DialogueSegment, UserProfile, OCRCache
 
 
 class BooksAdmin(admin.ModelAdmin):
-    list_display = ('name', 'user', 'file_type', 'md5_hash', 'created_at')
-    list_filter = ('file_type', 'user')
+    list_display = ('name', 'user', 'file_type', 'pdf_type', 'md5_hash', 'created_at')
+    list_filter = ('file_type', 'pdf_type', 'user')
     search_fields = ('name', 'md5_hash')
     readonly_fields = ('file_type', 'md5_hash', 'created_at', 'updated_at')
+    
+    def get_readonly_fields(self, request, obj=None):
+        # PDF类型字段在编辑时可以修改，但创建时自动检测
+        readonly = list(self.readonly_fields)
+        if obj is None:  # 创建新对象时
+            readonly.append('pdf_type')
+        return readonly
 
 
 class AudioSegmentAdmin(admin.ModelAdmin):
@@ -67,3 +74,19 @@ class UserProfileAdmin(admin.ModelAdmin):
     def get_user_date_joined(self, obj):
         return obj.user.date_joined
     get_user_date_joined.short_description = "注册时间"
+
+
+@admin.register(OCRCache)
+class OCRCacheAdmin(admin.ModelAdmin):
+    list_display = ('image_md5_short', 'source_type', 'text_preview', 'created_at')
+    list_filter = ('source_type', 'created_at')
+    search_fields = ('image_md5', 'ocr_text')
+    readonly_fields = ('image_md5', 'created_at', 'updated_at')
+    
+    def image_md5_short(self, obj):
+        return f"{obj.image_md5[:12]}..."
+    image_md5_short.short_description = "图片MD5"
+    
+    def text_preview(self, obj):
+        return obj.ocr_text[:50] + "..." if len(obj.ocr_text) > 50 else obj.ocr_text
+    text_preview.short_description = "文本预览"

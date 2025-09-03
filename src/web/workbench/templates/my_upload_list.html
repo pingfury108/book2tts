@@ -50,19 +50,33 @@
             <div class="flex flex-row justify-between items-center w-full">
                 <!-- 显示模式 -->
                 <div id="view-mode-{{ book.id }}" class="flex flex-row justify-between items-center w-full">
-                    <a class="flex-grow flex items-center gap-2" href="{% url 'index' book_id=book.id %}">
-                        <span class="book-name font-medium text-base-content" id="book-name-{{ book.id }}">{{ book.name }}</span>
-                        <span class="badge badge-accent text-accent-content badge-sm">{{ book.file_type }}</span>
+                    <a class="flex-grow flex items-center gap-2 min-w-0" href="{% url 'index' book_id=book.id %}">
+                        <span class="book-name font-medium text-base-content truncate" id="book-name-{{ book.id }}">{{ book.name }}</span>
+                        <span class="badge badge-accent text-accent-content badge-sm flex-shrink-0">{{ book.file_type }}</span>
                     </a>
-                    <div class="flex flex-row gap-1">
-                        <button class="btn btn-sm btn-ghost btn-circle hover:bg-base-300" 
+                    <div class="flex flex-row gap-2 items-center flex-shrink-0 ml-2">
+                        {% if book.file_type == ".pdf" %}
+                        <span class="pdf-type-badge badge badge-sm cursor-pointer hover:bg-primary hover:text-primary-content transition-colors duration-200 whitespace-nowrap" 
+                              id="pdf-type-badge-{{ book.id }}"
+                              onclick="togglePdfType('{{ book.id }}', '{{ book.pdf_type }}')"
+                              title="点击修改PDF类型">
+                            {% if book.pdf_type == 'scanned' %}
+                                📷 扫描版
+                            {% elif book.pdf_type == 'text' %}  
+                                📄 文本版
+                            {% else %}
+                                ❓ 未检测
+                            {% endif %}
+                        </span>
+                        {% endif %}
+                        <button class="btn btn-sm btn-ghost btn-circle hover:bg-base-300 flex-shrink-0" 
                                 onclick="startEditBookName('{{ book.id }}', '{{ book.name }}')"
                                 title="编辑书名">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
                             </svg>
                         </button>
-                        <button class="btn btn-sm btn-ghost btn-circle hover:bg-error hover:text-error-content transition-colors duration-200" 
+                        <button class="btn btn-sm btn-ghost btn-circle hover:bg-error hover:text-error-content transition-colors duration-200 flex-shrink-0" 
                                 onclick="confirmDeleteBook('{{ book.id }}', '{{ book.name }}')"
                                 title="删除书籍">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
@@ -557,6 +571,148 @@ function showToast(message, type = 'info') {
             }
         }, 300);
     }, 3000);
+}
+
+// Toggle PDF type function
+function togglePdfType(bookId, currentType) {
+    // Create modal HTML for PDF type selection
+    const nextType = currentType === 'text' ? 'scanned' : 
+                    currentType === 'scanned' ? 'unknown' : 'text';
+    
+    const typeDisplayMap = {
+        'text': '📄 文本版',
+        'scanned': '📷 扫描版', 
+        'unknown': '❓ 未检测'
+    };
+    
+    const modalHTML = `
+        <div id="pdf-type-modal-${bookId}" class="modal modal-open">
+            <div class="modal-box max-w-md">
+                <h3 class="font-bold text-lg">修改PDF类型</h3>
+                <p class="py-4">
+                    当前类型：<strong>${typeDisplayMap[currentType]}</strong>
+                    <br><br>
+                    选择正确的PDF类型：
+                </p>
+                <div class="flex flex-col gap-2">
+                    <button class="btn btn-outline ${currentType === 'text' ? 'btn-active' : ''}" 
+                            onclick="updatePdfType('${bookId}', 'text')">
+                        📄 文本版 - 可直接提取文本的PDF
+                    </button>
+                    <button class="btn btn-outline ${currentType === 'scanned' ? 'btn-active' : ''}" 
+                            onclick="updatePdfType('${bookId}', 'scanned')">
+                        📷 扫描版 - 需要OCR识别的扫描PDF
+                    </button>
+                    <button class="btn btn-outline ${currentType === 'unknown' ? 'btn-active' : ''}" 
+                            onclick="updatePdfType('${bookId}', 'unknown')">
+                        ❓ 未检测 - 让系统重新检测
+                    </button>
+                </div>
+                <div class="modal-action">
+                    <button class="btn btn-ghost" onclick="closePdfTypeModal('${bookId}')">取消</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Add event listener for escape key
+    function handleModalEscape(event) {
+        if (event.key === 'Escape') {
+            closePdfTypeModal(bookId);
+        }
+    }
+    document.addEventListener('keydown', handleModalEscape);
+    
+    // Store the escape handler for cleanup
+    document.getElementById(`pdf-type-modal-${bookId}`).escapeHandler = handleModalEscape;
+}
+
+// Close PDF type modal
+function closePdfTypeModal(bookId) {
+    const modal = document.getElementById(`pdf-type-modal-${bookId}`);
+    if (modal) {
+        // Remove escape key listener
+        if (modal.escapeHandler) {
+            document.removeEventListener('keydown', modal.escapeHandler);
+        }
+        modal.remove();
+    }
+}
+
+// Update PDF type
+function updatePdfType(bookId, newType) {
+    const modal = document.getElementById(`pdf-type-modal-${bookId}`);
+    const buttons = modal.querySelectorAll('.btn-outline');
+    const selectedButton = Array.from(buttons).find(btn => btn.textContent.includes(newType === 'text' ? '文本版' : newType === 'scanned' ? '扫描版' : '未检测'));
+    
+    // Show loading state
+    if (selectedButton) {
+        selectedButton.disabled = true;
+        selectedButton.innerHTML = `<span class="loading loading-spinner loading-sm"></span> 更新中...`;
+    }
+    
+    // Send update request
+    fetch(`/workbench/book/${bookId}/update-pdf-type/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify({
+            pdf_type: newType
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Close modal
+            closePdfTypeModal(bookId);
+            
+            // Update the PDF type badge
+            const badge = document.getElementById(`pdf-type-badge-${bookId}`);
+            if (badge) {
+                const typeDisplayMap = {
+                    'text': '📄 文本版',
+                    'scanned': '📷 扫描版',
+                    'unknown': '❓ 未检测'
+                };
+                badge.textContent = typeDisplayMap[newType];
+                badge.onclick = function() { togglePdfType(bookId, newType); };
+                
+                // Add highlight animation
+                badge.classList.add('highlight-update');
+                setTimeout(() => {
+                    badge.classList.remove('highlight-update');
+                }, 1500);
+            }
+            
+            // Show success message
+            showToast('PDF类型已更新', 'success');
+        } else {
+            // Reset button state
+            if (selectedButton) {
+                selectedButton.disabled = false;
+                selectedButton.innerHTML = selectedButton.getAttribute('data-original-text') || '重试';
+            }
+            
+            // Show error message
+            showToast('更新失败: ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        // Reset button state
+        if (selectedButton) {
+            selectedButton.disabled = false;
+            selectedButton.innerHTML = selectedButton.getAttribute('data-original-text') || '重试';
+        }
+        
+        // Show error message
+        showToast('更新失败: ' + error, 'error');
+    });
 }
 
 // Initialize

@@ -11,16 +11,47 @@ from django.dispatch import receiver
 
 
 class Books(models.Model):
+    PDF_TYPE_CHOICES = [
+        ('unknown', '未检测'),
+        ('text', '文本版'),
+        ('scanned', '扫描版'),
+    ]
+    
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='books', null=True, blank=True)
     name = models.TextField(default="")
     file_type = models.TextField(default="")
     file = models.FileField(upload_to='books/%Y/%m/%d/')
     md5_hash = models.CharField(max_length=32, blank=True, db_index=True, help_text="文件的MD5哈希值，用于检测重复文件")
+    pdf_type = models.CharField(max_length=20, choices=PDF_TYPE_CHOICES, default='unknown', help_text="PDF类型：文本版或扫描版")
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self) -> str:
         return self.name.__str__()
+    
+    def get_pdf_type_display_name(self):
+        """获取PDF类型的显示名称"""
+        return dict(self.PDF_TYPE_CHOICES).get(self.pdf_type, '未知')
+    
+    def should_use_ocr(self):
+        """判断是否应该使用OCR"""
+        return self.file_type == ".pdf" and self.pdf_type == 'scanned'
+    
+    def detect_and_update_pdf_type(self):
+        """检测并更新PDF类型"""
+        if self.file_type != ".pdf":
+            return False
+        
+        try:
+            from book2tts.pdf import detect_scanned_pdf
+            detection_result = detect_scanned_pdf(self.file.path)
+            
+            self.pdf_type = 'scanned' if detection_result['is_scanned'] else 'text'
+            self.save(update_fields=['pdf_type', 'updated_at'])
+            return True
+        except Exception as e:
+            # 检测失败，保持unknown状态
+            return False
 
     def calculate_md5(self):
         """计算文件的MD5哈希值"""
@@ -45,6 +76,17 @@ class Books(models.Model):
         # 计算并设置MD5哈希值
         if not self.md5_hash:
             self.md5_hash = self.calculate_md5()
+        
+        # 如果是PDF文件，自动检测类型
+        if self.file_type == ".pdf":
+            try:
+                from book2tts.pdf import detect_scanned_pdf
+                detection_result = detect_scanned_pdf(self.file.path)
+                self.pdf_type = 'scanned' if detection_result['is_scanned'] else 'text'
+            except Exception as e:
+                # 检测失败，设置为unknown
+                self.pdf_type = 'unknown'
+        
         return
 
     def save(self, *args, **kwargs):
@@ -245,3 +287,18 @@ class DialogueSegment(models.Model):
     
     def __str__(self):
         return f"{self.script.title} - {self.speaker} (#{self.sequence})"
+
+
+class OCRCache(models.Model):
+    """OCR缓存模型，基于图片MD5存储OCR识别结果"""
+    image_md5 = models.CharField(max_length=32, unique=True, db_index=True, help_text="图片的MD5哈希值")
+    ocr_text = models.TextField(help_text="OCR识别的文本内容")
+    source_type = models.CharField(max_length=20, choices=[('page_image', '页面图片'), ('manual_upload', '手动上传')], default='page_image')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"OCR Cache {self.image_md5[:8]}..."
