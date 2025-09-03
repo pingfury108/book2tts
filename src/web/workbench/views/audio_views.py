@@ -84,6 +84,7 @@ def get_unified_audio_content(user=None, book=None, published_only=True):
             'user': segment.user,
             # 为了兼容性添加的字段
             'file': segment.file,
+            'subtitle_file': segment.subtitle_file,  # 添加字幕文件支持
         })
     
     # 获取对话脚本

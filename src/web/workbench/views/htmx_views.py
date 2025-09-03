@@ -61,6 +61,7 @@ def book_details_htmx(request, book_id):
             'published': item['published'],
             'created_at': item['created_at'],
             'updated_at': item['updated_at'],
+            'subtitle_file': item.get('subtitle_file'),  # 添加字幕文件
         }
         # 添加对话脚本特有的字段
         if item['type'] == 'dialogue_script':

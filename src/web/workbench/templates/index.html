@@ -119,7 +119,18 @@
                             <div class="text-center mb-3">
                                 <div class="inline-block bg-primary text-primary-content px-3 py-2 rounded-lg text-sm font-medium leading-relaxed max-w-full break-words" id="audio-title" style="min-height: 2.5rem; line-height: 1.4;"></div>
                             </div>
-                            <audio id="audio-player" controls class="w-full"></audio>
+                            <div class="flex items-center gap-2 mb-2">
+                                <audio id="audio-player" controls class="flex-1"></audio>
+                                <!-- 全局播放器按钮 -->
+                                <button 
+                                    id="global-play-from-workbench" 
+                                    class="btn btn-sm btn-primary"
+                                    title="在全局播放器中播放"
+                                    style="display: none;"
+                                    onclick="playWorkbenchAudioInGlobal()">
+                                    <i class="fas fa-external-link-alt h-3 w-3"></i>
+                                </button>
+                            </div>
                             <div id="audio-status" class="text-sm mt-1 text-center font-medium text-success"></div>
                         </div>
                         <div class="flex gap-2 mt-2">
@@ -183,6 +194,14 @@
      audioPlayer.src = '';
      audioPlayer.pause();
      audioPlayer.style.display = ''; // 恢复显示
+   }
+   
+   // 隐藏全局播放器按钮
+   const globalPlayBtn = document.getElementById('global-play-from-workbench');
+   if (globalPlayBtn) {
+     globalPlayBtn.style.display = 'none';
+     globalPlayBtn.dataset.audioUrl = '';
+     globalPlayBtn.dataset.audioTitle = '';
    }
    
    // 重置相关状态和按钮
@@ -518,6 +537,15 @@ window.currentSelectedPages = window.currentSelectedPages || []; // Track select
    audioPlayer.style.display = 'block'; // 确保播放器可见
    document.getElementById('audio-title').textContent = audioTitle || '未命名音频';
    
+   // 显示全局播放器按钮
+   const globalPlayBtn = document.getElementById('global-play-from-workbench');
+   if (globalPlayBtn) {
+     globalPlayBtn.style.display = 'block';
+     // 保存当前音频信息供全局播放器使用
+     globalPlayBtn.dataset.audioUrl = data.audio_url;
+     globalPlayBtn.dataset.audioTitle = audioTitle || '未命名音频';
+   }
+   
    // 显示成功状态和配额信息
    const audioStatus = document.getElementById('audio-status');
    audioStatus.className = 'text-sm mt-1 text-center font-medium text-success';
@@ -604,6 +632,23 @@ window.currentSelectedPages = window.currentSelectedPages || []; // Track select
    }
    
    logState('Audio synthesis failed: ' + errorMessage);
+ }
+
+ // 工作台音频全局播放功能
+ function playWorkbenchAudioInGlobal() {
+   const globalPlayBtn = document.getElementById('global-play-from-workbench');
+   if (!globalPlayBtn || !window.globalAudioPlayer) {
+     alert('全局播放器未准备就绪');
+     return;
+   }
+   
+   const audioUrl = globalPlayBtn.dataset.audioUrl;
+   const audioTitle = globalPlayBtn.dataset.audioTitle;
+   
+   if (audioUrl) {
+     // 工作台生成的音频暂时没有字幕支持
+     window.globalAudioPlayer.playAudio(audioUrl, audioTitle, null);
+   }
  }
 
  // 添加 HTMX 请求和响应监听 (保留以兼容其他HTMX功能)
