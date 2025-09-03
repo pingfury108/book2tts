@@ -65,6 +65,31 @@
     </div>
 
 <script>
+/* 自定义折叠图标样式 */
+const style = document.createElement('style');
+style.textContent = `
+    /* 主折叠组件图标旋转 */
+    input[type="checkbox"]:checked + label .collapse-icon {
+        transform: rotate(180deg);
+    }
+    
+    /* 文本折叠组件图标旋转 */
+    input[type="checkbox"]:checked + label .text-collapse-icon {
+        transform: rotate(180deg);
+    }
+    
+    /* 折叠标题悬停效果 */
+    .collapse-title:hover {
+        background-color: rgba(0, 0, 0, 0.02);
+    }
+    
+    /* 优化折叠过渡动画 */
+    .collapse-content {
+        transition: max-height 0.3s ease-in-out, padding 0.3s ease-in-out;
+    }
+`;
+document.head.appendChild(style);
+
 function changePageSize(newSize) {
     const bookId = parseInt('{{ book_id }}');
     const url = '/workbench/audio/book-details/' + bookId + '/?page=1&page_size=' + newSize;
@@ -104,8 +129,56 @@ function jumpToPage() {
 document.body.addEventListener('htmx:afterSwap', function(evt) {
     if (evt.detail.target && evt.detail.target.id === 'main-content') {
         setTimeout(() => {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            // 检查URL中是否有锚点
+            const hash = window.location.hash;
+            if (hash && hash.startsWith('#audio-')) {
+                scrollToAudioSegment(hash);
+            } else {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
         }, 100);
+    }
+});
+
+// 锚点跳转功能
+function scrollToAudioSegment(hash) {
+    const targetElement = document.querySelector(hash);
+    if (targetElement) {
+        // 滚动到目标元素
+        targetElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start',
+            inline: 'nearest'
+        });
+        
+        // 添加高亮效果
+        targetElement.style.transition = 'all 0.3s ease';
+        targetElement.style.backgroundColor = 'rgba(59, 130, 246, 0.1)'; // 蓝色背景
+        targetElement.style.borderColor = 'rgba(59, 130, 246, 0.3)';
+        targetElement.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.2)';
+        
+        // 3秒后移除高亮效果
+        setTimeout(() => {
+            targetElement.style.backgroundColor = '';
+            targetElement.style.borderColor = '';
+            targetElement.style.boxShadow = '';
+        }, 3000);
+        
+        // 自动展开折叠内容以显示更多信息
+        const checkbox = targetElement.querySelector(`input[id^="segment-checkbox-"]`);
+        if (checkbox && !checkbox.checked) {
+            checkbox.checked = true;
+        }
+    }
+}
+
+// 页面首次加载时检查锚点
+document.addEventListener('DOMContentLoaded', function() {
+    const hash = window.location.hash;
+    if (hash && hash.startsWith('#audio-')) {
+        setTimeout(() => {
+            scrollToAudioSegment(hash);
+        }, 500); // 给页面渲染一些时间
     }
 });
 
@@ -235,16 +308,20 @@ function updateSegmentPublishButton(buttonElement, data) {
     <div class="grid grid-cols-1 gap-3 sm:gap-4 lg:gap-6">
         {% for segment in segments %}
         <div class="card shadow-md hover:shadow-lg transition-all duration-200" 
-             data-segment-id="{{ segment.id }}">
+             data-segment-id="{{ segment.id }}" id="audio-{{ segment.id }}">
             <!-- 折叠组件 - 响应式标题区域 -->
-            <div class="collapse collapse-plus">
+            <div class="collapse">
                 <input type="checkbox" id="segment-checkbox-{{ segment.id }}" />
                 
                 <!-- 标题作为折叠触发器 - 完全响应式 -->
                 <label for="segment-checkbox-{{ segment.id }}" 
                        class="collapse-title cursor-pointer min-h-0 
-                              transition-colors p-3 sm:p-4 lg:p-5">
-                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-6 items-center">
+                              transition-colors p-3 sm:p-4 lg:p-5 relative">
+                    <!-- 自定义折叠图标 -->
+                    <div class="absolute right-3 sm:right-4 lg:right-5 top-3 sm:top-4 lg:top-5">
+                        <i class="fas fa-chevron-down transition-transform duration-200 text-gray-400 hover:text-gray-600 collapse-icon"></i>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-6 items-center pr-8">
                         <!-- 标题 -->
                         <div class="lg:col-span-9">
                             <h3 class="text-lg sm:text-xl font-bold text-gray-900 leading-tight break-words">
@@ -415,14 +492,17 @@ function updateSegmentPublishButton(buttonElement, data) {
                             <!-- 文本内容区域 -->
                             <div class="w-full">
                                 <div class="rounded-lg">
-                                    <div class="collapse collapse-plus" id="text-content-{{ segment.id }}">
+                                    <div class="collapse" id="text-content-{{ segment.id }}">
                                         <input type="checkbox" id="text-checkbox-{{ segment.id }}" /> 
                                         <label for="text-checkbox-{{ segment.id }}" 
-                                               class="collapse-title font-medium flex items-center cursor-pointer 
+                                               class="collapse-title font-medium flex items-center justify-between cursor-pointer 
                                                       py-2 sm:py-3 px-3 sm:px-4 text-xs sm:text-sm 
-                                                      min-h-0 touch-manipulation">
-                                            <i class="fas fa-align-left h-3 w-3 sm:h-4 sm:w-4 mr-2"></i>
-                                            <span>文本内容</span>
+                                                      min-h-0 touch-manipulation border-b border-gray-100">
+                                            <div class="flex items-center">
+                                                <i class="fas fa-align-left h-3 w-3 sm:h-4 sm:w-4 mr-2 text-gray-500"></i>
+                                                <span>文本内容</span>
+                                            </div>
+                                            <i class="fas fa-chevron-down transition-transform duration-200 text-gray-400 text-collapse-icon"></i>
                                         </label>
                                         <div class="collapse-content max-h-32 sm:max-h-40 lg:max-h-64 overflow-y-auto 
                                                     text-xs sm:text-sm px-3 sm:px-4 pb-3 sm:pb-4">

@@ -13,6 +13,7 @@ from .views import (
     update_pdf_type,
     detect_scanned_pdf,
     get_page_image,
+    check_page_audio_status,
     delete_book,
     toggle_publish_audio_segment,
 )
@@ -83,6 +84,7 @@ urlpatterns = [
     path("book/<int:book_id>/update-pdf-type/", update_pdf_type, name="update_pdf_type"),
     path("book/<int:book_id>/detect-scanned/", detect_scanned_pdf, name="detect_scanned_pdf"),
     path("book/<int:book_id>/page-image/<int:page_number>/", get_page_image, name="get_page_image"),
+    path("book/<int:book_id>/check-audio-status/", check_page_audio_status, name="check_page_audio_status"),
     path("book/<int:book_id>/delete/", delete_book, name="delete_book"),
     # 任务队列相关路由
     path("tasks/", task_queue, name="task_queue"),

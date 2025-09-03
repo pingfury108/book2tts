@@ -109,5 +109,95 @@
             toastContainer.classList.add('hidden');
         }, 3000);
     }
+
+    // 处理锚点跳转 - 检测 #audio-123 格式的锚点并通过HTMX加载对应书籍详情
+    function handleAudioAnchor() {
+        const hash = window.location.hash;
+        if (hash && hash.startsWith('#audio-')) {
+            const audioId = hash.replace('#audio-', '');
+            
+            // 查找包含该音频ID的书籍
+            {% for book_name, book_data in books_with_ids.items %}
+                {% for segment in book_data.segments %}
+                    if ('{{ segment.id }}' === audioId) {
+                        // 找到了对应的音频片段，通过HTMX加载书籍详情
+                        const bookDetailUrl = '/workbench/audio/book-details/{{ book_data.book_id }}/';
+                        
+                        // 设置一个全局标记，用于在HTMX加载完成后处理锚点
+                        window.pendingAnchorHash = hash;
+                        
+                        // 使用HTMX加载书籍详情内容
+                        htmx.ajax('GET', bookDetailUrl, {
+                            target: '#main-content',
+                            swap: 'innerHTML'
+                        });
+                        
+                        return;
+                    }
+                {% endfor %}
+            {% endfor %}
+            
+            // 如果没找到对应的音频片段，显示提示信息
+            showToast('未找到音频片段 #' + audioId, 'warning');
+            // 清除URL中的锚点
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }
+    
+    // 锚点跳转功能（从book_details_htmx.html复制过来）
+    function scrollToAudioSegment(hash) {
+        const targetElement = document.querySelector(hash);
+        if (targetElement) {
+            // 滚动到目标元素
+            targetElement.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'start',
+                inline: 'nearest'
+            });
+            
+            // 添加高亮效果
+            targetElement.style.transition = 'all 0.3s ease';
+            targetElement.style.backgroundColor = 'rgba(59, 130, 246, 0.1)'; // 蓝色背景
+            targetElement.style.borderColor = 'rgba(59, 130, 246, 0.3)';
+            targetElement.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.2)';
+            
+            // 3秒后移除高亮效果
+            setTimeout(() => {
+                targetElement.style.backgroundColor = '';
+                targetElement.style.borderColor = '';
+                targetElement.style.boxShadow = '';
+            }, 3000);
+            
+            // 自动展开折叠内容以显示更多信息
+            const checkbox = targetElement.querySelector(`input[id^="segment-checkbox-"]`);
+            if (checkbox && !checkbox.checked) {
+                checkbox.checked = true;
+            }
+        }
+    }
+
+    // 监听HTMX afterSwap事件，在内容加载完成后处理锚点
+    document.body.addEventListener('htmx:afterSwap', function(evt) {
+        if (evt.detail.target && evt.detail.target.id === 'main-content') {
+            // 检查是否有待处理的锚点
+            if (window.pendingAnchorHash) {
+                setTimeout(() => {
+                    scrollToAudioSegment(window.pendingAnchorHash);
+                    // 清除待处理的锚点标记
+                    window.pendingAnchorHash = null;
+                }, 200);
+            }
+        }
+    });
+    
+    // 页面加载完成后检查锚点
+    document.addEventListener('DOMContentLoaded', function() {
+        handleAudioAnchor();
+    });
+    
+    // 监听hashchange事件，处理用户手动修改锚点的情况
+    window.addEventListener('hashchange', function() {
+        handleAudioAnchor();
+    });
 </script>
 {% endblock %}

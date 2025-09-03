@@ -992,3 +992,60 @@ def delete_book(request, book_id):
     except Exception as e:
         print(f"Error in delete_book: {str(e)}")
         return JsonResponse({"status": "error", "message": f"删除失败: {str(e)}"}, status=500) 
+
+
+@login_required
+@csrf_exempt
+@require_http_methods(["GET"])
+def check_page_audio_status(request, book_id):
+    """检查页面是否已经生成过音频"""
+    book = get_object_or_404(Books, pk=book_id)
+    
+    # Check if the user owns this book
+    if book.user != request.user:
+        return JsonResponse({"status": "error", "message": "You don't have permission to access this book"}, status=403)
+    
+    # Get page parameter
+    page_ids = request.GET.get('page_ids', '').strip()
+    if not page_ids:
+        return JsonResponse({"status": "error", "message": "No page IDs provided"}, status=400)
+    
+    try:
+        from ..models import AudioSegment
+        
+        # Split page IDs and check each one
+        page_list = [p.strip() for p in page_ids.split(',') if p.strip()]
+        audio_status = {}
+        total_count = 0
+        
+        for page_id in page_list:
+            # Check if audio exists for this page
+            audio_segments = AudioSegment.objects.filter(
+                book=book,
+                user=request.user,
+                book_page=page_id
+            ).order_by('-created_at')
+            
+            if audio_segments.exists():
+                segment = audio_segments.first()
+                audio_status[page_id] = {
+                    'has_audio': True,
+                    'title': segment.title,
+                    'created_at': segment.created_at.strftime('%Y-%m-%d %H:%M'),
+                    'published': segment.published,
+                    'audio_id': segment.id
+                }
+                total_count += 1
+            else:
+                audio_status[page_id] = {'has_audio': False}
+        
+        return JsonResponse({
+            "status": "success",
+            "audio_status": audio_status,
+            "total_pages": len(page_list),
+            "pages_with_audio": total_count,
+            "coverage_rate": round((total_count / len(page_list)) * 100, 1) if page_list else 0
+        })
+    
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": f"检查音频状态失败: {str(e)}"}, status=500) 

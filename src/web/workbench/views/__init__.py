@@ -11,6 +11,7 @@ from .book_views import (
     update_pdf_type,
     detect_scanned_pdf,
     get_page_image,
+    check_page_audio_status,
     delete_book,
 )
 
@@ -47,6 +48,7 @@ __all__ = [
     'update_pdf_type',
     'detect_scanned_pdf',
     'get_page_image',
+    'check_page_audio_status',
     'delete_book',
     
     # Audio views
