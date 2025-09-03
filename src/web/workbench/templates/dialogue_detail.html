@@ -194,10 +194,9 @@
                 
                 {% if script.audio_file %}
                 <div class="mt-4">
-                    <audio controls class="w-full">
-                        <source src="{{ script.audio_file.url }}" type="audio/wav">
-                        您的浏览器不支持音频播放。
-                    </audio>
+                    <button class="btn btn-primary w-full" onclick="playFinishedAudio('{{ script.audio_file.url }}', '{{ script.title|escapejs }}', {% if script.subtitle_file and script.subtitle_file.name %}'{{ script.subtitle_file.url }}'{% else %}null{% endif %})">
+                        <i class="fas fa-play mr-2"></i>播放成品音频
+                    </button>
                 </div>
                 {% endif %}
             </div>
@@ -1017,5 +1016,35 @@ document.addEventListener('DOMContentLoaded', function() {
     // 初始化预览检查
     initializePreviewCheck();
 });
+
+// 成品音频全局播放功能
+function playFinishedAudio(audioUrl, title, subtitleUrl) {
+    if (!window.globalAudioPlayer) {
+        showToast('全局播放器未初始化，请刷新页面重试', 'error');
+        return;
+    }
+    
+    let subtitles = null;
+    
+    // 如果有字幕文件，获取并解析字幕
+    if (subtitleUrl) {
+        fetch(subtitleUrl)
+            .then(response => response.text())
+            .then(subtitleContent => {
+                if (subtitleContent.trim()) {
+                    subtitles = window.globalAudioPlayer.parseSRTSubtitles(subtitleContent);
+                }
+                window.globalAudioPlayer.playAudio(audioUrl, title, subtitles);
+            })
+            .catch(error => {
+                console.warn('字幕加载失败:', error);
+                // 即使没有字幕也继续播放音频
+                window.globalAudioPlayer.playAudio(audioUrl, title, null);
+            });
+    } else {
+        // 无字幕直接播放
+        window.globalAudioPlayer.playAudio(audioUrl, title, null);
+    }
+}
 </script>
 {% endblock %} 

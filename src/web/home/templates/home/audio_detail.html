@@ -41,6 +41,7 @@
         class="btn btn-circle btn-primary btn-lg play-audio-btn hover:scale-105 transition-transform" 
         data-audio-url="{{ segment.file.url }}"
         data-audio-title="{{ segment.title }}"
+        data-subtitle-url="{% if segment.subtitle_file and segment.subtitle_file.name %}{{ segment.subtitle_file.url }}{% endif %}"
       >
         <i class="fas fa-play text-white text-2xl"></i>
       </button>
@@ -98,52 +99,6 @@
   </div>
 </div>
 
-<!-- 音频播放器 -->
-<div id="audio-player-container" class="fixed bottom-0 left-0 right-0 bg-white shadow-lg transform transition-transform duration-300 translate-y-full z-50">
-  <div class="container mx-auto flex flex-col gap-2 p-3 sm:p-4">
-    <!-- 移动端：垂直布局 -->
-    <div class="flex sm:hidden items-center justify-between">
-      <div class="flex items-center flex-1 min-w-0">
-        <div class="avatar mr-3 flex-shrink-0">
-          <div class="w-10 h-10 rounded-full bg-purple-700 text-white flex items-center justify-center relative">
-            <i class="fas fa-music text-white text-sm absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></i>
-          </div>
-        </div>
-        <h3 id="audio-title-mobile" class="font-bold text-sm truncate flex-1"></h3>
-      </div>
-      <button id="close-player-mobile" class="btn btn-circle btn-xs text-purple-700 hover:bg-purple-100 flex-shrink-0 ml-2">
-        <i class="fas fa-times text-sm"></i>
-      </button>
-    </div>
-    
-    <!-- 桌面端：水平布局 -->
-    <div class="hidden sm:flex items-center justify-between">
-      <div class="flex items-center">
-        <div class="avatar mr-3">
-          <div class="w-12 h-12 rounded-full bg-purple-700 text-white flex items-center justify-center relative">
-            <i class="fas fa-music text-white text-lg absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></i>
-          </div>
-        </div>
-        <h3 id="audio-title-desktop" class="font-bold"></h3>
-      </div>
-      <div class="flex-grow mx-4">
-        <audio id="audio-player-desktop" controls class="w-full">
-          您的浏览器不支持音频元素。
-        </audio>
-      </div>
-      <button id="close-player-desktop" class="btn btn-circle btn-sm text-purple-700 hover:bg-purple-100">
-        <i class="fas fa-times text-lg"></i>
-      </button>
-    </div>
-    
-    <!-- 移动端：音频控件 -->
-    <div class="block sm:hidden">
-      <audio id="audio-player-mobile" controls class="w-full">
-        您的浏览器不支持音频元素。
-      </audio>
-    </div>
-  </div>
-</div>
 {% endblock %}
 
 {% block script %}
@@ -254,60 +209,34 @@
       return text.trim();
     }
     
-    // 添加播放按钮事件监听
+    // 使用全局播放器播放音频
     playButtons.forEach(button => {
       button.addEventListener('click', function() {
         const audioUrl = this.getAttribute('data-audio-url');
         const title = this.getAttribute('data-audio-title');
+        const subtitleUrl = this.getAttribute('data-subtitle-url');
         
-        // 设置移动端和桌面端音频源和标题
-        audioPlayerMobile.src = audioUrl;
-        audioPlayerDesktop.src = audioUrl;
-        audioTitleMobile.textContent = title;
-        audioTitleDesktop.textContent = title;
-        
-        // 显示播放器 - 使用平滑动画
-        playerContainer.classList.remove('translate-y-full');
-        
-        // 根据屏幕尺寸播放对应的音频
-        if (window.innerWidth < 640) { // sm breakpoint
-          audioPlayerMobile.play();
+        if (window.globalAudioPlayer) {
+          // 如果有字幕文件，加载字幕
+          if (subtitleUrl) {
+            fetch(subtitleUrl)
+              .then(response => response.text())
+              .then(srtContent => {
+                const subtitles = window.globalAudioPlayer.parseSRTSubtitles(srtContent);
+                window.globalAudioPlayer.playAudio(audioUrl, title, subtitles);
+              })
+              .catch(() => {
+                // 如果字幕加载失败，仍然播放音频
+                window.globalAudioPlayer.playAudio(audioUrl, title);
+              });
+          } else {
+            // 无字幕文件，直接播放
+            window.globalAudioPlayer.playAudio(audioUrl, title);
+          }
         } else {
-          audioPlayerDesktop.play();
+          console.error('全局播放器未初始化');
         }
       });
-    });
-    
-    // 关闭播放器 - 移动端
-    closePlayerMobile.addEventListener('click', function() {
-      audioPlayerMobile.pause();
-      audioPlayerDesktop.pause();
-      playerContainer.classList.add('translate-y-full');
-    });
-    
-    // 关闭播放器 - 桌面端
-    closePlayerDesktop.addEventListener('click', function() {
-      audioPlayerMobile.pause();
-      audioPlayerDesktop.pause();
-      playerContainer.classList.add('translate-y-full');
-    });
-    
-    // 音频播放结束时自动关闭播放器
-    audioPlayerMobile.addEventListener('ended', function() {
-      playerContainer.classList.add('translate-y-full');
-    });
-    
-    audioPlayerDesktop.addEventListener('ended', function() {
-      playerContainer.classList.add('translate-y-full');
-    });
-    
-    // 同步播放器状态
-    audioPlayerMobile.addEventListener('play', function() {
-      audioPlayerDesktop.pause();
-    });
-    
-    audioPlayerDesktop.addEventListener('play', function() {
-      audioPlayerMobile.pause();
     });
   });
 </script>
