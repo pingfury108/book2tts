@@ -44,10 +44,11 @@ class PointsIntegrationTest(TestCase):
         self.user_quota.save()
         
         # 应该能够创建50秒的音频（50 * 2 = 100积分）
-        self.assertTrue(self.user_quota.can_create_audio(50))
+        from home.utils import PointsManager
+        self.assertTrue(self.user_quota.can_consume_points(PointsManager.get_audio_generation_points(50)))
         
         # 不应该能够创建51秒的音频
-        self.assertFalse(self.user_quota.can_create_audio(51))
+        self.assertFalse(self.user_quota.can_consume_points(PointsManager.get_audio_generation_points(51)))
 
     def test_user_quota_ocr_check(self):
         """测试用户配额OCR检查"""
@@ -55,10 +56,11 @@ class PointsIntegrationTest(TestCase):
         self.user_quota.save()
         
         # 应该能够处理3页OCR（3 * 5 = 15积分）
-        self.assertTrue(self.user_quota.can_process_ocr(3))
+        from home.utils import PointsManager
+        self.assertTrue(self.user_quota.can_consume_points(PointsManager.get_ocr_processing_points(3)))
         
         # 不应该能够处理4页OCR
-        self.assertFalse(self.user_quota.can_process_ocr(4))
+        self.assertFalse(self.user_quota.can_consume_points(PointsManager.get_ocr_processing_points(4)))
 
     def test_points_consumption(self):
         """测试积分消耗"""

@@ -8,9 +8,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     {% if CSS_VERSION %}
-        {% tailwind_css v=CSS_VERSION %}
+    {% tailwind_css v=CSS_VERSION %}
     {% else %}
-        {% tailwind_css %}
+    {% tailwind_css %}
     {% endif %}
     {% load static %}
     <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
@@ -18,521 +18,519 @@
     <link rel="stylesheet" href="{% static 'fontawesome-free-6.7.2-web/css/all.min.css' %}">
     <script src="{% static 'htmx.min.js' %}"></script>
     <script src="{% static 'jquery.min.js' %}"></script>
-    
+
     <!-- RSS 订阅链接 -->
     {% if user.is_authenticated and user.profile.rss_token %}
-    <link rel="alternate" type="application/rss+xml" title="{{ user.username }}的Book2TTS音频" href="{% url 'token_audio_rss_feed' token=user.profile.rss_token|stringformat:'s' %}" />
+    <link rel="alternate" type="application/rss+xml" title="{{ user.username }}的Book2TTS音频"
+        href="{% url 'token_audio_rss_feed' token=user.profile.rss_token|stringformat:'s' %}" />
     {% endif %}
 </head>
 
 <body class="flex flex-col min-h-screen">
-  <div class="navbar bg-base-100">
-    <div class="navbar-start">
-      <div class="dropdown">
-        <div tabindex="0" role="button" class="btn btn-ghost lg:hidden">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-               stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M4 6h16M4 12h8m-8 6h16" />
-          </svg>
-        </div>
-        <ul tabindex="0"
-            class="menu menu-sm dropdown-content bg-base-100 rounded-box z-50 mt-3 w-52 p-2 shadow">
-          <li><a href="{% url 'index' %}">制作</a></li>
-          <li>
-            <a>有声书</a>
-            <ul class="p-2">
-              <li><a href="{% url 'aggregated_audio_segments' %}">成品</a></li>
-              <li><a href="{% url 'task_queue' %}">队列</a></li>
-              <li><hr class="my-1"></li>
-              <li><a href="{% url 'dialogue_list' %}">对话脚本</a></li>
-              <li><a href="{% url 'voice_roles_list' %}">音色角色</a></li>
-            </ul>
-          </li>
-          <li><a href="{% url 'my_upload' %}">我的上传</a></li>
-          <li><a href="{% url 'about' %}">关于</a></li>
-        </ul>
-      </div>
-      <a class="btn btn-ghost text-xl" href="/">Book2TTS</a>
-    </div>
-    <div class="navbar-center hidden lg:flex">
-      <ul class="menu menu-horizontal px-1">
-        <li><a href="{% url 'index' %}">制作</a></li>
-        <li>
-          <details>
-            <summary>有声书</summary>
-            <ul class="p-2 z-50 relative">
-              <li><a href="{% url 'aggregated_audio_segments' %}">成品</a></li>
-              <li><a href="{% url 'task_queue' %}">队列</a></li>
-              <li><hr class="my-1"></li>
-              <li><a href="{% url 'dialogue_list' %}">对话脚本</a></li>
-              <li><a href="{% url 'voice_roles_list' %}">音色角色</a></li>
-            </ul>
-          </details>
-        </li>
-        <li><a href="{% url 'my_upload' %}">我的上传</a></li>
-        <li><a href="{% url 'about' %}">关于</a></li>
-      </ul>
-    </div>
-    <div class="navbar-end">
-      <div class="dropdown dropdown-end">
-        <div tabindex="0" role="button" class="btn btn-ghost btn-circle avatar">
-          <div class="w-10 rounded-full">
-            {% if user.is_authenticated %}
-            <div class="bg-primary text-primary-content flex items-center justify-center h-full w-full">
-              <span class="text-lg font-bold">{{ user.username|slice:":2"|upper }}</span>
+    <div class="navbar bg-base-100">
+        <div class="navbar-start">
+            <div class="dropdown">
+                <div tabindex="0" role="button" class="btn btn-ghost lg:hidden">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 6h16M4 12h8m-8 6h16" />
+                    </svg>
+                </div>
+                <ul tabindex="0"
+                    class="menu menu-sm dropdown-content bg-base-100 rounded-box z-50 mt-3 w-52 p-2 shadow">
+                    <li><a href="{% url 'index' %}">制作</a></li>
+                    <li>
+                        <a>有声书</a>
+                        <ul class="p-2">
+                            <li><a href="{% url 'aggregated_audio_segments' %}">成品</a></li>
+                            <li><a href="{% url 'task_queue' %}">队列</a></li>
+                            <li>
+                                <hr class="my-1">
+                            </li>
+                            <li><a href="{% url 'dialogue_list' %}">对话脚本</a></li>
+                            <li><a href="{% url 'voice_roles_list' %}">音色角色</a></li>
+                        </ul>
+                    </li>
+                    <li><a href="{% url 'my_upload' %}">我的上传</a></li>
+                    <li><a href="{% url 'about' %}">关于</a></li>
+                </ul>
             </div>
-            {% else %}
-            <div class="bg-gray-300 text-gray-600 flex items-center justify-center h-full w-full">
-              <span class="text-lg font-bold">?</span>
-            </div>
-            {% endif %}
-          </div>
+            <a class="btn btn-ghost text-xl" href="/">Book2TTS</a>
         </div>
-        <ul tabindex="0"
-            class="menu menu-sm dropdown-content bg-base-100 rounded-box z-50 mt-3 w-52 p-2 shadow">
-          {% if user.is_authenticated %}
-          <li>
-            <a href="{% url 'profile' %}" class="justify-between">
-              个人资料
-              <span class="badge">{{ user.username }}</span>
-            </a>
-          </li>
-          <li><a>设置</a></li>
-          <li><a href="{% url 'logout' %}">登出</a></li>
-          {% else %}
-          <li><a href="{% url 'login' %}">登录</a></li>
-          <li><a href="{% url 'register' %}">注册</a></li>
-          {% endif %}
-        </ul>
-      </div>
+        <div class="navbar-center hidden lg:flex">
+            <ul class="menu menu-horizontal px-1">
+                <li><a href="{% url 'index' %}">制作</a></li>
+                <li>
+                    <details>
+                        <summary>有声书</summary>
+                        <ul class="p-2 z-50 relative">
+                            <li><a href="{% url 'aggregated_audio_segments' %}">成品</a></li>
+                            <li><a href="{% url 'task_queue' %}">队列</a></li>
+                            <li>
+                                <hr class="my-1">
+                            </li>
+                            <li><a href="{% url 'dialogue_list' %}">对话脚本</a></li>
+                            <li><a href="{% url 'voice_roles_list' %}">音色角色</a></li>
+                        </ul>
+                    </details>
+                </li>
+                <li><a href="{% url 'my_upload' %}">我的上传</a></li>
+                <li><a href="{% url 'about' %}">关于</a></li>
+            </ul>
+        </div>
+        <div class="navbar-end">
+            <div class="dropdown dropdown-end">
+                <div tabindex="0" role="button" class="btn btn-ghost btn-circle avatar">
+                    <div class="w-10 rounded-full">
+                        {% if user.is_authenticated %}
+                        <div class="bg-primary text-primary-content flex items-center justify-center h-full w-full">
+                            <span class="text-lg font-bold">{{ user.username|slice:":2"|upper }}</span>
+                        </div>
+                        {% else %}
+                        <div class="bg-gray-300 text-gray-600 flex items-center justify-center h-full w-full">
+                            <span class="text-lg font-bold">?</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <ul tabindex="0"
+                    class="menu menu-sm dropdown-content bg-base-100 rounded-box z-50 mt-3 w-52 p-2 shadow">
+                    {% if user.is_authenticated %}
+                    <li>
+                        <a href="{% url 'profile' %}" class="justify-between">
+                            个人资料
+                            <span class="badge">{{ user.username }}</span>
+                        </a>
+                    </li>
+                    <li><a>设置</a></li>
+                    <li><a href="{% url 'logout' %}">登出</a></li>
+                    {% else %}
+                    <li><a href="{% url 'login' %}">登录</a></li>
+                    <li><a href="{% url 'register' %}">注册</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
     </div>
-  </div>
-  
-  <main class="flex-grow mb-2" style="margin-bottom: 120px;">
-    {% block content %}
-    {% endblock %}
-  </main>
 
-  <!-- 全局音频播放器 - 固定在页面底部 -->
-  <div id="global-audio-player" class="fixed bottom-0 left-0 right-0 bg-base-100 shadow-2xl border-t border-base-300 z-50 transform translate-y-full transition-transform duration-300" style="display: none;">
-    <!-- 关闭按钮 - 整个播放组件的右上角 -->
-    <button id="close-player-btn" class="absolute top-2 right-2 btn btn-ghost btn-circle btn-xs z-20 hover:bg-base-200">
-      <i class="fas fa-times text-xs opacity-60 hover:opacity-100"></i>
-    </button>
-    
-    <div class="container mx-auto px-2 sm:px-4 py-3 pr-10">
-      <!-- 字幕显示区域 -->
-      <div id="subtitle-container" class="mb-3 h-12 flex items-center justify-center">
-        <div id="subtitle-text" class="text-center text-sm sm:text-base font-medium text-base-content bg-base-200 rounded-lg px-4 py-2 min-h-[2rem] flex items-center justify-center opacity-60 transition-opacity duration-300">
-          <span class="italic text-base-content/60">暂无字幕</span>
-        </div>
-      </div>
-      
-      <!-- 播放器控制区域 -->
-      <div class="flex items-center gap-2 sm:gap-3">
-        <!-- 播放/暂停按钮 -->
-        <button id="global-play-btn" class="btn btn-circle btn-sm sm:btn-md btn-primary flex-shrink-0">
-          <i class="fas fa-play text-sm"></i>
+    <main class="flex-grow mb-2">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- 全局音频播放器 - 固定在页面底部 -->
+    <div id="global-audio-player"
+        class="fixed bottom-0 left-0 right-0 bg-base-100 shadow-2xl border-t border-base-300 z-50 transform translate-y-full transition-transform duration-300"
+        style="display: none;">
+        <!-- 关闭按钮 - 整个播放组件的右上角 -->
+        <button id="close-player-btn"
+            class="absolute top-2 right-2 btn btn-ghost btn-circle btn-xs z-20 hover:bg-base-200">
+            <i class="fas fa-times text-xs opacity-60 hover:opacity-100"></i>
         </button>
-        
-        <!-- 音频信息 - 紧凑布局 -->
-        <div class="flex-shrink-0 min-w-0 max-w-xs">
-          <div id="global-audio-title" class="text-sm sm:text-base font-medium truncate">未选择音频</div>
-          <div class="flex items-center gap-1 text-xs text-base-content/60">
-            <span id="current-time">0:00</span>
-            <span>/</span>
-            <span id="total-time">0:00</span>
-          </div>
-        </div>
-        
-        <!-- 进度条 - 扩展到左侧占用更多空间 -->
-        <div class="flex-1 mx-3 sm:mx-4">
-          <input 
-            type="range" 
-            id="progress-slider" 
-            class="range range-primary range-xs sm:range-sm w-full" 
-            min="0" 
-            max="100" 
-            value="0"
-            step="0.1">
-        </div>
-        
-        <!-- 音量控制 - 移动到右侧紧凑排列 -->
-        <div class="hidden sm:flex items-center gap-1 flex-shrink-0">
-          <i class="fas fa-volume-up text-base-content/60 text-xs"></i>
-          <input 
-            type="range" 
-            id="volume-slider" 
-            class="range range-primary range-xs w-12" 
-            min="0" 
-            max="100" 
-            value="80">
-        </div>
-      </div>
-      
-      <!-- 隐藏的实际audio元素 -->
-      <audio id="global-audio" preload="metadata"></audio>
-    </div>
-  </div>
 
-  <footer class="footer footer-center text-base-content">
-    <aside>
-      <p>Copyright © {% now "Y" %} pingfury - All rights reserved</p>
-    </aside>
-  </footer>
-  
-  {% block script %}
-  {% endblock %}
-  
-  <!-- 全局音频播放器JavaScript -->
-  <script>
-  class GlobalAudioPlayer {
-    constructor() {
-      this.player = document.getElementById('global-audio');
-      this.playerContainer = document.getElementById('global-audio-player');
-      this.playBtn = document.getElementById('global-play-btn');
-      this.progressSlider = document.getElementById('progress-slider');
-      this.volumeSlider = document.getElementById('volume-slider');
-      this.currentTimeElement = document.getElementById('current-time');
-      this.totalTimeElement = document.getElementById('total-time');
-      this.titleElement = document.getElementById('global-audio-title');
-      this.closeBtn = document.getElementById('close-player-btn');
-      this.subtitleContainer = document.getElementById('subtitle-container');
-      this.subtitleText = document.getElementById('subtitle-text');
-      
-      this.currentSubtitles = [];
-      this.isUpdatingProgress = false;
-      this.currentAudio = null;
-      
-      this.initializeEventListeners();
-      this.loadSavedState();
-    }
-    
-    initializeEventListeners() {
-      // 播放/暂停按钮
-      this.playBtn.addEventListener('click', () => this.togglePlay());
-      
-      // 进度条
-      this.progressSlider.addEventListener('input', () => this.onProgressChange());
-      this.progressSlider.addEventListener('mousedown', () => this.isUpdatingProgress = true);
-      this.progressSlider.addEventListener('mouseup', () => this.isUpdatingProgress = false);
-      
-      // 音量控制
-      this.volumeSlider.addEventListener('input', () => this.onVolumeChange());
-      
-      // 关闭播放器
-      this.closeBtn.addEventListener('click', () => this.closePlayer());
-      
-      // 音频事件监听
-      this.player.addEventListener('loadedmetadata', () => this.onLoadedMetadata());
-      this.player.addEventListener('timeupdate', () => this.onTimeUpdate());
-      this.player.addEventListener('ended', () => this.onEnded());
-      this.player.addEventListener('play', () => this.onPlay());
-      this.player.addEventListener('pause', () => this.onPause());
-      this.player.addEventListener('error', (e) => this.onError(e));
-      
-      // 键盘控制
-      document.addEventListener('keydown', (e) => this.handleKeyboard(e));
-    }
-    
-    // 播放音频
-    playAudio(audioUrl, title, subtitles = null) {
-      if (!audioUrl) return;
-      
-      console.log('[播放器] 播放音频:', { audioUrl, title, subtitles: subtitles ? subtitles.length + '条字幕' : '无字幕' });
-      
-      this.currentAudio = { url: audioUrl, title, subtitles };
-      this.currentSubtitles = subtitles || [];
-      
-      this.player.src = audioUrl;
-      this.titleElement.textContent = title || '未知音频';
-      this.showPlayer();
-      
-      // 初始化字幕状态
-      if (this.currentSubtitles && this.currentSubtitles.length > 0) {
-        console.log('[播放器] 初始化字幕，共', this.currentSubtitles.length, '条');
-        this.updateSubtitle(''); // 这会显示 ♪ ♪ ♪ 
-      } else {
-        console.log('[播放器] 无字幕文件');
-        this.updateSubtitle(''); // 这会显示 "暂无字幕"
-      }
-      
-      this.player.load();
-      this.saveState();
-    }
-    
-    togglePlay() {
-      if (this.player.paused) {
-        this.player.play().catch(e => this.handlePlayError(e));
-      } else {
-        this.player.pause();
-      }
-    }
-    
-    onProgressChange() {
-      const time = (this.progressSlider.value / 100) * this.player.duration;
-      this.player.currentTime = time;
-    }
-    
-    onVolumeChange() {
-      this.player.volume = this.volumeSlider.value / 100;
-      this.saveState();
-    }
-    
-    onLoadedMetadata() {
-      this.totalTimeElement.textContent = this.formatTime(this.player.duration);
-      this.progressSlider.value = 0;
-    }
-    
-    onTimeUpdate() {
-      if (!this.isUpdatingProgress) {
-        const progress = (this.player.currentTime / this.player.duration) * 100;
-        this.progressSlider.value = progress || 0;
-      }
-      
-      this.currentTimeElement.textContent = this.formatTime(this.player.currentTime);
-      this.updateSubtitleDisplay();
-    }
-    
-    onPlay() {
-      this.playBtn.innerHTML = '<i class="fas fa-pause text-sm"></i>';
-    }
-    
-    onPause() {
-      this.playBtn.innerHTML = '<i class="fas fa-play text-sm"></i>';
-    }
-    
-    onEnded() {
-      this.playBtn.innerHTML = '<i class="fas fa-play text-sm"></i>';
-      this.progressSlider.value = 0;
-      this.updateSubtitle('播放完成');
-    }
-    
-    onError(e) {
-      console.error('音频播放错误:', e);
-      this.updateSubtitle('播放出错，请重试');
-    }
-    
-    handlePlayError(e) {
-      console.error('播放启动错误:', e);
-      this.updateSubtitle('无法播放音频，请检查网络连接');
-    }
-    
-    // 字幕相关功能
-    updateSubtitleDisplay() {
-      if (!this.currentSubtitles || this.currentSubtitles.length === 0) {
-        return;
-      }
-      
-      const currentTime = this.player.currentTime;
-      let currentSubtitle = '';
-      
-      // 查找当前时间对应的字幕
-      for (const subtitle of this.currentSubtitles) {
-        if (currentTime >= subtitle.start && currentTime <= subtitle.end) {
-          currentSubtitle = subtitle.text;
-          break;
-        }
-      }
-      
-      this.updateSubtitle(currentSubtitle);
-    }
-    
-    updateSubtitle(text) {
-      const subtitleSpan = this.subtitleText.querySelector('span') || this.subtitleText;
-      
-      if (text && text.trim()) {
-        subtitleSpan.textContent = text;
-        subtitleSpan.className = '';
-        this.subtitleText.style.opacity = '1';
-      } else if (this.currentSubtitles && this.currentSubtitles.length > 0) {
-        // 有字幕文件但当前时间没有对应字幕
-        subtitleSpan.textContent = '♪ ♪ ♪';
-        subtitleSpan.className = 'italic text-base-content/40';
-        this.subtitleText.style.opacity = '0.5';
-      } else {
-        // 没有字幕文件
-        subtitleSpan.textContent = '暂无字幕';
-        subtitleSpan.className = 'italic text-base-content/60';
-        this.subtitleText.style.opacity = '0.6';
-      }
-    }
-    
-    // 解析SRT格式字幕
-    parseSRTSubtitles(srtContent) {
-      if (!srtContent) {
-        console.log('[字幕] 没有字幕内容');
-        return [];
-      }
-      
-      console.log('[字幕] 开始解析SRT内容，长度:', srtContent.length);
-      console.log('[字幕] SRT内容预览:', srtContent.substring(0, 200) + '...');
-      
-      const subtitles = [];
-      const blocks = srtContent.trim().split(/\n\s*\n/);
-      
-      console.log('[字幕] 分割后的块数:', blocks.length);
-      
-      blocks.forEach((block, index) => {
-        const lines = block.trim().split('\n');
-        console.log(`[字幕] 处理第${index + 1}块，行数:`, lines.length, lines);
-        
-        if (lines.length >= 3) {
-          // 更宽松的时间格式匹配
-          const timeMatch = lines[1].match(/(\d{1,2}):(\d{2}):(\d{2})[,.](\d{3})\s*-->\s*(\d{1,2}):(\d{2}):(\d{2})[,.](\d{3})/);
-          if (timeMatch) {
-            const start = this.parseTimeToSeconds([timeMatch[1], timeMatch[2], timeMatch[3], timeMatch[4]]);
-            const end = this.parseTimeToSeconds([timeMatch[5], timeMatch[6], timeMatch[7], timeMatch[8]]);
-            const text = lines.slice(2).join(' ').trim();
-            
-            if (text) {
-              subtitles.push({ start, end, text });
-              console.log(`[字幕] 添加字幕: ${start}s - ${end}s: "${text}"`);
+        <div class="container mx-auto px-2 sm:px-4 py-3 pr-10">
+            <!-- 字幕显示区域 -->
+            <div id="subtitle-container" class="mb-3 h-12 flex items-center justify-center">
+                <div id="subtitle-text"
+                    class="text-center text-sm sm:text-base font-medium text-base-content bg-base-200 rounded-lg px-4 py-2 min-h-[2rem] flex items-center justify-center opacity-60 transition-opacity duration-300">
+                    <span class="italic text-base-content/60">暂无字幕</span>
+                </div>
+            </div>
+
+            <!-- 播放器控制区域 -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <!-- 播放/暂停按钮 -->
+                <button id="global-play-btn" class="btn btn-circle btn-sm sm:btn-md btn-primary flex-shrink-0">
+                    <i class="fas fa-play text-sm"></i>
+                </button>
+
+                <!-- 音频信息 - 紧凑布局 -->
+                <div class="flex-shrink-0 min-w-0 max-w-xs">
+                    <div id="global-audio-title" class="text-sm sm:text-base font-medium truncate">未选择音频</div>
+                    <div class="flex items-center gap-1 text-xs text-base-content/60">
+                        <span id="current-time">0:00</span>
+                        <span>/</span>
+                        <span id="total-time">0:00</span>
+                    </div>
+                </div>
+
+                <!-- 进度条 - 扩展到左侧占用更多空间 -->
+                <div class="flex-1 mx-3 sm:mx-4">
+                    <input type="range" id="progress-slider" class="range range-primary range-xs sm:range-sm w-full"
+                        min="0" max="100" value="0" step="0.1">
+                </div>
+
+                <!-- 音量控制 - 移动到右侧紧凑排列 -->
+                <div class="hidden sm:flex items-center gap-1 flex-shrink-0">
+                    <i class="fas fa-volume-up text-base-content/60 text-xs"></i>
+                    <input type="range" id="volume-slider" class="range range-primary range-xs w-12" min="0" max="100"
+                        value="80">
+                </div>
+            </div>
+
+            <!-- 隐藏的实际audio元素 -->
+            <audio id="global-audio" preload="metadata"></audio>
+        </div>
+    </div>
+
+    <footer class="footer footer-center text-base-content">
+        <aside>
+            <p>Copyright © {% now "Y" %} pingfury - All rights reserved</p>
+        </aside>
+    </footer>
+
+    {% block script %}
+    {% endblock %}
+
+    <!-- 全局音频播放器JavaScript -->
+    <script>
+        class GlobalAudioPlayer {
+            constructor() {
+                this.player = document.getElementById('global-audio');
+                this.playerContainer = document.getElementById('global-audio-player');
+                this.playBtn = document.getElementById('global-play-btn');
+                this.progressSlider = document.getElementById('progress-slider');
+                this.volumeSlider = document.getElementById('volume-slider');
+                this.currentTimeElement = document.getElementById('current-time');
+                this.totalTimeElement = document.getElementById('total-time');
+                this.titleElement = document.getElementById('global-audio-title');
+                this.closeBtn = document.getElementById('close-player-btn');
+                this.subtitleContainer = document.getElementById('subtitle-container');
+                this.subtitleText = document.getElementById('subtitle-text');
+
+                this.currentSubtitles = [];
+                this.isUpdatingProgress = false;
+                this.currentAudio = null;
+
+                this.initializeEventListeners();
+                this.loadSavedState();
             }
-          } else {
-            console.warn('[字幕] 时间格式不匹配:', lines[1]);
-          }
-        } else {
-          console.warn('[字幕] 块格式不正确，行数不足:', lines);
+
+            initializeEventListeners() {
+                // 播放/暂停按钮
+                this.playBtn.addEventListener('click', () => this.togglePlay());
+
+                // 进度条
+                this.progressSlider.addEventListener('input', () => this.onProgressChange());
+                this.progressSlider.addEventListener('mousedown', () => this.isUpdatingProgress = true);
+                this.progressSlider.addEventListener('mouseup', () => this.isUpdatingProgress = false);
+
+                // 音量控制
+                this.volumeSlider.addEventListener('input', () => this.onVolumeChange());
+
+                // 关闭播放器
+                this.closeBtn.addEventListener('click', () => this.closePlayer());
+
+                // 音频事件监听
+                this.player.addEventListener('loadedmetadata', () => this.onLoadedMetadata());
+                this.player.addEventListener('timeupdate', () => this.onTimeUpdate());
+                this.player.addEventListener('ended', () => this.onEnded());
+                this.player.addEventListener('play', () => this.onPlay());
+                this.player.addEventListener('pause', () => this.onPause());
+                this.player.addEventListener('error', (e) => this.onError(e));
+
+                // 键盘控制
+                document.addEventListener('keydown', (e) => this.handleKeyboard(e));
+            }
+
+            // 播放音频
+            playAudio(audioUrl, title, subtitles = null) {
+                if (!audioUrl) return;
+
+                console.log('[播放器] 播放音频:', { audioUrl, title, subtitles: subtitles ? subtitles.length + '条字幕' : '无字幕' });
+
+                this.currentAudio = { url: audioUrl, title, subtitles };
+                this.currentSubtitles = subtitles || [];
+
+                this.player.src = audioUrl;
+                this.titleElement.textContent = title || '未知音频';
+                this.showPlayer();
+
+                // 初始化字幕状态
+                if (this.currentSubtitles && this.currentSubtitles.length > 0) {
+                    console.log('[播放器] 初始化字幕，共', this.currentSubtitles.length, '条');
+                    this.updateSubtitle(''); // 这会显示 ♪ ♪ ♪
+                } else {
+                    console.log('[播放器] 无字幕文件');
+                    this.updateSubtitle(''); // 这会显示 "暂无字幕"
+                }
+
+                this.player.load();
+                this.saveState();
+            }
+
+            togglePlay() {
+                if (this.player.paused) {
+                    this.player.play().catch(e => this.handlePlayError(e));
+                } else {
+                    this.player.pause();
+                }
+            }
+
+            onProgressChange() {
+                const time = (this.progressSlider.value / 100) * this.player.duration;
+                this.player.currentTime = time;
+            }
+
+            onVolumeChange() {
+                this.player.volume = this.volumeSlider.value / 100;
+                this.saveState();
+            }
+
+            onLoadedMetadata() {
+                this.totalTimeElement.textContent = this.formatTime(this.player.duration);
+                this.progressSlider.value = 0;
+            }
+
+            onTimeUpdate() {
+                if (!this.isUpdatingProgress) {
+                    const progress = (this.player.currentTime / this.player.duration) * 100;
+                    this.progressSlider.value = progress || 0;
+                }
+
+                this.currentTimeElement.textContent = this.formatTime(this.player.currentTime);
+                this.updateSubtitleDisplay();
+            }
+
+            onPlay() {
+                this.playBtn.innerHTML = '<i class="fas fa-pause text-sm"></i>';
+            }
+
+            onPause() {
+                this.playBtn.innerHTML = '<i class="fas fa-play text-sm"></i>';
+            }
+
+            onEnded() {
+                this.playBtn.innerHTML = '<i class="fas fa-play text-sm"></i>';
+                this.progressSlider.value = 0;
+                this.updateSubtitle('播放完成');
+            }
+
+            onError(e) {
+                console.error('音频播放错误:', e);
+                this.updateSubtitle('播放出错，请重试');
+            }
+
+            handlePlayError(e) {
+                console.error('播放启动错误:', e);
+                this.updateSubtitle('无法播放音频，请检查网络连接');
+            }
+
+            // 字幕相关功能
+            updateSubtitleDisplay() {
+                if (!this.currentSubtitles || this.currentSubtitles.length === 0) {
+                    return;
+                }
+
+                const currentTime = this.player.currentTime;
+                let currentSubtitle = '';
+
+                // 查找当前时间对应的字幕
+                for (const subtitle of this.currentSubtitles) {
+                    if (currentTime >= subtitle.start && currentTime <= subtitle.end) {
+                        currentSubtitle = subtitle.text;
+                        break;
+                    }
+                }
+
+                this.updateSubtitle(currentSubtitle);
+            }
+
+            updateSubtitle(text) {
+                const subtitleSpan = this.subtitleText.querySelector('span') || this.subtitleText;
+
+                if (text && text.trim()) {
+                    subtitleSpan.textContent = text;
+                    subtitleSpan.className = '';
+                    this.subtitleText.style.opacity = '1';
+                } else if (this.currentSubtitles && this.currentSubtitles.length > 0) {
+                    // 有字幕文件但当前时间没有对应字幕
+                    subtitleSpan.textContent = '♪ ♪ ♪';
+                    subtitleSpan.className = 'italic text-base-content/40';
+                    this.subtitleText.style.opacity = '0.5';
+                } else {
+                    // 没有字幕文件
+                    subtitleSpan.textContent = '暂无字幕';
+                    subtitleSpan.className = 'italic text-base-content/60';
+                    this.subtitleText.style.opacity = '0.6';
+                }
+            }
+
+            // 解析SRT格式字幕
+            parseSRTSubtitles(srtContent) {
+                if (!srtContent) {
+                    console.log('[字幕] 没有字幕内容');
+                    return [];
+                }
+
+                console.log('[字幕] 开始解析SRT内容，长度:', srtContent.length);
+                console.log('[字幕] SRT内容预览:', srtContent.substring(0, 200) + '...');
+
+                const subtitles = [];
+                const blocks = srtContent.trim().split(/\n\s*\n/);
+
+                console.log('[字幕] 分割后的块数:', blocks.length);
+
+                blocks.forEach((block, index) => {
+                    const lines = block.trim().split('\n');
+                    console.log(`[字幕] 处理第${index + 1}块，行数:`, lines.length, lines);
+
+                    if (lines.length >= 3) {
+                        // 更宽松的时间格式匹配
+                        const timeMatch = lines[1].match(/(\d{1,2}):(\d{2}):(\d{2})[,.](\d{3})\s*-->\s * (\d{ 1, 2}):(\d{ 2 }): (\d{ 2 })[,.](\d{ 3}) /);
+                if (timeMatch) {
+                    const start = this.parseTimeToSeconds([timeMatch[1], timeMatch[2], timeMatch[3], timeMatch[4]]);
+                    const end = this.parseTimeToSeconds([timeMatch[5], timeMatch[6], timeMatch[7], timeMatch[8]]);
+                    const text = lines.slice(2).join(' ').trim();
+
+                    if (text) {
+                        subtitles.push({ start, end, text });
+                        console.log(`[字幕] 添加字幕: ${start}s - ${end}s: "${text}"`);
+                    }
+                } else {
+                    console.warn('[字幕] 时间格式不匹配:', lines[1]);
+                }
+            } else {
+            console.warn('[字幕] 块格式不正确，行数不足:', lines);
         }
       });
-      
-      console.log(`[字幕] 解析完成，共${subtitles.length}条字幕`);
-      return subtitles;
+
+        console.log(`[字幕] 解析完成，共${subtitles.length}条字幕`);
+        return subtitles;
     }
-    
-    parseTimeToSeconds(timeParts) {
-      const [hours, minutes, seconds, milliseconds] = timeParts.map(Number);
-      return hours * 3600 + minutes * 60 + seconds + milliseconds / 1000;
-    }
-    
-    // 键盘控制
-    handleKeyboard(e) {
-      if (!this.isPlayerVisible()) return;
-      
-      // 只在播放器可见且不在输入框中时响应键盘
-      if (e.target.tagName.toLowerCase() === 'input' || e.target.tagName.toLowerCase() === 'textarea') {
-        return;
-      }
-      
-      switch(e.code) {
-        case 'Space':
-          e.preventDefault();
-          this.togglePlay();
-          break;
-        case 'ArrowLeft':
-          e.preventDefault();
-          this.player.currentTime = Math.max(0, this.player.currentTime - 10);
-          break;
-        case 'ArrowRight':
-          e.preventDefault();
-          this.player.currentTime = Math.min(this.player.duration, this.player.currentTime + 10);
-          break;
-        case 'ArrowUp':
-          e.preventDefault();
-          this.volumeSlider.value = Math.min(100, parseInt(this.volumeSlider.value) + 10);
-          this.onVolumeChange();
-          break;
-        case 'ArrowDown':
-          e.preventDefault();
-          this.volumeSlider.value = Math.max(0, parseInt(this.volumeSlider.value) - 10);
-          this.onVolumeChange();
-          break;
-        case 'Escape':
-          this.closePlayer();
-          break;
-      }
-    }
-    
-    // UI控制
-    showPlayer() {
-      this.playerContainer.style.display = 'block';
-      setTimeout(() => {
-        this.playerContainer.style.transform = 'translateY(0)';
-      }, 10);
-    }
-    
-    closePlayer() {
-      this.player.pause();
-      this.playerContainer.style.transform = 'translateY(100%)';
-      setTimeout(() => {
-        this.playerContainer.style.display = 'none';
-      }, 300);
-      this.clearState();
-    }
-    
-    isPlayerVisible() {
-      return this.playerContainer.style.display !== 'none' && 
-             this.playerContainer.style.transform === 'translateY(0px)';
-    }
-    
-    // 状态持久化
-    saveState() {
-      if (this.currentAudio) {
-        const state = {
-          audio: this.currentAudio,
-          currentTime: this.player.currentTime,
-          volume: this.volumeSlider.value,
-          isVisible: this.isPlayerVisible()
-        };
-        localStorage.setItem('globalAudioPlayerState', JSON.stringify(state));
-      }
-    }
-    
-    loadSavedState() {
-      const savedState = localStorage.getItem('globalAudioPlayerState');
-      if (savedState) {
-        try {
-          const state = JSON.parse(savedState);
-          if (state.audio && state.isVisible) {
-            this.volumeSlider.value = state.volume || 80;
-            this.onVolumeChange();
-            
-            // 恢复播放状态（但不自动播放）
-            this.playAudio(state.audio.url, state.audio.title, state.audio.subtitles);
-            if (state.currentTime) {
-              this.player.addEventListener('loadedmetadata', () => {
-                this.player.currentTime = state.currentTime;
-              }, { once: true });
-            }
-          }
-        } catch (e) {
-          console.error('加载播放器状态失败:', e);
+
+        parseTimeToSeconds(timeParts) {
+            const [hours, minutes, seconds, milliseconds] = timeParts.map(Number);
+            return hours * 3600 + minutes * 60 + seconds + milliseconds / 1000;
         }
-      }
-    }
-    
-    clearState() {
-      localStorage.removeItem('globalAudioPlayerState');
-    }
-    
-    // 工具函数
-    formatTime(seconds) {
-      if (isNaN(seconds) || seconds < 0) return '0:00';
-      
-      const minutes = Math.floor(seconds / 60);
-      const remainingSeconds = Math.floor(seconds % 60);
-      return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-    }
+
+        // 键盘控制
+        handleKeyboard(e) {
+            if (!this.isPlayerVisible()) return;
+
+            // 只在播放器可见且不在输入框中时响应键盘
+            if (e.target.tagName.toLowerCase() === 'input' || e.target.tagName.toLowerCase() === 'textarea') {
+                return;
+            }
+
+            switch (e.code) {
+                case 'Space':
+                    e.preventDefault();
+                    this.togglePlay();
+                    break;
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    this.player.currentTime = Math.max(0, this.player.currentTime - 10);
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    this.player.currentTime = Math.min(this.player.duration, this.player.currentTime + 10);
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    this.volumeSlider.value = Math.min(100, parseInt(this.volumeSlider.value) + 10);
+                    this.onVolumeChange();
+                    break;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    this.volumeSlider.value = Math.max(0, parseInt(this.volumeSlider.value) - 10);
+                    this.onVolumeChange();
+                    break;
+                case 'Escape':
+                    this.closePlayer();
+                    break;
+            }
+        }
+
+        // UI控制
+        showPlayer() {
+            this.playerContainer.style.display = 'block';
+            setTimeout(() => {
+                this.playerContainer.style.transform = 'translateY(0)';
+            }, 10);
+        }
+
+        closePlayer() {
+            this.player.pause();
+            this.playerContainer.style.transform = 'translateY(100%)';
+            setTimeout(() => {
+                this.playerContainer.style.display = 'none';
+            }, 300);
+            this.clearState();
+        }
+
+        isPlayerVisible() {
+            return this.playerContainer.style.display !== 'none' &&
+                this.playerContainer.style.transform === 'translateY(0px)';
+        }
+
+        // 状态持久化
+        saveState() {
+            if (this.currentAudio) {
+                const state = {
+                    audio: this.currentAudio,
+                    currentTime: this.player.currentTime,
+                    volume: this.volumeSlider.value,
+                    isVisible: this.isPlayerVisible()
+                };
+                localStorage.setItem('globalAudioPlayerState', JSON.stringify(state));
+            }
+        }
+
+        loadSavedState() {
+            const savedState = localStorage.getItem('globalAudioPlayerState');
+            if (savedState) {
+                try {
+                    const state = JSON.parse(savedState);
+                    if (state.audio && state.isVisible) {
+                        this.volumeSlider.value = state.volume || 80;
+                        this.onVolumeChange();
+
+                        // 恢复播放状态（但不自动播放）
+                        this.playAudio(state.audio.url, state.audio.title, state.audio.subtitles);
+                        if (state.currentTime) {
+                            this.player.addEventListener('loadedmetadata', () => {
+                                this.player.currentTime = state.currentTime;
+                            }, { once: true });
+                        }
+                    }
+                } catch (e) {
+                    console.error('加载播放器状态失败:', e);
+                }
+            }
+        }
+
+        clearState() {
+            localStorage.removeItem('globalAudioPlayerState');
+        }
+
+        // 工具函数
+        formatTime(seconds) {
+            if (isNaN(seconds) || seconds < 0) return '0:00';
+
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = Math.floor(seconds % 60);
+            return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+        }
   }
-  
-  // 初始化全局播放器
-  let globalPlayer;
-  document.addEventListener('DOMContentLoaded', function() {
-    globalPlayer = new GlobalAudioPlayer();
-    
-    // 在window对象上暴露播放器，供其他页面调用
-    window.globalAudioPlayer = globalPlayer;
-  });
-  
-  // 页面卸载前保存状态
-  window.addEventListener('beforeunload', function() {
-    if (globalPlayer) {
-      globalPlayer.saveState();
-    }
-  });
-  </script>
+
+        // 初始化全局播放器
+        let globalPlayer;
+        document.addEventListener('DOMContentLoaded', function () {
+            globalPlayer = new GlobalAudioPlayer();
+
+            // 在window对象上暴露播放器，供其他页面调用
+            window.globalAudioPlayer = globalPlayer;
+        });
+
+        // 页面卸载前保存状态
+        window.addEventListener('beforeunload', function () {
+            if (globalPlayer) {
+                globalPlayer.saveState();
+            }
+        });
+    </script>
 </body>
 
 </html>

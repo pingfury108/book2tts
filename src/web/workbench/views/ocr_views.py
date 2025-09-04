@@ -94,7 +94,7 @@ def ocr_pdf_page(request, book_id):
         
         # 检查是否有足够的积分（使用PointsManager获取配置值）
         required_points = PointsManager.get_ocr_processing_points(1)
-        if not user_quota.has_enough_points(required_points):
+        if not user_quota.can_consume_points(required_points):
             return JsonResponse({
                 "status": "error",
                 "message": f"积分不足，OCR单页需要{required_points}积分，当前剩余：{user_quota.points}积分"
@@ -122,6 +122,8 @@ def ocr_pdf_page(request, book_id):
                     # 扣除积分
                     points_to_consume = PointsManager.get_ocr_processing_points(1)
                     if user_quota.consume_points(points_to_consume):
+                        # 重新获取最新的积分值
+                        user_quota.refresh_from_db()
                         # 记录操作
                         OperationRecord.objects.create(
                             user=request.user,
@@ -153,6 +155,10 @@ def ocr_pdf_page(request, book_id):
         # 获取当前积分配置信息
         ocr_config = PointsManager.get_points_config('ocr_processing')
         points_per_page = ocr_config['points_per_unit']
+        
+        # 确保使用最新的积分值
+        if not ocr_result.get('cached', False):
+            user_quota.refresh_from_db()
         
         return JsonResponse({
             "status": "success",
@@ -235,7 +241,7 @@ def ocr_pdf_pages_batch(request, book_id):
         required_points = PointsManager.get_ocr_processing_points(new_pages_count)
         
         # 检查是否有足够的积分
-        if not user_quota.can_process_ocr(new_pages_count):
+        if not user_quota.can_consume_points(required_points):
             return JsonResponse({
                 "status": "error",
                 "message": f"积分不足，批量OCR需要{required_points}积分（每页{PointsManager.get_points_config('ocr_processing')['points_per_unit']}积分），当前剩余：{user_quota.points}积分"
@@ -298,7 +304,10 @@ def ocr_pdf_pages_batch(request, book_id):
                     user_quota.consume_points(actual_points_consumed)
                     user_quota.save()
                     
-                    # 记录操作
+                    # 重新获取最新的积分值
+                    user_quota.refresh_from_db()
+                    
+                    # 记录操作（使用最新的积分值）
                     OperationRecord.objects.create(
                         user=request.user,
                         operation_type='ocr_process',
@@ -324,6 +333,10 @@ def ocr_pdf_pages_batch(request, book_id):
         # 统计结果
         success_count = sum(1 for r in results if not r.get('error'))
         cached_count = sum(1 for r in results if r.get('cached'))
+        
+        # 确保使用最新的积分值（如果执行了OCR操作）
+        if actual_new_ocr_count > 0:
+            user_quota.refresh_from_db()
         
         return JsonResponse({
             "status": "success",

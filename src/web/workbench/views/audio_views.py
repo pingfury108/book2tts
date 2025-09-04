@@ -297,7 +297,7 @@ def synthesize_audio(request):
     # 预检查积分（提前告知用户积分不足）
     from home.utils import PointsManager
     required_points = PointsManager.get_audio_generation_points(estimated_duration_seconds)
-    if not user_quota.has_enough_points(required_points):
+    if not user_quota.can_consume_points(required_points):
         # 记录配额不足的操作
         OperationRecord.objects.create(
             user=request.user,
@@ -445,16 +445,24 @@ def check_task_status(request, task_id):
             }
         elif task_result.state == 'FAILURE':
             # 任务失败
-            error_info = task_result.info or {}
-            error_msg = error_info.get('message', '音频合成失败')
+            error_info = task_result.info
+            if hasattr(error_info, 'get') and callable(getattr(error_info, 'get')):
+                # error_info 是字典
+                error_msg = error_info.get('message', '音频合成失败')
+                error_detail = error_info.get('error', str(error_info))
+            else:
+                # error_info 是异常对象或其他类型
+                error_msg = '音频合成失败'
+                error_detail = str(error_info) if error_info else '未知错误'
+            
             user_task.status = 'failure'
-            user_task.error_message = error_info.get('error', str(task_result.info))
+            user_task.error_message = error_detail
             user_task.progress_message = error_msg
             user_task.completed_at = timezone.now()
             response = {
                 'status': 'failure',
                 'message': error_msg,
-                'error': error_info.get('error', str(task_result.info))
+                'error': error_detail
             }
         else:
             # 其他状态
