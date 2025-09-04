@@ -667,6 +667,10 @@ def generate_dialogue_audio_task(self, script_id, voice_mapping):
             logger.error(error_msg)
             raise Exception(error_msg)
         
+        # 获取用户和用户配额
+        user = script.user
+        user_quota, created = UserQuota.objects.get_or_create(user=user)
+        
         # 更新用户任务状态
         try:
             user_task = UserTask.objects.get(task_id=self.request.id)
@@ -676,7 +680,35 @@ def generate_dialogue_audio_task(self, script_id, voice_mapping):
         except UserTask.DoesNotExist:
             logger.warning(f"UserTask not found for task {self.request.id}")
         
-        # 初始化多音色TTS服务
+        # 预估音频时长以检查积分
+        try:
+            multi_voice_tts = MultiVoiceTTS()
+            estimated_duration = multi_voice_tts.estimate_audio_duration(script.script_data)
+            logger.info(f"Estimated audio duration: {estimated_duration} seconds")
+            
+            # 检查用户积分是否充足
+            from home.utils import PointsManager
+            required_points = PointsManager.get_audio_generation_points(estimated_duration)
+            
+            if not user_quota.can_consume_points(required_points):
+                error_msg = f"积分不足，需要 {required_points} 积分，当前可用 {user_quota.points} 积分"
+                logger.error(error_msg)
+                
+                # 更新用户任务为失败状态
+                if 'user_task' in locals():
+                    user_task.status = 'failure'
+                    user_task.error_message = error_msg
+                    user_task.save()
+                
+                raise Exception(error_msg)
+                
+            logger.info(f"Points check passed: need {required_points}, have {user_quota.points}")
+            
+        except Exception as e:
+            if "积分不足" in str(e):
+                raise e
+            logger.warning(f"Failed to estimate duration or check points: {e}")
+            # 如果预估失败，继续执行，在实际完成后检查积分
         multi_voice_tts = MultiVoiceTTS()
         
         # 创建临时输出文件
@@ -762,6 +794,38 @@ def generate_dialogue_audio_task(self, script_id, voice_mapping):
                 script.audio_duration = multi_voice_tts.estimate_audio_duration(script.script_data)
             
             script.save()
+            
+            # 扣除用户积分
+            try:
+                # 刷新用户配额以获取最新数据
+                user_quota.refresh_from_db()
+                
+                # 获取实际音频时长并计算所需积分
+                actual_duration_seconds = script.audio_duration
+                required_points = PointsManager.get_audio_generation_points(actual_duration_seconds)
+                
+                # 扣除积分
+                user_quota.consume_points(required_points)
+                
+                # 记录成功的音频创建操作
+                OperationRecord.objects.create(
+                    user=user,
+                    operation_type='audio_create',
+                    operation_object=f'对话脚本 - {script.title}',
+                    operation_detail=f'成功创建对话音频：{script.title}，时长 {actual_duration_seconds} 秒，消耗积分 {required_points} 分',
+                    status='success',
+                    metadata={
+                        'script_id': script_id,
+                        'audio_duration': actual_duration_seconds,
+                        'points_consumed': required_points
+                    }
+                )
+                
+                logger.info(f"Successfully consumed {required_points} points for dialogue audio generation")
+                
+            except Exception as e:
+                logger.error(f"Failed to deduct points for dialogue audio: {e}", exc_info=True)
+                # 积分扣除失败不影响任务成功状态，但需要记录错误
             
             # 更新用户任务为成功状态
             if 'user_task' in locals():
