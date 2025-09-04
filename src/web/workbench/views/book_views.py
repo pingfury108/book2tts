@@ -6,6 +6,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, HttpResponse
 from django.core.paginator import Paginator
 from django.conf import settings
+from django.db import transaction
 
 from ..forms import UploadFileForm
 from ..models import Books
@@ -101,9 +102,15 @@ def deduct_points_for_ocr(user, num_non_cached_images, auto_ocr=False):
             # Record the operation
             OperationRecord.objects.create(
                 user=user,
-                operation_type='ocr_auto',
-                description=f'自动OCR处理 {num_non_cached_images} 张图片，扣除 {points_to_deduct} 积分',
-                points_deducted=points_to_deduct
+                operation_type='ocr_process',
+                operation_object=f'自动OCR处理 {num_non_cached_images} 张图片',
+                operation_detail=f'自动OCR处理 {num_non_cached_images} 张图片，扣除 {points_to_deduct} 积分',
+                status='success',
+                metadata={
+                    'operation_type': 'ocr_auto',
+                    'images_processed': num_non_cached_images,
+                    'points_deducted': points_to_deduct
+                }
             )
             
             return True
@@ -775,6 +782,20 @@ def text_by_page(request, book_id):
     combined_texts = []
     ocr_results = []  # Store OCR metadata
     
+    # Check points for automatic OCR if needed
+    if use_ocr_auto:
+        total_pages = len(names)  # Each name represents a page
+        points_check = check_and_deduct_points_for_ocr(request.user, total_pages, auto_ocr=True)
+        if not points_check['can_proceed']:
+            return JsonResponse({
+                "status": "error",
+                "message": points_check['error'],
+                "required_points": points_check['required_points'],
+                "available_points": points_check['available_points']
+            }, status=402)
+    
+    non_cached_count = 0  # Track non-cached OCR results for point deduction
+    
     for page_name in names:
         page_text = ""
         
@@ -794,9 +815,15 @@ def text_by_page(request, book_id):
                             
                             if 'error' not in ocr_result:
                                 page_text = ocr_result.get('text', '')
+                                is_cached = ocr_result.get('cached', False)
+                                
+                                # Count non-cached results for point deduction
+                                if not is_cached and use_ocr_auto:
+                                    non_cached_count += 1
+                                
                                 ocr_results.append({
                                     'page': page_name,
-                                    'cached': ocr_result.get('cached', False),
+                                    'cached': is_cached,
                                     'image_md5': ocr_result.get('image_md5', ''),
                                     'auto_ocr': use_ocr_auto  # Mark if OCR was used automatically
                                 })
@@ -898,6 +925,10 @@ def text_by_page(request, book_id):
     
     # Combine all texts with double newlines
     texts = "\n\n".join(combined_texts)
+    
+    # Deduct points for non-cached images if using automatic OCR
+    if use_ocr_auto and non_cached_count > 0:
+        deduct_points_for_ocr(request.user, non_cached_count, auto_ocr=True)
     
     # Prepare response data
     response_data = {

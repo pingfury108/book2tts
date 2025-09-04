@@ -33,7 +33,7 @@ class PointsIntegrationTest(TestCase):
         """测试OCR处理积分计算"""
         # 测试默认配置
         image_count = 3
-        expected_points = 3 * 5  # 默认5积分/页
+        expected_points = 3 * 7  # 默认7积分/页
         
         actual_points = PointsManager.get_ocr_processing_points(image_count)
         self.assertEqual(actual_points, expected_points)
@@ -52,10 +52,10 @@ class PointsIntegrationTest(TestCase):
 
     def test_user_quota_ocr_check(self):
         """测试用户配额OCR检查"""
-        self.user_quota.points = 15
+        self.user_quota.points = 21
         self.user_quota.save()
         
-        # 应该能够处理3页OCR（3 * 5 = 15积分）
+        # 应该能够处理3页OCR（3 * 7 = 21积分）
         from home.utils import PointsManager
         self.assertTrue(self.user_quota.can_consume_points(PointsManager.get_ocr_processing_points(3)))
         
@@ -76,7 +76,7 @@ class PointsIntegrationTest(TestCase):
         
         # 消耗OCR积分
         image_count = 3
-        expected_cost = 3 * 5
+        expected_cost = 3 * 7  # 默认7积分/页
         self.user_quota.points = 100  # 重置
         self.user_quota.save()
         
@@ -108,6 +108,6 @@ class PointsIntegrationTest(TestCase):
 
     def test_negative_value_handling(self):
         """测试负值处理"""
-        # 负值应该返回0积分或处理为0
+        # 负值应该返回0积分
         self.assertEqual(PointsManager.get_audio_generation_points(-1), 0)
         self.assertEqual(PointsManager.get_ocr_processing_points(-1), 0)

@@ -70,12 +70,16 @@ class PointsManager:
     @classmethod
     def get_audio_generation_points(cls, duration_seconds):
         """获取音频生成的积分消耗"""
+        if duration_seconds < 0:
+            return 0
         config = cls.get_points_config('audio_generation')
         return config['points_per_unit'] * duration_seconds
     
     @classmethod
     def get_ocr_processing_points(cls, image_count):
         """获取OCR处理的积分消耗"""
+        if image_count < 0:
+            return 0
         config = cls.get_points_config('ocr_processing')
         return config['points_per_unit'] * image_count
     

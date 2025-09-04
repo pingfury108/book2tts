@@ -270,6 +270,57 @@ def get_user_quota(request):
 
 
 @login_required
+def get_points_rules(request):
+    """Get points deduction rules for display"""
+    try:
+        from home.utils import PointsManager
+        
+        # Get all active points configurations
+        all_configs = PointsManager.get_all_active_configs()
+        
+        # Define rule display information
+        rule_info = {
+            'audio_generation': {
+                'name': '音频生成',
+                'icon': '🎵',
+                'description': '将文本转换为语音'
+            },
+            'ocr_processing': {
+                'name': 'OCR处理',
+                'icon': '📄',
+                'description': '图片文字识别'
+            }
+        }
+        
+        # Build rules list
+        rules = []
+        for operation_type, config in all_configs.items():
+            if operation_type in rule_info:
+                rules.append({
+                    'operation_type': operation_type,
+                    'name': rule_info[operation_type]['name'],
+                    'icon': rule_info[operation_type]['icon'],
+                    'description': rule_info[operation_type]['description'],
+                    'points_per_unit': config['points_per_unit'],
+                    'unit_name': config['unit_name']
+                })
+        
+        # Sort rules for consistent display
+        rules.sort(key=lambda x: x['operation_type'])
+        
+        return JsonResponse({
+            'status': 'success',
+            'rules': rules
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': f'获取积分规则失败: {str(e)}'
+        }, status=500)
+
+
+@login_required
 @require_http_methods(["POST"])
 def synthesize_audio(request):
     """使用异步任务合成音频"""

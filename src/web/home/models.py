@@ -45,6 +45,18 @@ class UserQuota(models.Model):
             return True
         return False
     
+    def consume_points_for_audio(self, duration_seconds):
+        """消耗音频生成积分"""
+        from .utils import PointsManager
+        points_needed = PointsManager.get_audio_generation_points(duration_seconds)
+        return self.consume_points(points_needed)
+    
+    def consume_points_for_ocr(self, image_count):
+        """消耗OCR处理积分"""
+        from .utils import PointsManager
+        points_needed = PointsManager.get_ocr_processing_points(image_count)
+        return self.consume_points(points_needed)
+    
     def add_points(self, points_to_add):
         """增加积分"""
         self.points += points_to_add

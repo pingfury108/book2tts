@@ -5,6 +5,7 @@ from .views import (
     aggregated_audio_segments,
     get_voice_list,
     get_user_quota,
+    get_points_rules,
     synthesize_audio,
     check_task_status,
     delete_audio_segment,
@@ -68,6 +69,7 @@ urlpatterns = [
     ),
     path("voices/", get_voice_list, name="voice_list"),
     path("quota/", get_user_quota, name="get_user_quota"),
+    path("points/rules/", get_points_rules, name="get_points_rules"),
     path("synthesize-audio/", synthesize_audio, name="synthesize_audio"),
     path("task-status/<str:task_id>/", check_task_status, name="check_task_status"),
     path(
