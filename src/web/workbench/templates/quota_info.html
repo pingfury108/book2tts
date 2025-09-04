@@ -1,52 +1,26 @@
 <div class="space-y-2">
     <div class="flex items-center justify-between">
-        <span class="text-sm font-medium">剩余音频时长:</span>
+        <span class="text-sm font-medium">当前积分:</span>
         <span class="{{ status_class }} font-bold">{{ status_icon }}</span>
     </div>
     
     <div class="bg-base-200 rounded-lg p-3">
         <div class="text-center">
-            {% if hours > 0 %}
-                <div class="text-lg font-bold {{ status_class }}">
-                    {{ hours }}小时 {{ minutes }}分钟 {{ seconds }}秒
-                </div>
-            {% elif minutes > 0 %}
-                <div class="text-lg font-bold {{ status_class }}">
-                    {{ minutes }}分钟 {{ seconds }}秒
-                </div>
-            {% else %}
-                <div class="text-lg font-bold {{ status_class }}">
-                    {{ seconds }}秒
-                </div>
-            {% endif %}
+            <div class="text-lg font-bold {{ status_class }}">
+                {{ current_points }} 积分
+            </div>
             <div class="text-xs text-base-content/70 mt-1">
-                总计: {{ remaining_seconds }} 秒
-            </div>
-        </div>
-        
-        <!-- Progress bar -->
-        <div class="mt-3">
-            <div class="w-full bg-base-300 rounded-full h-2">
-                <div class="h-2 rounded-full transition-all duration-300 {{ progress_class }}"
-                     style="width: {% if is_over_quota %}100{% else %}{{ percentage }}{% endif %}%">
-                </div>
-            </div>
-            <div class="text-xs text-center mt-1 text-base-content/60">
-                {% if is_over_quota %}
-                    超过默认配额
-                {% else %}
-                    {{ percentage }}% 剩余
-                {% endif %}
+                可用于音频生成和OCR处理
             </div>
         </div>
     </div>
     
-    {% if remaining_seconds <= 300 %}
+    {% if current_points <= 100 %}
         <div class="alert alert-warning shadow-sm p-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-4 w-4" fill="none" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
-            <span class="text-xs">配额即将用完，请联系管理员</span>
+            <span class="text-xs">积分即将用完，请合理使用</span>
         </div>
     {% endif %}
 </div> 

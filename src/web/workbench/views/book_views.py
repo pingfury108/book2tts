@@ -12,7 +12,110 @@ from ..models import Books
 from book2tts.ebook import open_ebook, ebook_toc, get_content_with_href, ebook_pages
 from book2tts.pdf import open_pdf, detect_scanned_pdf, get_page_image_data
 from ..utils.ocr_utils import perform_ocr_with_cache
+from home.models import UserQuota, OperationRecord
 from ebooklib import epub
+
+
+def check_and_deduct_points_for_ocr(user, num_images, auto_ocr=False):
+    """
+    Check if user has sufficient points for OCR operations and deduct points for non-cached results.
+    
+    Args:
+        user: Django user object
+        num_images: Number of images to process
+        auto_ocr: Whether this is an automatic OCR operation
+    
+    Returns:
+        dict: {
+            'can_proceed': bool,
+            'required_points': int,
+            'available_points': int,
+            'error': str (optional)
+        }
+    """
+    if not auto_ocr:
+        # For manual OCR, no points checking needed
+        return {'can_proceed': True, 'required_points': 0, 'available_points': 0}
+    
+    # Points required: use PointsManager for configurable points
+    from home.utils import PointsManager
+    required_points = PointsManager.get_ocr_processing_points(num_images)
+    
+    try:
+        user_quota = UserQuota.objects.get(user=user)
+        available_points = user_quota.points
+        
+        if available_points < required_points:
+            return {
+                'can_proceed': False,
+                'required_points': required_points,
+                'available_points': available_points,
+                'error': f'积分不足。需要 {required_points} 积分，当前可用 {available_points} 积分。'
+            }
+        
+        return {
+            'can_proceed': True,
+            'required_points': required_points,
+            'available_points': available_points
+        }
+        
+    except UserQuota.DoesNotExist:
+        return {
+            'can_proceed': False,
+            'required_points': required_points,
+            'available_points': 0,
+            'error': '用户积分信息不存在，请先联系管理员。'
+        }
+
+
+def deduct_points_for_ocr(user, num_non_cached_images, auto_ocr=False):
+    """
+    Deduct points for OCR operations that were not cached.
+    
+    Args:
+        user: Django user object
+        num_non_cached_images: Number of non-cached images processed
+        auto_ocr: Whether this is an automatic OCR operation
+    
+    Returns:
+        bool: True if deduction successful, False otherwise
+    """
+    if not auto_ocr or num_non_cached_images <= 0:
+        return True
+    
+    from home.utils import PointsManager
+    points_to_deduct = PointsManager.get_ocr_processing_points(num_non_cached_images)
+    
+    try:
+        with transaction.atomic():
+            user_quota, created = UserQuota.objects.get_or_create(user=user)
+            
+            # Check if user has enough points (should have been checked earlier)
+            if user_quota.points < points_to_deduct:
+                return False
+            
+            # Deduct points
+            user_quota.points -= points_to_deduct
+            user_quota.save()
+            
+            # Record the operation
+            OperationRecord.objects.create(
+                user=user,
+                operation_type='ocr_auto',
+                description=f'自动OCR处理 {num_non_cached_images} 张图片，扣除 {points_to_deduct} 积分',
+                points_deducted=points_to_deduct
+            )
+            
+            return True
+            
+    except UserQuota.DoesNotExist:
+        return False
+    except Exception as e:
+        # Log the exception for debugging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error deducting points for OCR: {str(e)}")
+        return False
 
 
 def traverse_toc_with_level(items, toc, level=0):
@@ -407,8 +510,23 @@ def text_by_toc(request, book_id):
                             # 检查是否是页面范围格式 (start-end)
                             if '-' in single_name:
                                 start_page, end_page = map(int, single_name.split('-'))
+                                total_pages_in_range = end_page - start_page + 1
+                                
+                                # Check points for automatic OCR
+                                if use_ocr_auto:
+                                    points_check = check_and_deduct_points_for_ocr(request.user, total_pages_in_range, auto_ocr=True)
+                                    if not points_check['can_proceed']:
+                                        return JsonResponse({
+                                            "status": "error",
+                                            "message": points_check['error'],
+                                            "required_points": points_check['required_points'],
+                                            "available_points": points_check['available_points']
+                                        }, status=402)
+                                
                                 # 获取页面范围内所有页面的OCR文本
                                 page_texts = []
+                                non_cached_count = 0
+                                
                                 for page_num in range(start_page, end_page + 1):
                                     try:
                                         # Get page image data and perform OCR
@@ -419,9 +537,14 @@ def text_by_toc(request, book_id):
                                             page_text = ocr_result.get('text', '')
                                             if page_text.strip():  # 只添加非空页面
                                                 page_texts.append(page_text)
+                                            
+                                            is_cached = ocr_result.get('cached', False)
+                                            if not is_cached and use_ocr_auto:
+                                                non_cached_count += 1
+                                                
                                             ocr_results.append({
                                                 'page': page_num,
-                                                'cached': ocr_result.get('cached', False),
+                                                'cached': is_cached,
                                                 'image_md5': ocr_result.get('image_md5', ''),
                                                 'auto_ocr': use_ocr_auto
                                             })
@@ -453,18 +576,40 @@ def text_by_toc(request, book_id):
                                             'error': str(page_error),
                                             'auto_ocr': use_ocr_auto
                                         })
+                                
+                                # Deduct points for non-cached images
+                                if use_ocr_auto and non_cached_count > 0:
+                                    deduct_points_for_ocr(request.user, non_cached_count, auto_ocr=True)
+                                
                                 text_content = "\n\n".join(page_texts)
                             else:
                                 # 单页模式
                                 page_num = int(single_name)
+                                
+                                # Check points for automatic OCR
+                                if use_ocr_auto:
+                                    points_check = check_and_deduct_points_for_ocr(request.user, 1, auto_ocr=True)
+                                    if not points_check['can_proceed']:
+                                        return JsonResponse({
+                                            "status": "error",
+                                            "message": points_check['error'],
+                                            "required_points": points_check['required_points'],
+                                            "available_points": points_check['available_points']
+                                        }, status=402)
+                                
                                 image_data = get_page_image_data(book.file.path, page_num)
                                 ocr_result = perform_ocr_with_cache(image_data, ak, sk, 'page_image')
                                 
                                 if 'error' not in ocr_result:
                                     text_content = ocr_result.get('text', '')
+                                    
+                                    is_cached = ocr_result.get('cached', False)
+                                    if not is_cached and use_ocr_auto:
+                                        deduct_points_for_ocr(request.user, 1, auto_ocr=True)
+                                    
                                     ocr_results.append({
                                         'page': single_name,
-                                        'cached': ocr_result.get('cached', False),
+                                        'cached': is_cached,
                                         'image_md5': ocr_result.get('image_md5', ''),
                                         'auto_ocr': use_ocr_auto
                                     })
@@ -581,6 +726,15 @@ def text_by_toc(request, book_id):
         if ocr_results:
             response_data["ocr_results"] = ocr_results
             response_data["cached_count"] = sum(1 for r in ocr_results if r.get('cached', False))
+            
+            # Add points information for automatic OCR
+            if use_ocr_auto:
+                non_cached_count = sum(1 for r in ocr_results if not r.get('cached', False) and 'error' not in r)
+                if non_cached_count > 0:
+                    from home.utils import PointsManager
+                    response_data["points_deducted"] = PointsManager.get_ocr_processing_points(non_cached_count)
+                    response_data["images_processed"] = len(ocr_results)
+                    response_data["non_cached_images"] = non_cached_count
     
     # Return JSON response
     return JsonResponse(response_data)
@@ -760,6 +914,15 @@ def text_by_page(request, book_id):
         if ocr_results:
             response_data["ocr_results"] = ocr_results
             response_data["cached_count"] = sum(1 for r in ocr_results if r.get('cached', False))
+            
+            # Add points information for automatic OCR
+            if use_ocr_auto:
+                non_cached_count = sum(1 for r in ocr_results if not r.get('cached', False) and 'error' not in r)
+                if non_cached_count > 0:
+                    from home.utils import PointsManager
+                    response_data["points_deducted"] = PointsManager.get_ocr_processing_points(non_cached_count)
+                    response_data["images_processed"] = len(ocr_results)
+                    response_data["non_cached_images"] = non_cached_count
     
     # Return JSON response
     return JsonResponse(response_data)

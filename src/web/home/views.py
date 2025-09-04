@@ -536,36 +536,22 @@ def profile(request):
     # 获取用户profile
     user_profile, profile_created = UserProfile.objects.get_or_create(user=request.user)
     
-    # 计算配额显示信息
-    remaining_seconds = user_quota.remaining_audio_duration
-    hours = remaining_seconds // 3600
-    minutes = (remaining_seconds % 3600) // 60
-    seconds = remaining_seconds % 60
+    # 积分信息
+    current_points = user_quota.points
     
-    # 计算百分比（基于默认3600秒 = 1小时）
-    default_quota = 3600
-    percentage = min(100, (remaining_seconds * 100) / default_quota)
-    
-    # 确定配额状态和颜色
-    if remaining_seconds > 1800:  # 超过30分钟
+    # 确定积分状态和颜色
+    if current_points > 500:  # 超过500积分
         status_class = "text-success"
         status_icon = "✅"
-        progress_class = "bg-success"
         status_text = "充足"
-    elif remaining_seconds > 300:  # 超过5分钟
+    elif current_points > 100:  # 超过100积分
         status_class = "text-warning"
         status_icon = "⚠️"
-        progress_class = "bg-warning"
         status_text = "一般"
-    else:  # 少于5分钟
+    else:  # 少于100积分
         status_class = "text-error"
         status_icon = "❌"
-        progress_class = "bg-error"
         status_text = "不足"
-    
-    # 存储空间信息
-    storage_bytes = user_quota.available_storage_bytes
-    storage_display = user_quota.get_storage_display()
     
     # 统计用户数据
     from workbench.models import Books, AudioSegment
@@ -574,24 +560,24 @@ def profile(request):
     published_audio_segments = AudioSegment.objects.filter(book__user=request.user, published=True).count()
     unpublished_audio_segments = total_audio_segments - published_audio_segments
     
+    # 获取积分配置信息
+    from home.utils import PointsManager
+    audio_config = PointsManager.get_points_config('audio_generation')
+    ocr_config = PointsManager.get_points_config('ocr_processing')
+    
     context = {
         'user_quota': user_quota,
         'user_profile': user_profile,
-        'remaining_seconds': remaining_seconds,
-        'hours': hours,
-        'minutes': minutes,
-        'seconds': seconds,
         'status_class': status_class,
         'status_icon': status_icon,
-        'progress_class': progress_class,
-        'percentage': round(percentage, 1),
         'status_text': status_text,
-        'storage_display': storage_display,
-        'storage_bytes': storage_bytes,
+        'current_points': current_points,
         'total_books': total_books,
         'total_audio_segments': total_audio_segments,
         'published_audio_segments': published_audio_segments,
         'unpublished_audio_segments': unpublished_audio_segments,
+        'audio_points_per_second': audio_config['points_per_unit'],
+        'ocr_points_per_page': ocr_config['points_per_unit'],
     }
     
     return render(request, "home/profile.html", context)

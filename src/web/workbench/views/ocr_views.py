@@ -5,10 +5,13 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.db import transaction
 
 from ..models import Books
 from ..utils.ocr_utils import perform_ocr_with_cache, perform_batch_ocr_with_cache
 from book2tts.pdf import detect_scanned_pdf, get_page_image_data
+from home.models import UserQuota, OperationRecord
+from home.utils import PointsManager
 
 
 @login_required
@@ -86,6 +89,17 @@ def ocr_pdf_page(request, book_id):
         }, status=500)
     
     try:
+        # 获取用户配额检查积分
+        user_quota, created = UserQuota.objects.get_or_create(user=request.user)
+        
+        # 检查是否有足够的积分（使用PointsManager获取配置值）
+        required_points = PointsManager.get_ocr_processing_points(1)
+        if not user_quota.has_enough_points(required_points):
+            return JsonResponse({
+                "status": "error",
+                "message": f"积分不足，OCR单页需要{required_points}积分，当前剩余：{user_quota.points}积分"
+            }, status=400)
+        
         # 获取页面图像数据
         image_data = get_page_image_data(book.file.path, page_num)
         
@@ -98,13 +112,57 @@ def ocr_pdf_page(request, book_id):
                 "message": f"OCR识别失败: {ocr_result['error']}"
             }, status=500)
         
+        # 如果使用了缓存结果，不扣除积分
+        if not ocr_result.get('cached', False):
+            try:
+                with transaction.atomic():
+                    # 确保使用最新的配额数据
+                    user_quota.refresh_from_db()
+                    
+                    # 扣除积分
+                    points_to_consume = PointsManager.get_ocr_processing_points(1)
+                    if user_quota.consume_points(points_to_consume):
+                        # 记录操作
+                        OperationRecord.objects.create(
+                            user=request.user,
+                            operation_type='ocr_process',
+                            operation_object=f'{book.name} - 第{page_num}页',
+                            operation_detail=f'OCR识别成功，消耗{points_to_consume}积分，剩余{user_quota.points}积分',
+                            status='success',
+                            metadata={
+                                'book_id': book_id,
+                                'book_name': book.name,
+                                'page_num': page_num,
+                                'points_consumed': points_to_consume,
+                                'remaining_points': user_quota.points,
+                                'cached': False
+                            }
+                        )
+                    else:
+                        # 积分扣除失败（理论上不应该发生，因为之前已经检查过）
+                        return JsonResponse({
+                            "status": "error",
+                            "message": "积分扣除失败，请稍后重试"
+                        }, status=500)
+            except Exception as e:
+                return JsonResponse({
+                    "status": "error",
+                    "message": f"积分扣除失败：{str(e)}"
+                }, status=500)
+        
+        # 获取当前积分配置信息
+        ocr_config = PointsManager.get_points_config('ocr_processing')
+        points_per_page = ocr_config['points_per_unit']
+        
         return JsonResponse({
             "status": "success",
             "page_num": page_num,
             "text": ocr_result['text'],
             "cached": ocr_result['cached'],
             "image_md5": ocr_result['image_md5'],
-            "message": "OCR识别完成" + ("（使用缓存结果）" if ocr_result['cached'] else "")
+            "message": "OCR识别完成" + ("（使用缓存结果，不消耗积分）" if ocr_result['cached'] else f"，已扣除{points_per_page}积分"),
+            "remaining_points": user_quota.points if not ocr_result.get('cached', False) else None,
+            "points_per_page": points_per_page
         })
         
     except IndexError as e:
@@ -151,6 +209,9 @@ def ocr_pdf_pages_batch(request, book_id):
         }, status=500)
     
     try:
+        # 获取用户配额检查积分
+        user_quota, created = UserQuota.objects.get_or_create(user=request.user)
+        
         # 解析页面范围
         page_nums = []
         if '-' in page_range:
@@ -168,6 +229,17 @@ def ocr_pdf_pages_batch(request, book_id):
         for page_num in page_nums:
             if page_num < 0:
                 raise ValueError(f"页码 {page_num} 不能为负数")
+        
+        # 计算需要OCR的实际页面数（排除缓存结果）
+        new_pages_count = len(page_nums)
+        required_points = PointsManager.get_ocr_processing_points(new_pages_count)
+        
+        # 检查是否有足够的积分
+        if not user_quota.can_process_ocr(new_pages_count):
+            return JsonResponse({
+                "status": "error",
+                "message": f"积分不足，批量OCR需要{required_points}积分（每页{PointsManager.get_points_config('ocr_processing')['points_per_unit']}积分），当前剩余：{user_quota.points}积分"
+            }, status=400)
         
         # 准备图像数据列表
         image_data_list = []
@@ -187,6 +259,7 @@ def ocr_pdf_pages_batch(request, book_id):
         
         # 批量OCR识别（自动遵守QPS限制）
         results = []
+        actual_new_ocr_count = 0
         for item in image_data_list:
             if item.get('error'):
                 results.append({
@@ -199,7 +272,54 @@ def ocr_pdf_pages_batch(request, book_id):
             else:
                 ocr_result = perform_ocr_with_cache(item['data'], ak, sk, 'page_image')
                 ocr_result['page_num'] = item['page_num']
+                
+                # 统计实际新增的OCR（非缓存结果）
+                if not ocr_result.get('cached', False):
+                    actual_new_ocr_count += 1
+                
                 results.append(ocr_result)
+        
+        # 扣除积分（仅扣除实际执行OCR的页面）
+        if actual_new_ocr_count > 0:
+            actual_points_consumed = PointsManager.get_ocr_processing_points(actual_new_ocr_count)
+            try:
+                with transaction.atomic():
+                    # 确保使用最新的配额数据
+                    user_quota.refresh_from_db()
+                    
+                    # 检查积分是否足够
+                    if user_quota.points < actual_points_consumed:
+                        return JsonResponse({
+                            "status": "error",
+                            "message": "积分不足，无法完成OCR操作"
+                        }, status=400)
+                    
+                    # 扣除积分
+                    user_quota.consume_points(actual_points_consumed)
+                    user_quota.save()
+                    
+                    # 记录操作
+                    OperationRecord.objects.create(
+                        user=request.user,
+                        operation_type='ocr_process',
+                        operation_object=f'{book.name} - 批量OCR {len(page_nums)}页',
+                        operation_detail=f'批量OCR识别成功，实际消耗{actual_points_consumed}积分（{actual_new_ocr_count}页新识别），剩余{user_quota.points}积分',
+                        status='success',
+                        metadata={
+                            'book_id': book_id,
+                            'book_name': book.name,
+                            'total_pages': len(page_nums),
+                            'new_ocr_pages': actual_new_ocr_count,
+                            'cached_pages': len(page_nums) - actual_new_ocr_count,
+                            'points_consumed': actual_points_consumed,
+                            'remaining_points': user_quota.points
+                        }
+                    )
+            except Exception as e:
+                return JsonResponse({
+                    "status": "error",
+                    "message": f"积分扣除失败：{str(e)}"
+                }, status=500)
         
         # 统计结果
         success_count = sum(1 for r in results if not r.get('error'))
@@ -211,7 +331,10 @@ def ocr_pdf_pages_batch(request, book_id):
             "success_count": success_count,
             "cached_count": cached_count,
             "results": results,
-            "message": f"批量OCR识别完成，成功 {success_count}/{len(results)} 页"
+            "actual_points_consumed": actual_points_consumed if actual_new_ocr_count > 0 else 0,
+            "remaining_points": user_quota.points,
+            "message": f"批量OCR识别完成，成功 {success_count}/{len(results)} 页" + 
+                      (f"，已扣除{actual_points_consumed}积分" if actual_new_ocr_count > 0 else "，全部使用缓存结果")
         })
         
     except ValueError as e:

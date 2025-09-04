@@ -14,6 +14,7 @@ from .models import Books, AudioSegment, DialogueScript, UserTask, DialogueSegme
 from book2tts.edgetts import EdgeTTS
 from book2tts.audio_utils import get_audio_duration, estimate_audio_duration_from_text
 from home.models import UserQuota, OperationRecord
+from home.utils.utils import PointsManager
 from book2tts.multi_voice_tts import MultiVoiceTTS
 from .utils.subtitle_utils import convert_vtt_to_srt, save_srt_subtitle
 
@@ -150,10 +151,13 @@ def synthesize_audio_task(self, user_id, text, voice_name, book_id, title="", bo
         # 估算音频时长
         estimated_duration_seconds = estimate_audio_duration_from_text(text)
         
-        # 检查配额
-        if not user_quota.can_create_audio(estimated_duration_seconds):
-            error_msg = f"配额不足。预估需要 {estimated_duration_seconds} 秒，剩余 {user_quota.remaining_audio_duration} 秒"
-            logger.warning(f"Insufficient quota for user {user_id}: {error_msg}")
+        # 计算需要的积分
+        required_points = PointsManager.get_audio_generation_points(estimated_duration_seconds)
+        
+        # 检查积分是否足够
+        if not user_quota.can_consume_points(required_points):
+            error_msg = f"积分不足。预估需要 {required_points} 积分，剩余 {user_quota.points} 积分"
+            logger.warning(f"Insufficient points for user {user_id}: {error_msg}")
             OperationRecord.objects.create(
                 user=user,
                 operation_type='audio_create',
@@ -164,10 +168,11 @@ def synthesize_audio_task(self, user_id, text, voice_name, book_id, title="", bo
                     'book_id': book_id,
                     'book_name': book.name,
                     'estimated_duration': estimated_duration_seconds,
-                    'remaining_quota': user_quota.remaining_audio_duration,
+                    'required_points': required_points,
+                    'remaining_points': user_quota.points,
                     'text_length': len(text),
                     'voice_name': voice_name,
-                    'error_reason': 'insufficient_quota'
+                    'error_reason': 'insufficient_points'
                 },
                 ip_address=ip_address,
                 user_agent=user_agent
@@ -339,15 +344,16 @@ def synthesize_audio_task(self, user_id, text, voice_name, book_id, title="", bo
                 # 刷新用户配额以获取最新数据
                 user_quota.refresh_from_db()
                 
-                # 强制扣除用户配额
-                user_quota.force_consume_audio_duration(actual_duration_seconds)
+                # 扣除用户积分
+                required_points = PointsManager.get_audio_generation_points(actual_duration_seconds)
+                user_quota.consume_points(required_points)
                 
                 # 记录成功的音频创建操作
                 OperationRecord.objects.create(
                     user=user,
                     operation_type='audio_create',
                     operation_object=f'{book.name} - {segment_title}',
-                    operation_detail=f'成功创建音频片段：{segment_title}，时长 {actual_duration_seconds} 秒，消耗配额 {actual_duration_seconds} 秒',
+                    operation_detail=f'成功创建音频片段：{segment_title}，时长 {actual_duration_seconds} 秒，消耗积分 {required_points} 分',
                     status='success',
                     metadata={
                         'book_id': book_id,
@@ -355,8 +361,8 @@ def synthesize_audio_task(self, user_id, text, voice_name, book_id, title="", bo
                         'audio_segment_id': audio_segment.id,
                         'actual_duration': actual_duration_seconds,
                         'estimated_duration': estimated_duration_seconds,
-                        'consumed_quota': actual_duration_seconds,
-                        'remaining_quota_after': user_quota.remaining_audio_duration,
+                        'consumed_points': required_points,
+                        'remaining_points_after': user_quota.points,
                         'text_length': len(text),
                         'voice_name': voice_name,
                         'file_path': audio_segment.file.name,
@@ -376,7 +382,7 @@ def synthesize_audio_task(self, user_id, text, voice_name, book_id, title="", bo
                 'subtitle_url': audio_segment.subtitle_file.url if audio_segment.subtitle_file else None,
                 'audio_id': audio_segment.id,
                 'audio_duration': actual_duration_seconds,
-                'remaining_quota': user_quota.remaining_audio_duration,
+                'remaining_points': user_quota.points,
                 'subtitle_generated': bool(audio_segment.subtitle_file),
                 'synthesis_method': synthesis_result.get('method', 'unknown')
             }

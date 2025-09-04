@@ -242,44 +242,28 @@ def get_voice_list(request):
 
 @login_required
 def get_user_quota(request):
-    """Get user quota information"""
+    """Get user points information"""
     user_quota, created = UserQuota.objects.get_or_create(user=request.user)
     
-    # Calculate quota display information
-    remaining_seconds = user_quota.remaining_audio_duration
-    hours = remaining_seconds // 3600
-    minutes = (remaining_seconds % 3600) // 60
-    seconds = remaining_seconds % 60
+    # Get current points
+    current_points = user_quota.points
     
-    # Calculate percentage (based on default 3600 seconds = 1 hour)
-    default_quota = 3600
-    percentage = min(100, (remaining_seconds * 100) / default_quota)
-    
-    # Determine quota status and color
-    if remaining_seconds > 1800:  # More than 30 minutes
+    # Determine points status and color
+    if current_points > 500:  # More than 500 points
         status_class = "text-success"
         status_icon = "✅"
-        progress_class = "bg-success"
-    elif remaining_seconds > 300:  # More than 5 minutes
+    elif current_points > 100:  # More than 100 points
         status_class = "text-warning"
         status_icon = "⚠️"
-        progress_class = "bg-warning"
-    else:  # Less than 5 minutes
+    else:  # Less than 100 points
         status_class = "text-error"
         status_icon = "❌"
-        progress_class = "bg-error"
     
     context = {
         "user_quota": user_quota,
-        "remaining_seconds": remaining_seconds,
-        "hours": hours,
-        "minutes": minutes,
-        "seconds": seconds,
+        "current_points": current_points,
         "status_class": status_class,
         "status_icon": status_icon,
-        "progress_class": progress_class,
-        "percentage": round(percentage, 1),
-        "is_over_quota": remaining_seconds > default_quota,
     }
     
     return render(request, "quota_info.html", context)
@@ -310,30 +294,33 @@ def synthesize_audio(request):
     # 估算音频时长来进行前置检查
     estimated_duration_seconds = estimate_audio_duration_from_text(text)
     
-    # 预检查配额（提前告知用户配额不足）
-    if not user_quota.can_create_audio(estimated_duration_seconds):
+    # 预检查积分（提前告知用户积分不足）
+    from home.utils import PointsManager
+    required_points = PointsManager.get_audio_generation_points(estimated_duration_seconds)
+    if not user_quota.has_enough_points(required_points):
         # 记录配额不足的操作
         OperationRecord.objects.create(
             user=request.user,
             operation_type='audio_create',
             operation_object=f'{book.name} - {title or page_display_name}',
-            operation_detail=f'音频合成失败：配额不足。预估需要 {estimated_duration_seconds} 秒，剩余 {user_quota.remaining_audio_duration} 秒',
+            operation_detail=f'音频合成失败：积分不足。预估需要 {required_points} 积分，剩余 {user_quota.points} 积分',
             status='failed',
             metadata={
                 'book_id': book_id,
                 'book_name': book.name,
                 'estimated_duration': estimated_duration_seconds,
-                'remaining_quota': user_quota.remaining_audio_duration,
+                'required_points': required_points,
+                'remaining_points': user_quota.points,
                 'text_length': len(text),
                 'voice_name': voice_name,
-                'error_reason': 'insufficient_quota'
+                'error_reason': 'insufficient_points'
             },
             ip_address=get_client_ip(request),
             user_agent=get_user_agent(request)
         )
         return JsonResponse({
             "status": "error", 
-            "message": f"配额不足。预估需要 {estimated_duration_seconds} 秒，剩余 {user_quota.remaining_audio_duration} 秒"
+            "message": f"积分不足。预估需要 {required_points} 积分，剩余 {user_quota.points} 积分"
         }, status=400)
     
     try:
@@ -534,24 +521,29 @@ def delete_audio_segment(request, segment_id):
         # Store book reference before deletion
         book = segment.book
         
-        # Delete the audio segment from the database first
-        segment.delete()
-        
-        # Delete the file from storage if it exists
-        if file_path and os.path.exists(file_path):
-            os.remove(file_path)
-        
-        # Return quota to user
-        if audio_duration_seconds > 0:
-            user_quota, created = UserQuota.objects.get_or_create(user=request.user)
-            user_quota.add_audio_duration(audio_duration_seconds)
+        # 使用事务确保数据一致性
+        with transaction.atomic():
+            # 删除音频片段
+            segment.delete()
+            
+            # 删除文件从存储中
+            if file_path and os.path.exists(file_path):
+                os.remove(file_path)
+            
+            # 返还积分给用户
+            if audio_duration_seconds > 0:
+                user_quota, created = UserQuota.objects.get_or_create(user=request.user)
+                from home.utils import PointsManager
+                returned_points = PointsManager.get_audio_generation_points(audio_duration_seconds)
+                user_quota.add_points(returned_points)
+                user_quota.save()
         
         # 记录成功的删除操作
         OperationRecord.objects.create(
             user=request.user,
             operation_type='audio_delete',
             operation_object=f'{book_name} - {segment_title}',
-            operation_detail=f'成功删除音频片段：{segment_title}，时长 {audio_duration_seconds} 秒，返还配额 {audio_duration_seconds} 秒',
+            operation_detail=f'成功删除音频片段：{segment_title}，时长 {audio_duration_seconds} 秒，返还积分 {returned_points} 分',
             status='success',
             metadata={
                 'segment_id': segment_id,
@@ -559,7 +551,7 @@ def delete_audio_segment(request, segment_id):
                 'book_name': book_name,
                 'segment_title': segment_title,
                 'audio_duration': audio_duration_seconds,
-                'returned_quota': audio_duration_seconds,
+                'returned_points': returned_points,
                 'file_path': file_path
             },
             ip_address=get_client_ip(request),
