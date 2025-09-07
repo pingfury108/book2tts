@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}{{ title }} - 制作工作台 - Book2TTS{% endblock %}
 
@@ -87,6 +88,30 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- 购买联系信息 -->
+            <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow duration-200">
+                <div class="card-body p-4">
+                    <h3 class="card-title text-lg font-bold">💳 购买服务</h3>
+                    <div class="space-y-3">
+                        <div class="text-sm text-base-content/80">
+                            <p class="mb-2">如需购买积分或重置配额，请联系客服：</p>
+                            <div class="flex items-center mb-2">
+                                <i class="fas fa-comment text-primary mr-2"></i>
+                                <span>微信客服: qzz18580256051</span>
+                            </div>
+                            <div class="flex items-center mb-3">
+                                <i class="fas fa-envelope text-primary mr-2"></i>
+                                <span>邮箱: pingfury@outlook.com</span>
+                            </div>
+                        </div>
+                        <button class="btn btn-sm btn-outline btn-primary w-full" onclick="showWeChatQR()">
+                            <i class="fas fa-qrcode mr-1"></i>
+                            微信扫码添加
+                        </button>
+                    </div>
+                </div>
+            </div>
             <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow duration-200">
                 <div class="card-body p-4">
                     <h3 class="card-title text-lg font-bold">📊 页面音频状态</h3>
@@ -168,6 +193,24 @@
     </div>
   </div>
   <div class="modal-backdrop" onclick="document.getElementById('page-image-modal').classList.remove('modal-open')"></div>
+</div>
+
+<!-- 微信二维码模态框 -->
+<div id="wechat-qr-modal" class="modal">
+  <div class="modal-box max-w-md">
+    <h3 class="font-bold text-lg mb-4 text-center">💬 微信购买咨询</h3>
+    <div class="text-center">
+      <div class="bg-white p-4 rounded-lg inline-block shadow-md">
+        <img src="{% static 'images/wechat_qr.png' %}" alt="微信二维码" class="w-48 h-48 mx-auto">
+      </div>
+      <p class="text-sm text-base-content/70 mt-3">扫码添加微信，获取购买服务和技术支持</p>
+      <p class="text-xs text-base-content/60 mt-2">微信号: qzz18580256051</p>
+    </div>
+    <div class="modal-action">
+      <button class="btn" onclick="closeWeChatQR()">关闭</button>
+    </div>
+  </div>
+  <div class="modal-backdrop" onclick="closeWeChatQR()"></div>
 </div>
 {% endblock %}
 
@@ -1482,6 +1525,21 @@ $(document).ready(function() {
     showPageImageButton();
   {% endif %}
 });
+
+// 微信二维码模态框功能
+function showWeChatQR() {
+  const modal = document.getElementById('wechat-qr-modal');
+  if (modal) {
+    modal.classList.add('modal-open');
+  }
+}
+
+function closeWeChatQR() {
+  const modal = document.getElementById('wechat-qr-modal');
+  if (modal) {
+    modal.classList.remove('modal-open');
+  }
+}
 </script>
 
 {% endblock %}
