@@ -279,17 +279,10 @@ class MultiVoiceTTS:
         """清理字幕文本中的多余空格"""
         import re
         
-        # 去除多余的空格
-        text = re.sub(r'\s+', ' ', text)
+        # 去除所有空格
+        text = re.sub(r'\s+', '', text)
         
-        # 去除标点符号前的空格
-        text = re.sub(r'\s+([，。！？；：、）】』」}])', r'\1', text)
-        
-        # 去除标点符号后多余的空格，保留一个空格
-        text = re.sub(r'([，。！？；：、（【『「{])\s+', r'\1', text)
-        
-        # 去除开头和结尾的空格
-        return text.strip()
+        return text
     
     def adjust_subtitle_timestamps(self, subtitles: List[Dict[str, Any]], time_offset: float) -> List[Dict[str, Any]]:
         """调整字幕时间戳，添加时间偏移"""

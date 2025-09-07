@@ -404,14 +404,8 @@
         cleanSubtitleText(text) {
             if (!text) return '';
             
-            // 去除所有多余的空格（多个连续空格变为一个空格）
-            let cleaned = text.replace(/\s+/g, ' ').trim();
-            
-            // 去除中文标点符号前的空格
-            cleaned = cleaned.replace(/\s+([，。！？；：、）】』」}])/g, '$1');
-            
-            // 去除中文标点符号后的空格
-            cleaned = cleaned.replace(/([，。！？；：、（【『「{])\s+/g, '$1');
+            // 去除所有空格
+            let cleaned = text.replace(/\s+/g, '');
             
             return cleaned;
         }

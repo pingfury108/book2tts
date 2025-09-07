@@ -812,17 +812,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 清理字幕文本中的多余空格
     function cleanSubtitleText(text) {
-      // 去除多余的空格
-      text = text.replace(/\s+/g, ' ');
+      // 去除所有空格
+      text = text.replace(/\s+/g, '');
       
-      // 去除标点符号前的空格
-      text = text.replace(/\s+([，。！？；：、）】』」}])/g, '$1');
-      
-      // 去除标点符号后多余的空格
-      text = text.replace(/([，。！？；：、（【『「{])\s+/g, '$1');
-      
-      // 去除开头和结尾的空格
-      return text.trim();
+      return text;
     }
     
     // 绑定按钮事件

@@ -385,17 +385,10 @@ class EdgeTTS:
         """清理字幕文本中的多余空格"""
         import re
 
-        # 去除多余的空格
-        text = re.sub(r"\s+", " ", text)
+        # 去除所有空格
+        text = re.sub(r"\s+", "", text)
 
-        # 去除标点符号前的空格
-        text = re.sub(r"\s+([，。！？；：、）】』」}])", r"\1", text)
-
-        # 去除标点符号后多余的空格，保留一个空格
-        text = re.sub(r"([，。！？；：、（【『「{])\s+", r"\1", text)
-
-        # 去除开头和结尾的空格
-        return text.strip()
+        return text
 
     async def _fallback_subtitle_generation(
         self, text: str, output_file: str, subtitle_file: str = None
