@@ -214,10 +214,10 @@ def add_podcast_entry(feed, title, audio_url, audio_size, link, description, pub
     if audio_url:
         fe.enclosure(audio_url, str(audio_size), 'audio/mpeg')
     
-    # 添加字幕附件（如果存在）
-    if subtitle_url:
-        # 为字幕创建单独的enclosure
-        fe.enclosure(subtitle_url, 'text/plain', 'application/x-subrip')
+    # 注释掉字幕附件，RSS feed不需要包含字幕
+    # if subtitle_url:
+    #     # 为字幕创建单独的enclosure
+    #     fe.enclosure(subtitle_url, 0, 'application/x-subrip')
     
     # 添加iTunes特定元数据
     fe.podcast.itunes_author(author)
