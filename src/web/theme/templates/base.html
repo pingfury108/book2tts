@@ -378,11 +378,11 @@
 
                     if (lines.length >= 3) {
                         // 更宽松的时间格式匹配
-                        const timeMatch = lines[1].match(/(\d{1,2}):(\d{2}):(\d{2})[,.](\d{3})\s*-->\s * (\d{ 1, 2}):(\d{ 2 }): (\d{ 2 })[,.](\d{ 3}) /);
+                        const timeMatch = lines[1].match(/(\d{1,2}):(\d{2}):(\d{2})[,.](\d{3})\s*-->\s*(\d{1,2}):(\d{2}):(\d{2})[,.](\d{3})/);
                 if (timeMatch) {
                     const start = this.parseTimeToSeconds([timeMatch[1], timeMatch[2], timeMatch[3], timeMatch[4]]);
                     const end = this.parseTimeToSeconds([timeMatch[5], timeMatch[6], timeMatch[7], timeMatch[8]]);
-                    const text = lines.slice(2).join(' ').trim();
+                    const text = this.cleanSubtitleText(lines.slice(2).join(' '));
 
                     if (text) {
                         subtitles.push({ start, end, text });
@@ -399,6 +399,22 @@
         console.log(`[字幕] 解析完成，共${subtitles.length}条字幕`);
         return subtitles;
     }
+
+        // 清理字幕文本中的多余空格
+        cleanSubtitleText(text) {
+            if (!text) return '';
+            
+            // 去除所有多余的空格（多个连续空格变为一个空格）
+            let cleaned = text.replace(/\s+/g, ' ').trim();
+            
+            // 去除中文标点符号前的空格
+            cleaned = cleaned.replace(/\s+([，。！？；：、）】』」}])/g, '$1');
+            
+            // 去除中文标点符号后的空格
+            cleaned = cleaned.replace(/([，。！？；：、（【『「{])\s+/g, '$1');
+            
+            return cleaned;
+        }
 
         parseTimeToSeconds(timeParts) {
             const [hours, minutes, seconds, milliseconds] = timeParts.map(Number);

@@ -204,14 +204,27 @@ def synthesize_audio_task(self, user_id, text, voice_name, book_id, title="", bo
             
             # 使用改进的字幕生成方法
             tts = EdgeTTS(voice_name=voice_name)
-            synthesis_result = loop.run_until_complete(
-                tts.synthesize_with_subtitles_v2(
-                    text=text, 
-                    output_file=audio_path, 
-                    subtitle_file=subtitle_path,
-                    words_in_cue=8  # 每个字幕条目8个词
+            
+            # 根据文本长度选择合成方法
+            if len(text) > 3000:  # 长文本使用分段合成
+                synthesis_result = loop.run_until_complete(
+                    tts.synthesize_long_text_with_subtitles(
+                        text=text, 
+                        output_file=audio_path, 
+                        subtitle_file=subtitle_path,
+                        segment_length=2000,
+                        words_in_cue=8
+                    )
                 )
-            )
+            else:  # 短文本使用直接合成
+                synthesis_result = loop.run_until_complete(
+                    tts.synthesize_with_subtitles_v2(
+                        text=text, 
+                        output_file=audio_path, 
+                        subtitle_file=subtitle_path,
+                        words_in_cue=8  # 每个字幕条目8个词
+                    )
+                )
             
             # 详细的结果验证和日志
             logger.info(f"Synthesis result: {synthesis_result}")
