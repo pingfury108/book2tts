@@ -138,6 +138,12 @@
                                 hx-swap="innerHTML">
                             <option disabled selected>语音模型</option>
                         </select>
+                        <div class="flex items-center gap-2">
+                            <label class="text-sm font-medium">速度:</label>
+                            <input type="range" min="-50" max="50" value="0" class="range range-xs flex-1" id="audio-rate-range" />
+                            <span class="text-sm w-12 text-center" id="audio-rate-value">100%</span>
+                            <input type="hidden" id="audio-rate" value="+0%" />
+                        </div>
                         <input type="text" id="audio-title-input" class="input input-bordered w-full text-sm" placeholder="音频标题（选填）" />
                         <button class="btn btn-primary w-full text-sm h-10" id="synthesize-btn">合成音频</button>
                         <div id="audio-player-container" class="hidden mt-2 p-3 bg-base-300 rounded-lg">
@@ -345,6 +351,23 @@
    // 初始化字数统计
    updateWordCount();
    
+   // 初始化音频速度滑块
+   const rateRange = document.getElementById('audio-rate-range');
+   const rateValue = document.getElementById('audio-rate-value');
+   const rateHidden = document.getElementById('audio-rate');
+   
+   if (rateRange && rateValue && rateHidden) {
+     rateRange.addEventListener('input', function() {
+       const value = parseInt(this.value);
+       const percentage = 100 + value;
+       rateValue.textContent = percentage + '%';
+       
+       // 生成edge-tts格式的速度参数
+       const rateParam = value >= 0 ? '+' + value + '%' : value + '%';
+       rateHidden.value = rateParam;
+     });
+   }
+   
    // 拦截jQuery的val方法来监听内容变化
    interceptJQueryVal();
    
@@ -405,6 +428,7 @@ window.currentSelectedPages = window.currentSelectedPages || []; // Track select
    synthesizeBtn.addEventListener('click', async function() {
      const textContent = document.getElementById('src-text').value;
      const voiceModel = document.getElementById('voice-model').value;
+     const audioRate = document.getElementById('audio-rate').value;
      const audioTitle = document.getElementById('audio-title-input').value || window.currentPageName;
      
      if (!textContent || !voiceModel) {
@@ -428,6 +452,7 @@ window.currentSelectedPages = window.currentSelectedPages || []; // Track select
          body: new URLSearchParams({
            text: textContent,
            voice_name: voiceModel,
+           rate: audioRate,
            book_id: '{{ book_id }}',
            title: audioTitle || '未命名音频',
            book_page: window.currentPageId || '',

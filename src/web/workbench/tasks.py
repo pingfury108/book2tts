@@ -115,7 +115,7 @@ def start_audio_synthesis_on_commit(user_id, text, voice_name, book_id, **kwargs
 
 
 @shared_task(bind=True)
-def synthesize_audio_task(self, user_id, text, voice_name, book_id, title="", book_page="", page_display_name="", audio_title="", ip_address="127.0.0.1", user_agent=""):
+def synthesize_audio_task(self, user_id, text, voice_name, book_id, title="", book_page="", page_display_name="", audio_title="", rate="+0%", ip_address="127.0.0.1", user_agent=""):
     """异步音频合成任务（支持字幕生成）"""
     try:
         # 更新任务状态为开始处理
@@ -203,7 +203,7 @@ def synthesize_audio_task(self, user_id, text, voice_name, book_id, title="", bo
                 asyncio.set_event_loop(loop)
             
             # 使用改进的字幕生成方法
-            tts = EdgeTTS(voice_name=voice_name)
+            tts = EdgeTTS(voice_name=voice_name, rate=rate)
             
             # 根据文本长度选择合成方法
             if len(text) > 3000:  # 长文本使用分段合成

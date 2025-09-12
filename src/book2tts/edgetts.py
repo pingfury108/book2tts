@@ -9,8 +9,9 @@ from typing import Iterator, Optional, Dict, Any, List
 
 
 class EdgeTTS:
-    def __init__(self, voice_name: str):
+    def __init__(self, voice_name: str, rate: str = "+0%"):
         self.voice_name = voice_name
+        self.rate = rate
         return
 
     async def synthesize_with_subtitles_v2(
@@ -36,7 +37,7 @@ class EdgeTTS:
         """
         for attempt in range(retry_count):
             try:
-                communicate = edge_tts.Communicate(text, self.voice_name)
+                communicate = edge_tts.Communicate(text, self.voice_name, rate=self.rate)
 
                 # 方法1：使用 stream() 获取更精确的字幕数据
                 audio_data = b""
@@ -441,7 +442,7 @@ class EdgeTTS:
         """
         for attempt in range(retry_count):
             try:
-                communicate = edge_tts.Communicate(text, self.voice_name)
+                communicate = edge_tts.Communicate(text, self.voice_name, rate=self.rate)
                 if subtitle_file:
                     await communicate.save(output_file, subtitle_file)
                 else:
@@ -501,7 +502,7 @@ class EdgeTTS:
 
         for attempt in range(retry_count):
             try:
-                communicate = edge_tts.Communicate(text, self.voice_name)
+                communicate = edge_tts.Communicate(text, self.voice_name, rate=self.rate)
                 asyncio.run(communicate.save(output_file))
                 return True
             except Exception as e:

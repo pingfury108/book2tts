@@ -332,6 +332,7 @@ def synthesize_audio(request):
     book_page = request.POST.get("book_page", "")
     page_display_name = request.POST.get("page_display_name", "")
     audio_title = request.POST.get("audio_title", "")
+    rate = request.POST.get("rate", "+0%")
     
     if not text or not voice_name or not book_id:
         return JsonResponse({"status": "error", "message": "Missing required parameters"}, status=400)
@@ -385,6 +386,7 @@ def synthesize_audio(request):
             book_page=book_page,
             page_display_name=page_display_name,
             audio_title=audio_title,
+            rate=rate,
             ip_address=get_client_ip(request),
             user_agent=get_user_agent(request)
         )
@@ -405,6 +407,7 @@ def synthesize_audio(request):
                 'book_page': book_page,
                 'page_display_name': page_display_name,
                 'audio_title': audio_title,
+                'rate': rate,
                 'estimated_duration': estimated_duration_seconds,
                 'text_length': len(text),
                 'ip_address': get_client_ip(request),
