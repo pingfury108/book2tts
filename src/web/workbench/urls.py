@@ -22,6 +22,8 @@ from .views.audio_views import (
     task_queue,
     cancel_task,
     delete_task_record,
+    download_audio,
+    download_subtitle,
 )
 from .views.dialogue_views import (
     dialogue_list,
@@ -81,6 +83,16 @@ urlpatterns = [
         "audio/publish/<int:segment_id>/",
         toggle_publish_audio_segment,
         name="toggle_publish_audio_segment",
+    ),
+    path(
+        "audio/download/<str:segment_type>/<int:segment_id>/",
+        download_audio,
+        name="download_audio",
+    ),
+    path(
+        "audio/subtitle/<str:segment_type>/<int:segment_id>/",
+        download_subtitle,
+        name="download_subtitle",
     ),
     path("book/<int:book_id>/update-name/", update_book_name, name="update_book_name"),
     path("book/<int:book_id>/update-pdf-type/", update_pdf_type, name="update_pdf_type"),

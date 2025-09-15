@@ -290,11 +290,11 @@
 
             if (data.published) {
                 buttonElement.className = 'btn btn-circle btn-xs sm:btn-sm lg:btn-md btn-warning touch-manipulation';
-                buttonElement.innerHTML = `<i class="fas fa-times h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5"></i>`;
+                buttonElement.innerHTML = `<i class="fas fa-times h-4 w-4"></i>`;
                 buttonElement.title = '取消发布';
             } else {
                 buttonElement.className = 'btn btn-circle btn-xs sm:btn-sm lg:btn-md btn-success touch-manipulation';
-                buttonElement.innerHTML = `<i class="fas fa-check h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5"></i>`;
+                buttonElement.innerHTML = `<i class="fas fa-check h-4 w-4"></i>`;
                 buttonElement.title = '发布';
             }
         }
@@ -340,9 +340,17 @@
                             onclick="event.stopPropagation()">
                             <!-- 下载按钮 -->
                             {% if segment.file_url %}
-                            <a href="{{ segment.file_url }}" download class="btn btn-circle btn-xs sm:btn-sm lg:btn-md btn-primary touch-manipulation flex-shrink-0
-                                      hover:scale-110 transition-transform duration-200" title="下载音频">
-                                <i class="fas fa-download h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5"></i>
+                            <a href="{% url 'download_audio' segment_type=segment.type segment_id=segment.id %}" class="btn btn-circle btn-xs sm:btn-sm lg:btn-md btn-primary touch-manipulation flex-shrink-0
+                                      hover:scale-110 transition-transform duration-200" title="下载音频（保存为：{{ segment.title }}.wav）">
+                                <i class="fas fa-download h-4 w-4 "></i>
+                            </a>
+                            {% endif %}
+
+                            <!-- 字幕下载按钮 -->
+                            {% if segment.subtitle_file %}
+                            <a href="{% url 'download_subtitle' segment_type=segment.type segment_id=segment.id %}" class="btn btn-circle btn-xs sm:btn-sm lg:btn-md btn-info touch-manipulation flex-shrink-0
+                                      hover:scale-110 transition-transform duration-200" title="下载字幕（保存为：{{ segment.title }}.srt）">
+                                <i class="fas fa-closed-captioning h-4 w-4"></i>
                             </a>
                             {% endif %}
 
@@ -366,7 +374,7 @@
                             <button class="btn btn-circle btn-xs sm:btn-sm lg:btn-md btn-success touch-manipulation flex-shrink-0
                                            hover:scale-110 transition-transform duration-200" title="发布"
                                 onclick="handleSegmentPublishClick('{{ segment.id }}', this)">
-                                <i class="fas fa-check h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5"></i>
+                                <i class="fas fa-check h-4 w-4"></i>
                             </button>
                             {% endif %}
                             {% endif %}
@@ -376,7 +384,7 @@
                             <!-- 对话脚本删除：跳转到对话脚本详情页面 -->
                             <a href="{% url 'dialogue_detail' segment.id %}" class="btn btn-circle btn-xs sm:btn-sm lg:btn-md btn-info touch-manipulation flex-shrink-0
                                           hover:scale-110 transition-transform duration-200" title="编辑对话脚本">
-                                <i class="fas fa-edit h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5"></i>
+                                <i class="fas fa-edit h-4 w-4 "></i>
                             </a>
                             {% else %}
                             <!-- 传统音频片段删除 -->
@@ -385,7 +393,7 @@
                                 hx-delete="/workbench/audio/delete/{{ segment.id }}/"
                                 hx-confirm="确定要删除音频片段 '{{ segment.title }}' 吗？此操作无法撤销。"
                                 hx-target="[data-segment-id='{{ segment.id }}']" hx-swap="outerHTML" hx-trigger="click">
-                                <i class="fas fa-trash h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5"></i>
+                                <i class="fas fa-trash h-4 w-4"></i>
                             </button>
                             {% endif %}
                         </div>

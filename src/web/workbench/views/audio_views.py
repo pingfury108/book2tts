@@ -868,4 +868,91 @@ def delete_task_record(request, task_id):
         return JsonResponse({
             'status': 'error',
             'message': f'删除任务记录失败：{str(e)}'
+        }, status=500)
+
+
+@login_required
+def download_audio(request, segment_id, segment_type):
+    """下载音频文件"""
+    try:
+        if segment_type == 'audio_segment':
+            segment = get_object_or_404(AudioSegment, pk=segment_id, user=request.user)
+        elif segment_type == 'dialogue_script':
+            segment = get_object_or_404(DialogueScript, pk=segment_id, user=request.user)
+        else:
+            return JsonResponse({
+                'status': 'error',
+                'message': '无效的片段类型'
+            }, status=400)
+
+        # 检查音频文件是否存在
+        file_field = segment.file if hasattr(segment, 'file') else segment.audio_file
+        if not file_field:
+            return JsonResponse({
+                'status': 'error',
+                'message': '该音频片段没有音频文件'
+            }, status=404)
+
+        # 设置响应头，使用音频标题作为下载文件名
+        # 正确处理中文字符的文件名编码
+        import urllib.parse
+        download_filename = f"{segment.title}.wav"
+        encoded_filename = urllib.parse.quote(download_filename)
+
+        # 获取文件内容
+        file_content = file_field.read()
+
+        response = HttpResponse(file_content, content_type='application/octet-stream')
+        response['Content-Disposition'] = f'attachment; filename="{encoded_filename}"; filename*=UTF-8\'\'{encoded_filename}'
+        response['Content-Type'] = 'application/octet-stream'
+
+        return response
+
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': f'下载音频文件失败：{str(e)}'
+        }, status=500)
+
+
+@login_required
+def download_subtitle(request, segment_id, segment_type):
+    """下载字幕文件"""
+    try:
+        if segment_type == 'audio_segment':
+            segment = get_object_or_404(AudioSegment, pk=segment_id, user=request.user)
+        elif segment_type == 'dialogue_script':
+            segment = get_object_or_404(DialogueScript, pk=segment_id, user=request.user)
+        else:
+            return JsonResponse({
+                'status': 'error',
+                'message': '无效的片段类型'
+            }, status=400)
+
+        # 检查字幕文件是否存在
+        if not segment.subtitle_file:
+            return JsonResponse({
+                'status': 'error',
+                'message': '该音频片段没有字幕文件'
+            }, status=404)
+
+        # 设置响应头，使用音频标题作为下载文件名（存储文件名保持不变）
+        # 正确处理中文字符的文件名编码
+        import urllib.parse
+        download_filename = f"{segment.title}.srt"
+        encoded_filename = urllib.parse.quote(download_filename)
+
+        # 获取文件内容
+        file_content = segment.subtitle_file.read()
+
+        response = HttpResponse(file_content, content_type='application/octet-stream')
+        response['Content-Disposition'] = f'attachment; filename="{encoded_filename}"; filename*=UTF-8\'\'{encoded_filename}'
+        response['Content-Type'] = 'application/octet-stream'
+
+        return response
+
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': f'下载字幕文件失败：{str(e)}'
         }, status=500) 
