@@ -183,31 +183,55 @@ def calculate_toc_page_ranges(toc_list, total_pages):
     """
     if not toc_list:
         return []
-    
+
     toc_with_ranges = []
-    
+
     for i, toc in enumerate(toc_list):
         level, title, start_page = toc[0], toc[1], toc[2]
-        
+
         # 找到结束页：查找下一个同级别或更高级别的条目
         end_page = total_pages  # 默认到文档末尾
-        
+
         for j in range(i + 1, len(toc_list)):
             next_toc = toc_list[j]
             next_level = next_toc[0]
             next_start_page = next_toc[2]
-            
+
             # 如果找到同级别或更高级别的条目，结束页为其起始页减1
             if next_level <= level:
                 end_page = next_start_page - 1
                 break
-        
+
         # 确保结束页不小于起始页
         end_page = max(start_page, end_page)
-        
+
         toc_with_ranges.append([level, title, start_page, end_page])
-    
+
     return toc_with_ranges
+
+
+def parse_and_deduplicate_page_ranges(names_list):
+    """
+    解析页面范围并去重
+    参数:
+        names_list: 页面范围列表，如 ['1-3', '2-2', '3-4']
+    返回:
+        去重后的页面列表，按顺序排列
+    """
+    all_pages = set()
+
+    for name in names_list:
+        if '-' in name:
+            # 页面范围格式 (start-end)
+            start_page, end_page = map(int, name.split('-'))
+            for page_num in range(start_page, end_page + 1):
+                all_pages.add(page_num)
+        else:
+            # 单页格式
+            all_pages.add(int(name))
+
+    # 返回排序后的页面列表
+    return sorted(all_pages)
 
 
 def calculate_epub_toc_page_ranges(toc_list, all_pages):
@@ -480,7 +504,7 @@ def pages(request, book_id):
 def text_by_toc(request, book_id):
     """Extract text content by table of contents with OCR support"""
     book = get_object_or_404(Books, pk=book_id)
-    
+
     # Get names from POST data
     names_param = request.POST.get('names', '')
     if not names_param:
@@ -488,163 +512,90 @@ def text_by_toc(request, book_id):
             "status": "error",
             "message": "No names provided"
         }, status=400)
-    
+
     # Check OCR settings
     # Priority: 1. Manual user request, 2. Book's pdf_type setting
     use_ocr_manual = request.POST.get('use_ocr', '').lower() == 'true'
     use_ocr_auto = book.should_use_ocr()  # Based on pdf_type field
-    
+
     # Use OCR if either manual request or auto-detection suggests it
     use_ocr = use_ocr_manual or use_ocr_auto
-    
+
     # Support multiple names separated by comma, maintain order
     names = names_param.split(',')
+
+    # 对PDF文件进行页面去重处理
+    if book.file_type == ".pdf":
+        # 解析并去重页面范围
+        unique_pages = parse_and_deduplicate_page_ranges(names)
+        # 将去重后的页面转换为单独的页面名称列表
+        names = [str(page) for page in unique_pages]
+
     combined_texts = []
     ocr_results = []  # Store OCR metadata
-    
+    non_cached_count = 0  # Track non-cached OCR results for point deduction
+
     for single_name in names:
         text_content = ""
-        
+
         if book.file_type == ".pdf":
             try:
                 # Check if OCR should be used
                 if use_ocr:
                     ak = getattr(settings, 'VOLC_AK', None)
                     sk = getattr(settings, 'VOLC_SK', None)
-                    
+
                     if ak and sk:
                         try:
-                            # 检查是否是页面范围格式 (start-end)
-                            if '-' in single_name:
-                                start_page, end_page = map(int, single_name.split('-'))
-                                total_pages_in_range = end_page - start_page + 1
-                                
-                                # Check points for automatic OCR
-                                if use_ocr_auto:
-                                    points_check = check_and_deduct_points_for_ocr(request.user, total_pages_in_range, auto_ocr=True)
-                                    if not points_check['can_proceed']:
-                                        return JsonResponse({
-                                            "status": "error",
-                                            "message": points_check['error'],
-                                            "required_points": points_check['required_points'],
-                                            "available_points": points_check['available_points']
-                                        }, status=402)
-                                
-                                # 获取页面范围内所有页面的OCR文本
-                                page_texts = []
-                                non_cached_count = 0
-                                
-                                for page_num in range(start_page, end_page + 1):
-                                    try:
-                                        # Get page image data and perform OCR
-                                        image_data = get_page_image_data(book.file.path, page_num)
-                                        ocr_result = perform_ocr_with_cache(image_data, ak, sk, 'page_image')
-                                        
-                                        if 'error' not in ocr_result:
-                                            page_text = ocr_result.get('text', '')
-                                            if page_text.strip():  # 只添加非空页面
-                                                page_texts.append(page_text)
-                                            
-                                            is_cached = ocr_result.get('cached', False)
-                                            if not is_cached and use_ocr_auto:
-                                                non_cached_count += 1
-                                                
-                                            ocr_results.append({
-                                                'page': page_num,
-                                                'cached': is_cached,
-                                                'image_md5': ocr_result.get('image_md5', ''),
-                                                'auto_ocr': use_ocr_auto
-                                            })
-                                        else:
-                                            # Fall back to regular text extraction on OCR error
-                                            pbook = open_pdf(book.file.path)
-                                            fallback_text = pbook[page_num].get_text()
-                                            if fallback_text.strip():
-                                                page_texts.append(fallback_text)
-                                            ocr_results.append({
-                                                'page': page_num,
-                                                'error': ocr_result['error'],
-                                                'auto_ocr': use_ocr_auto
-                                            })
-                                    except IndexError:
-                                        # 如果页面不存在，跳过
-                                        continue
-                                    except Exception as page_error:
-                                        # Fall back to regular text extraction on error
-                                        try:
-                                            pbook = open_pdf(book.file.path)
-                                            fallback_text = pbook[page_num].get_text()
-                                            if fallback_text.strip():
-                                                page_texts.append(fallback_text)
-                                        except:
-                                            pass
-                                        ocr_results.append({
-                                            'page': page_num,
-                                            'error': str(page_error),
-                                            'auto_ocr': use_ocr_auto
-                                        })
-                                
-                                # Deduct points for non-cached images
-                                if use_ocr_auto and non_cached_count > 0:
-                                    deduct_points_for_ocr(request.user, non_cached_count, auto_ocr=True)
-                                
-                                text_content = "\n\n".join(page_texts)
+                            # 经过去重处理后，single_name现在是单页编号
+                            page_num = int(single_name)
+
+                            # Check points for automatic OCR
+                            if use_ocr_auto:
+                                points_check = check_and_deduct_points_for_ocr(request.user, 1, auto_ocr=True)
+                                if not points_check['can_proceed']:
+                                    return JsonResponse({
+                                        "status": "error",
+                                        "message": points_check['error'],
+                                        "required_points": points_check['required_points'],
+                                        "available_points": points_check['available_points']
+                                    }, status=402)
+
+                            # PDF TOC页面编号从1开始，转换为从0开始的索引
+                            page_index = page_num - 1
+                            image_data = get_page_image_data(book.file.path, page_index)
+                            ocr_result = perform_ocr_with_cache(image_data, ak, sk, 'page_image')
+
+                            if 'error' not in ocr_result:
+                                text_content = ocr_result.get('text', '')
+
+                                is_cached = ocr_result.get('cached', False)
+                                if not is_cached and use_ocr_auto:
+                                    non_cached_count += 1
+
+                                ocr_results.append({
+                                    'page': single_name,
+                                    'cached': is_cached,
+                                    'image_md5': ocr_result.get('image_md5', ''),
+                                    'auto_ocr': use_ocr_auto
+                                })
                             else:
-                                # 单页模式
-                                page_num = int(single_name)
-                                
-                                # Check points for automatic OCR
-                                if use_ocr_auto:
-                                    points_check = check_and_deduct_points_for_ocr(request.user, 1, auto_ocr=True)
-                                    if not points_check['can_proceed']:
-                                        return JsonResponse({
-                                            "status": "error",
-                                            "message": points_check['error'],
-                                            "required_points": points_check['required_points'],
-                                            "available_points": points_check['available_points']
-                                        }, status=402)
-                                
-                                image_data = get_page_image_data(book.file.path, page_num)
-                                ocr_result = perform_ocr_with_cache(image_data, ak, sk, 'page_image')
-                                
-                                if 'error' not in ocr_result:
-                                    text_content = ocr_result.get('text', '')
-                                    
-                                    is_cached = ocr_result.get('cached', False)
-                                    if not is_cached and use_ocr_auto:
-                                        deduct_points_for_ocr(request.user, 1, auto_ocr=True)
-                                    
-                                    ocr_results.append({
-                                        'page': single_name,
-                                        'cached': is_cached,
-                                        'image_md5': ocr_result.get('image_md5', ''),
-                                        'auto_ocr': use_ocr_auto
-                                    })
-                                else:
-                                    # Fall back to regular text extraction on OCR error
-                                    pbook = open_pdf(book.file.path)
-                                    text_content = pbook[int(single_name)].get_text()
-                                    ocr_results.append({
-                                        'page': single_name,
-                                        'error': ocr_result['error'],
-                                        'auto_ocr': use_ocr_auto
-                                    })
+                                # Fall back to regular text extraction on OCR error
+                                pbook = open_pdf(book.file.path)
+                                # PDF TOC页面编号从1开始，转换为从0开始的索引
+                                page_index = int(single_name) - 1
+                                text_content = pbook[page_index].get_text()
+                                ocr_results.append({
+                                    'page': single_name,
+                                    'error': ocr_result['error'],
+                                    'auto_ocr': use_ocr_auto
+                                })
                         except Exception as ocr_error:
                             # Fall back to regular text extraction on OCR error
                             pbook = open_pdf(book.file.path)
-                            if '-' in single_name:
-                                start_page, end_page = map(int, single_name.split('-'))
-                                page_texts = []
-                                for page_num in range(start_page, end_page + 1):
-                                    try:
-                                        page_text = pbook[page_num].get_text()
-                                        if page_text.strip():
-                                            page_texts.append(page_text)
-                                    except IndexError:
-                                        continue
-                                text_content = "\n\n".join(page_texts)
-                            else:
-                                text_content = pbook[int(single_name)].get_text()
+                            # PDF TOC页面编号从1开始，转换为从0开始的索引
+                            page_index = int(single_name) - 1
+                            text_content = pbook[page_index].get_text()
                             ocr_results.append({
                                 'page': single_name,
                                 'error': str(ocr_error),
@@ -653,19 +604,9 @@ def text_by_toc(request, book_id):
                     else:
                         # OCR not configured, use regular extraction
                         pbook = open_pdf(book.file.path)
-                        if '-' in single_name:
-                            start_page, end_page = map(int, single_name.split('-'))
-                            page_texts = []
-                            for page_num in range(start_page, end_page + 1):
-                                try:
-                                    page_text = pbook[page_num].get_text()
-                                    if page_text.strip():
-                                        page_texts.append(page_text)
-                                except IndexError:
-                                    continue
-                            text_content = "\n\n".join(page_texts)
-                        else:
-                            text_content = pbook[int(single_name)].get_text()
+                        # PDF TOC页面编号从1开始，转换为从0开始的索引
+                        page_index = int(single_name) - 1
+                        text_content = pbook[page_index].get_text()
                         if use_ocr_auto:
                             ocr_results.append({
                                 'page': single_name,
@@ -675,23 +616,11 @@ def text_by_toc(request, book_id):
                 else:
                     # Regular text extraction
                     pbook = open_pdf(book.file.path)
-                    if '-' in single_name:
-                        start_page, end_page = map(int, single_name.split('-'))
-                        # 获取页面范围内所有页面的文本
-                        page_texts = []
-                        for page_num in range(start_page, end_page + 1):
-                            try:
-                                page_text = pbook[page_num].get_text()
-                                if page_text.strip():  # 只添加非空页面
-                                    page_texts.append(page_text)
-                            except IndexError:
-                                # 如果页面不存在，跳过
-                                continue
-                        text_content = "\n\n".join(page_texts)
-                    else:
-                        # 单页模式（保持向后兼容）
-                        text_content = pbook[int(single_name)].get_text()
-                    
+                    # 经过去重处理后，single_name现在是单页编号
+                    # PDF TOC页面编号从1开始，转换为从0开始的索引
+                    page_index = int(single_name) - 1
+                    text_content = pbook[page_index].get_text()
+
             except Exception as e:
                 text_content = f"Error extracting text: {str(e)}"
         elif book.file_type == ".epub":
@@ -714,7 +643,11 @@ def text_by_toc(request, book_id):
                 text_content = f"Error extracting text: {str(e)}"
         
         combined_texts.append(text_content)
-    
+
+    # Deduct points for non-cached images if using automatic OCR
+    if use_ocr_auto and non_cached_count > 0:
+        deduct_points_for_ocr(request.user, non_cached_count, auto_ocr=True)
+
     # Join all texts with double newlines
     texts = "\n\n".join(combined_texts)
     
