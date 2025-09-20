@@ -32,6 +32,8 @@ dependencies = [
     "celery[redis]>=5.5.3",
     "django-celery-results>=2.6.0",
     "django-celery-beat>=2.8.1",
+    "uvicorn>=0.36.0",
+    "uvicorn-worker>=0.3.0",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
