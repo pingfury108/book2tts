@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="flex p-2 w-full h-screen bg-base-100">
-    <div class="grow h-full w-1/5 overflow-hidden rounded-lg flex flex-col">
+    <div class="grow h-full w-1/5 overflow-hidden rounded-lg flex flex-col pb-2">
       <div class="container text-center p-2">
         <div role="tablist" class="tabs tabs-bordered">
           <a role="tab" class="tab tab-active" id="tab_toc"
@@ -29,7 +29,7 @@
     </div>
     <div class="divider divider-horizontal"></div>
     <div class="grow h-full w-3/5 overflow-hidden rounded-lg shadow-lg">
-        <div class="container p-2 flex flex-col h-[calc(100%-3.5rem)]" id="context">
+        <div class="container p-2 flex flex-col h-full" id="context">
             <div class="mb-2 p-2 rounded-lg">
                 <div class="flex justify-between items-center">
                     <div class="flex gap-2 items-center">
@@ -55,7 +55,7 @@
     </div>
     <div class="divider divider-horizontal"></div>
     <div class="grow h-full w-1/5 overflow-hidden rounded-lg  shadow-lg">
-        <div class="overflow-y-auto h-[calc(100vh-4rem)] space-y-3 p-2">
+        <div class="overflow-y-auto h-full space-y-3 p-2">
             <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow duration-200">
                 <div class="card-body p-4">
                     <h3 class="card-title text-lg font-bold">📚 书籍信息</h3>
@@ -140,7 +140,7 @@
                         </div>
                         <input type="text" id="audio-title-input" class="input input-bordered w-full text-sm" placeholder="音频标题（选填）" />
                         <button class="btn btn-primary w-full text-sm h-10" id="synthesize-btn">合成音频</button>
-                        <div id="audio-player-container" class="hidden mt-2 p-3 bg-base-300 rounded-lg">
+                        <div id="audio-player-container" class="hidden mt-2 p-3 rounded-lg">
                             <div class="text-center mb-3">
                                 <div class="inline-block bg-primary text-primary-content px-3 py-2 rounded-lg text-sm font-medium leading-relaxed max-w-full break-words" id="audio-title" style="min-height: 2.5rem; line-height: 1.4;"></div>
                             </div>
@@ -613,21 +613,7 @@ window.currentSelectedPages = window.currentSelectedPages || []; // Track select
    audioStatus.className = 'text-sm mt-1 text-center font-medium text-success';
    audioStatus.innerHTML = '';
    audioStatus.textContent = '合成成功！';
-   
-   // 如果返回了配额信息，显示剩余配额
-   if (data.remaining_quota !== undefined) {
-     const quotaInfo = document.createElement('div');
-     quotaInfo.className = 'text-xs mt-1 text-center text-info';
-     quotaInfo.textContent = `剩余配额: ${Math.round(data.remaining_quota)} 秒`;
-     audioStatus.appendChild(quotaInfo);
-     
-     // 刷新配额显示区域
-     const quotaInfoElement = document.getElementById('quota-info');
-     if (quotaInfoElement && typeof htmx !== 'undefined') {
-       htmx.trigger(quotaInfoElement, 'refresh');
-     }
-   }
-   
+      
    // 启用下载和发布按钮
    const downloadBtn = document.getElementById('download-btn');
    if (downloadBtn) {
@@ -1074,15 +1060,6 @@ window.currentSelectedPages = window.currentSelectedPages || []; // Track select
        showToast(data.message, 'success');
        
        // 更新发布状态显示
-       if (publishStatus) {
-         publishStatus.className = 'text-sm mt-1 text-center font-medium text-success';
-         publishStatus.innerHTML = `
-           <div class="flex items-center justify-center">
-             <i class="fas fa-check h-4 w-4 mr-1"></i>
-             ${data.published ? '已发布' : '已取消发布'}
-           </div>
-         `;
-       }
      } else {
        // 恢复按钮状态
        publishBtn.disabled = false;
