@@ -495,7 +495,8 @@ def check_task_status(request, task_id):
                 'audio_url': result.get('audio_url'),
                 'audio_id': result.get('audio_id'),
                 'audio_duration': result.get('audio_duration'),
-                'remaining_quota': result.get('remaining_quota')
+                'remaining_quota': result.get('remaining_quota'),
+                'subtitle_url': result.get('subtitle_url')
             }
         elif task_result.state == 'FAILURE':
             # 任务失败

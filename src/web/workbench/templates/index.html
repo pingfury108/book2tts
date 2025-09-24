@@ -54,122 +54,134 @@
         </div>
     </div>
     <div class="divider divider-horizontal"></div>
-    <div class="grow h-full w-1/5 overflow-hidden rounded-lg  shadow-lg">
-        <div class="overflow-y-auto h-full space-y-3 p-2">
-            <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow duration-200">
-                <div class="card-body p-4">
-                    <h3 class="card-title text-lg font-bold">📚 书籍信息</h3>
-                    <div class="flex flex-col gap-1">
-                        <div>
-                            <label class="font-bold">书名:</label>
-                            <span class="text-sm">{{ title }}</span>
-                        </div>
-                    </div>
+    <div class="grow h-full w-1/5 overflow-hidden rounded-lg shadow-lg">
+        <div class="flex flex-col h-full">
+            <div class="px-2 pt-2">
+                <div role="tablist" class="tabs tabs-bordered" id="right-panel-tabs">
+                    <a role="tab" class="tab tab-active" id="tab_production" data-target="#production-panel" href="#">制作配置</a>
+                    <a role="tab" class="tab" id="tab_account" data-target="#account-panel" href="#">账户权益</a>
                 </div>
             </div>
-            <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow duration-200">
-                <div class="card-body p-4">
-                    <h3 class="card-title text-lg font-bold">⏱️ 配额信息</h3>
-                    <div class="space-y-2" id="quota-info"
-                         hx-get="{% url 'get_user_quota' %}"
-                         hx-trigger="load, refresh"
-                         hx-target="this"
-                         hx-swap="innerHTML">
-                        <div class="flex items-center justify-center">
-                            <span class="loading loading-spinner loading-sm"></span>
-                            <span class="ml-2 text-sm">加载中...</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- 购买联系信息 -->
-            <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow duration-200">
-                <div class="card-body p-4">
-                    <h3 class="card-title text-lg font-bold">💳 购买服务</h3>
-                    <div class="space-y-3">
-                        <div class="text-sm text-base-content/80">
-                            <p class="mb-2">如需购买积分或重置配额，请联系客服：</p>
-                            <div class="flex items-center mb-2">
-                                <i class="fas fa-comment text-primary mr-2"></i>
-                                <span>微信客服: qzz18580256051</span>
-                            </div>
-                            <div class="flex items-center mb-3">
-                                <i class="fas fa-envelope text-primary mr-2"></i>
-                                <span>邮箱: pingfury@outlook.com</span>
+            <div class="flex-1 overflow-y-auto p-2">
+                <div id="production-panel" class="space-y-3 right-panel-tab">
+                    <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow duration-200">
+                        <div class="card-body p-4">
+                            <h3 class="card-title text-lg font-bold">📚 书籍信息</h3>
+                            <div class="flex flex-col gap-1">
+                                <div>
+                                    <label class="font-bold">书名:</label>
+                                    <span class="text-sm">{{ title }}</span>
+                                </div>
                             </div>
                         </div>
-                        <button class="btn btn-sm btn-outline btn-primary w-full" onclick="showWeChatQR()">
-                            <i class="fas fa-qrcode mr-1"></i>
-                            微信扫码添加
-                        </button>
                     </div>
-                </div>
-            </div>
-            <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow duration-200">
-                <div class="card-body p-4">
-                    <h3 class="card-title text-lg font-bold">📊 页面音频状态</h3>
-                    <div class="space-y-2" id="page-audio-status">
-                        <div class="text-sm text-gray-500 text-center">
-                            选择页面查看音频生成状态
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow duration-200">
-                <div class="card-body p-4">
-                    <h3 class="card-title text-lg font-bold">🔊 音频处理</h3>
-                    <div class="space-y-1">
-                        <select class="select select-bordered w-full text-sm" id="tts-provider">
-                            <option disabled selected>TTS 供应商</option>
-                            <option value="azure">azure</option>
-                            <option value="edge-tts" selected>edge-tts</option>
-                        </select>
-                        <select class="select select-bordered w-full text-sm" id="voice-model"
-                                hx-get="{% url 'voice_list' %}"
-                                hx-trigger="load"
-                                hx-target="this"
-                                hx-swap="innerHTML">
-                            <option disabled selected>语音模型</option>
-                        </select>
-                        <div class="flex items-center gap-2">
-                            <label class="text-sm font-medium">速度:</label>
-                            <input type="range" min="-50" max="50" value="0" class="range range-xs flex-1" id="audio-rate-range" />
-                            <span class="text-sm w-12 text-center" id="audio-rate-value">100%</span>
-                            <input type="hidden" id="audio-rate" value="+0%" />
-                        </div>
-                        <input type="text" id="audio-title-input" class="input input-bordered w-full text-sm" placeholder="音频标题（选填）" />
-                        <button class="btn btn-primary w-full text-sm h-10" id="synthesize-btn">合成音频</button>
-                        <div id="audio-player-container" class="hidden mt-2 p-3 rounded-lg">
-                            <div class="text-center mb-3">
-                                <div class="inline-block bg-primary text-primary-content px-3 py-2 rounded-lg text-sm font-medium leading-relaxed max-w-full break-words" id="audio-title" style="min-height: 2.5rem; line-height: 1.4;"></div>
+                    <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow duration-200">
+                        <div class="card-body p-4">
+                            <h3 class="card-title text-lg font-bold">📊 页面音频状态</h3>
+                            <div class="space-y-2" id="page-audio-status">
+                                <div class="text-sm text-gray-500 text-center">
+                                    选择页面查看音频生成状态
+                                </div>
                             </div>
-                            <div class="flex items-center gap-2 mb-2">
-                                <audio id="audio-player" controls class="flex-1"></audio>
-                                <!-- 全局播放器按钮 -->
-                                <button 
-                                    id="global-play-from-workbench" 
-                                    class="btn btn-sm btn-primary"
-                                    title="在全局播放器中播放"
-                                    style="display: none;"
-                                    onclick="playWorkbenchAudioInGlobal()">
-                                    <i class="fas fa-external-link-alt h-3 w-3"></i>
+                        </div>
+                    </div>
+                    <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow duration-200">
+                        <div class="card-body p-4">
+                            <h3 class="card-title text-lg font-bold">🔊 音频处理</h3>
+                            <div class="space-y-1">
+                                <select class="select select-bordered w-full text-sm" id="tts-provider">
+                                    <option disabled selected>TTS 供应商</option>
+                                    <option value="azure">azure</option>
+                                    <option value="edge-tts" selected>edge-tts</option>
+                                </select>
+                                <select class="select select-bordered w-full text-sm" id="voice-model"
+                                        hx-get="{% url 'voice_list' %}"
+                                        hx-trigger="load"
+                                        hx-target="this"
+                                        hx-swap="innerHTML">
+                                    <option disabled selected>语音模型</option>
+                                </select>
+                                <div class="flex items-center gap-2">
+                                    <label class="text-sm font-medium">速度:</label>
+                                    <input type="range" min="-50" max="50" value="0" class="range range-xs flex-1" id="audio-rate-range" />
+                                    <span class="text-sm w-12 text-center" id="audio-rate-value">100%</span>
+                                    <input type="hidden" id="audio-rate" value="+0%" />
+                                </div>
+                                <input type="text" id="audio-title-input" class="input input-bordered w-full text-sm" placeholder="音频标题（选填）" />
+                                <button class="btn btn-primary w-full text-sm h-10" id="synthesize-btn">合成音频</button>
+                                <div id="audio-player-container" class="hidden mt-2 p-3 rounded-lg">
+                                    <div class="text-center mb-3">
+                                        <div class="inline-block bg-primary text-primary-content px-3 py-2 rounded-lg text-sm font-medium leading-relaxed max-w-full break-words" id="audio-title" style="min-height: 2.5rem; line-height: 1.4;"></div>
+                                    </div>
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <audio id="audio-player" controls class="flex-1"></audio>
+                                        <!-- 全局播放器按钮 -->
+                                        <button 
+                                            id="global-play-from-workbench" 
+                                            class="btn btn-sm btn-primary"
+                                            title="在全局播放器中播放"
+                                            style="display: none;"
+                                            onclick="playWorkbenchAudioInGlobal()">
+                                            <i class="fas fa-external-link-alt h-3 w-3"></i>
+                                        </button>
+                                    </div>
+                                    <div id="audio-status" class="text-sm mt-1 text-center font-medium text-success"></div>
+                                </div>
+                                <div class="flex gap-2 mt-2">
+                                    <button class="btn btn-secondary flex-1 text-sm h-9" id="download-btn" disabled>
+                                        <i class="fas fa-download h-4 w-4 mr-1"></i>
+                                        下载
+                                    </button>
+                                    <button class="btn btn-accent flex-1 text-sm h-9" id="publish-btn" disabled
+                                            onclick="handlePublishClick()">
+                                        <i class="fas fa-upload h-4 w-4 mr-1"></i>
+                                        发布
+                                    </button>
+                                </div>
+                                <div id="publish-status" class="text-sm mt-1 text-center font-medium"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="account-panel" class="space-y-3 right-panel-tab hidden">
+                    <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow duration-200">
+                        <div class="card-body p-4">
+                            <h3 class="card-title text-lg font-bold">⏱️ 配额信息</h3>
+                            <div class="space-y-2" id="quota-info"
+                                 hx-get="{% url 'get_user_quota' %}"
+                                 hx-trigger="load, refresh"
+                                 hx-target="this"
+                                 hx-swap="innerHTML">
+                                <div class="flex items-center justify-center">
+                                    <span class="loading loading-spinner loading-sm"></span>
+                                    <span class="ml-2 text-sm">加载中...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 购买联系信息 -->
+                    <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow duration-200">
+                        <div class="card-body p-4">
+                            <h3 class="card-title text-lg font-bold">💳 购买服务</h3>
+                            <div class="space-y-3">
+                                <div class="text-sm text-base-content/80">
+                                    <p class="mb-2">如需购买积分或重置配额，请联系客服：</p>
+                                    <div class="flex items-center mb-2">
+                                        <i class="fas fa-comment text-primary mr-2"></i>
+                                        <span>微信客服: qzz18580256051</span>
+                                    </div>
+                                    <div class="flex items-center mb-3">
+                                        <i class="fas fa-envelope text-primary mr-2"></i>
+                                        <span>邮箱: pingfury@outlook.com</span>
+                                    </div>
+                                </div>
+                                <button class="btn btn-sm btn-outline btn-primary w-full" onclick="showWeChatQR()">
+                                    <i class="fas fa-qrcode mr-1"></i>
+                                    微信扫码添加
                                 </button>
                             </div>
-                            <div id="audio-status" class="text-sm mt-1 text-center font-medium text-success"></div>
                         </div>
-                        <div class="flex gap-2 mt-2">
-                            <button class="btn btn-secondary flex-1 text-sm h-9" id="download-btn" disabled>
-                                <i class="fas fa-download h-4 w-4 mr-1"></i>
-                                下载
-                            </button>
-                            <button class="btn btn-accent flex-1 text-sm h-9" id="publish-btn" disabled
-                                    onclick="handlePublishClick()">
-                                <i class="fas fa-upload h-4 w-4 mr-1"></i>
-                                发布
-                            </button>
-                        </div>
-                        <div id="publish-status" class="text-sm mt-1 text-center font-medium"></div>
                     </div>
                 </div>
             </div>
@@ -338,12 +350,13 @@
    }
  }
 
- // 初始化字体调整按钮和字数统计
- $(document).ready(function() {
-   setupFontSizeButtons();
-   
-   // 初始化字数统计
-   updateWordCount();
+// 初始化字体调整按钮和字数统计
+$(document).ready(function() {
+  setupFontSizeButtons();
+  setupRightPanelTabs();
+  
+  // 初始化字数统计
+  updateWordCount();
    
    // 初始化音频速度滑块
    const rateRange = document.getElementById('audio-rate-range');
@@ -376,8 +389,42 @@
        // 粘贴后需要延迟一下再统计，确保内容已更新
        setTimeout(updateWordCount, 10);
      });
-   }
- });
+  }
+});
+
+function setupRightPanelTabs() {
+  const tabContainer = document.getElementById('right-panel-tabs');
+  if (!tabContainer) {
+    return;
+  }
+
+  const tabs = tabContainer.querySelectorAll('[role="tab"]');
+  const panels = document.querySelectorAll('.right-panel-tab');
+
+  tabs.forEach(function(tab) {
+    tab.addEventListener('click', function(event) {
+      event.preventDefault();
+      const targetSelector = tab.dataset.target;
+      if (!targetSelector) {
+        return;
+      }
+
+      tabs.forEach(function(item) {
+        item.classList.remove('tab-active');
+      });
+
+      panels.forEach(function(panel) {
+        panel.classList.add('hidden');
+      });
+
+      tab.classList.add('tab-active');
+      const targetPanel = document.querySelector(targetSelector);
+      if (targetPanel) {
+        targetPanel.classList.remove('hidden');
+      }
+    });
+  });
+}
 
  // 添加调试日志
  function logState(message) {
@@ -592,21 +639,27 @@ window.currentSelectedPages = window.currentSelectedPages || []; // Track select
    // 恢复合成按钮状态
    restoreSynthesizeButton();
    
-   // 显示音频播放器
-   document.getElementById('audio-player-container').classList.remove('hidden');
-   const audioPlayer = document.getElementById('audio-player');
-   audioPlayer.src = data.audio_url;
-   audioPlayer.style.display = 'block'; // 确保播放器可见
-   document.getElementById('audio-title').textContent = audioTitle || '未命名音频';
-   
-   // 显示全局播放器按钮
-   const globalPlayBtn = document.getElementById('global-play-from-workbench');
-   if (globalPlayBtn) {
-     globalPlayBtn.style.display = 'block';
-     // 保存当前音频信息供全局播放器使用
-     globalPlayBtn.dataset.audioUrl = data.audio_url;
-     globalPlayBtn.dataset.audioTitle = audioTitle || '未命名音频';
-   }
+  // 显示音频播放器
+  document.getElementById('audio-player-container').classList.remove('hidden');
+  const audioPlayer = document.getElementById('audio-player');
+  audioPlayer.src = data.audio_url;
+  audioPlayer.style.display = 'block'; // 确保播放器可见
+  document.getElementById('audio-title').textContent = audioTitle || '未命名音频';
+  
+  // 显示全局播放器按钮
+  const globalPlayBtn = document.getElementById('global-play-from-workbench');
+  if (globalPlayBtn) {
+    globalPlayBtn.style.display = 'block';
+    // 保存当前音频信息供全局播放器使用
+    globalPlayBtn.dataset.audioUrl = data.audio_url;
+    globalPlayBtn.dataset.audioTitle = audioTitle || '未命名音频';
+    if (data.subtitle_url) {
+      globalPlayBtn.dataset.subtitleUrl = data.subtitle_url;
+    } else {
+      delete globalPlayBtn.dataset.subtitleUrl;
+    }
+    globalPlayBtn.cachedSubtitles = null;
+  }
    
    // 显示成功状态和配额信息
    const audioStatus = document.getElementById('audio-status');
@@ -682,22 +735,41 @@ window.currentSelectedPages = window.currentSelectedPages || []; // Track select
    logState('Audio synthesis failed: ' + errorMessage);
  }
 
- // 工作台音频全局播放功能
- function playWorkbenchAudioInGlobal() {
-   const globalPlayBtn = document.getElementById('global-play-from-workbench');
-   if (!globalPlayBtn || !window.globalAudioPlayer) {
-     alert('全局播放器未准备就绪');
-     return;
-   }
-   
-   const audioUrl = globalPlayBtn.dataset.audioUrl;
-   const audioTitle = globalPlayBtn.dataset.audioTitle;
-   
-   if (audioUrl) {
-     // 工作台生成的音频暂时没有字幕支持
-     window.globalAudioPlayer.playAudio(audioUrl, audioTitle, null);
-   }
- }
+// 工作台音频全局播放功能
+async function playWorkbenchAudioInGlobal() {
+  const globalPlayBtn = document.getElementById('global-play-from-workbench');
+  if (!globalPlayBtn || !window.globalAudioPlayer) {
+    alert('全局播放器未准备就绪');
+    return;
+  }
+  
+  const audioUrl = globalPlayBtn.dataset.audioUrl;
+  const audioTitle = globalPlayBtn.dataset.audioTitle;
+  const subtitleUrl = globalPlayBtn.dataset.subtitleUrl;
+  
+  if (audioUrl) {
+    let subtitles = globalPlayBtn.cachedSubtitles || null;
+
+    if (!subtitles && subtitleUrl) {
+      try {
+        const response = await fetch(subtitleUrl);
+        if (response.ok) {
+          const subtitleContent = await response.text();
+          if (subtitleContent.trim() && typeof window.globalAudioPlayer.parseSRTSubtitles === 'function') {
+            subtitles = window.globalAudioPlayer.parseSRTSubtitles(subtitleContent);
+            globalPlayBtn.cachedSubtitles = subtitles;
+          }
+        } else {
+          console.warn('[Workbench] 获取字幕失败:', response.status, response.statusText);
+        }
+      } catch (error) {
+        console.error('[Workbench] 获取字幕出错:', error);
+      }
+    }
+
+    window.globalAudioPlayer.playAudio(audioUrl, audioTitle, subtitles);
+  }
+}
 
  // 添加 HTMX 请求和响应监听 (保留以兼容其他HTMX功能)
  document.body.addEventListener('htmx:beforeRequest', function(evt) {
