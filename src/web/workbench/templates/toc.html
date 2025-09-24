@@ -1,33 +1,89 @@
 {% load custom_filters %}
 <!-- TOC navigation component - optimized for jQuery loading into #src-text with multi-select support -->
 <style>
+  .toc-link {
+    display: block;
+    color: rgba(30, 41, 59, 0.88);
+    text-decoration: none;
+    width: 100%;
+  }
+
   .toc-item {
     position: relative;
     --toc-level: 0;
     margin-left: calc(var(--toc-level) * 0.85rem);
-    padding-left: 1.25rem;
-    transition: background-color 150ms ease;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 0.25rem 0.5rem 0.25rem 0.75rem;
+    border-radius: 0.45rem;
+    transition: background-color 150ms ease, box-shadow 150ms ease;
   }
 
-  .toc-item.is-child {
-    padding-left: 1.25rem;
+  .toc-item:hover {
+    background-color: rgba(148, 163, 184, 0.1);
   }
 
-  .toc-connector {
-    width: 0.75rem;
-    height: 0.75rem;
-    border-left: 1px solid rgba(148, 163, 184, 0.35);
-    border-bottom: 1px solid rgba(148, 163, 184, 0.35);
-    border-radius: 0 0 0 0.25rem;
-    flex-shrink: 0;
+  .toc-item.active {
+    background-color: rgba(79, 70, 229, 0.12);
+    box-shadow: inset 0 0 0 1px rgba(79, 70, 229, 0.22);
   }
 
-  .toc-item .fa-folder-open {
-    color: var(--fallback-pr, oklch(var(--p)));
+  .toc-item.active .toc-link {
+    color: rgba(15, 23, 42, 0.92);
+    font-weight: 600;
+  }
+
+  .toc-node-header {
+    display: grid;
+    grid-template-columns: 1.5rem auto;
+    align-items: center;
+    gap: 0.4rem;
+    width: 100%;
+  }
+
+  .toc-toggle {
+    border: none;
+    background: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.4rem;
+    color: rgba(71, 85, 105, 0.75);
+    transition: background 120ms ease, color 120ms ease;
+  }
+
+  .toc-toggle:hover {
+    background-color: rgba(148, 163, 184, 0.2);
+    color: rgba(37, 99, 235, 0.85);
+  }
+
+  .toc-toggle-icon {
+    transition: transform 150ms ease;
+  }
+
+  .toc-node.collapsed > .toc-children {
+    display: none;
+  }
+
+  .toc-node.expanded > .toc-item .toc-toggle-icon {
+    transform: rotate(90deg);
+  }
+
+  .toc-children {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    margin-left: 0.75rem;
+    margin-top: 0.2rem;
+    border-left: 1px dashed rgba(148, 163, 184, 0.25);
+    padding-left: 0.75rem;
   }
 
   .toc-item .fa-file-lines {
-    color: rgba(71, 85, 105, 0.75);
+    color: rgba(71, 85, 105, 0.7);
   }
 </style>
 <div class="toc-container h-full flex flex-col">
@@ -47,30 +103,39 @@
   <div class="flex-1 overflow-y-auto">
     <ul id="toc-list" class="menu menu-sm bg-base-100 rounded-box w-full flex flex-col single-column" style="column-count:1 !important; columns:1 !important; display:block !important;">
       {% for toc in tocs %}
-      <li class="flex items-center w-full hover:bg-base-200 transition-colors duration-200">
-        <div class="toc-item flex items-center w-full py-1.5 px-3{% if request.GET.toc == toc.href %} active{% endif %}" data-level="{{ toc.level|default:0 }}">
-          <input type="checkbox" class="toc-checkbox checkbox checkbox-sm" value="{{ toc.href }}" data-toc-href="{{ toc.href }}" />
-          <a class="flex-1 toc-link transition-all duration-300 ease-in-out hover:bg-opacity-20 hover:bg-base-300"
-             data-text-url="{% url 'text_by_toc' book_id=book_id %}"
-             data-toc-href="{{ toc.href }}"
-             data-names="{{ toc.href|stringformat:"s" }}"
-          >
-            <span class="flex items-center gap-2 min-w-0">
-              {% if toc.level|default:0 > 0 %}
-                <span class="toc-connector" aria-hidden="true"></span>
-              {% endif %}
-              {% if toc.has_children %}
-                <i class="fas fa-folder-open text-primary text-xs"></i>
-              {% else %}
-                <i class="fas fa-file-lines text-base-content/70 text-xs"></i>
-              {% endif %}
-              <span class="truncate">
-                {% if request.GET.toc == toc.href %}<span class="indicator-dot mr-1">•</span>{% endif %}
-                {{ toc.title }}
-              </span>
-            </span>
-          </a>
+      <li class="toc-node {% if toc.has_children %}collapsed{% else %}toc-leaf{% endif %}" data-level="{{ toc.level|default:0 }}" data-has-children="{{ toc.has_children|yesno:"true,false" }}" data-href="{{ toc.href }}">
+        <div class="toc-item{% if request.GET.toc == toc.href %} active{% endif %}">
+          <div class="toc-node-header">
+            {% if toc.has_children %}
+              <button class="toc-toggle" type="button" aria-label="展开目录" data-action="toggle">
+                <i class="fas fa-chevron-right toc-toggle-icon text-xs"></i>
+              </button>
+            {% else %}
+              <span class="w-5 h-5"></span>
+            {% endif %}
+            <div class="flex items-center gap-2 min-w-0">
+              <input type="checkbox" class="toc-checkbox checkbox checkbox-sm" value="{{ toc.href }}" data-toc-href="{{ toc.href }}" />
+              <a class="flex-1 toc-link transition-all duration-300 ease-in-out"
+                 data-text-url="{% url 'text_by_toc' book_id=book_id %}"
+                 data-toc-href="{{ toc.href }}"
+                 data-names="{{ toc.href|stringformat:"s" }}"
+              >
+                <span class="flex items-center gap-2 min-w-0">
+                  {% if toc.has_children %}
+                    <i class="fas fa-folder-open text-primary text-xs"></i>
+                  {% else %}
+                    <i class="fas fa-file-lines text-base-content/70 text-xs"></i>
+                  {% endif %}
+                  <span class="truncate">
+                    {% if request.GET.toc == toc.href %}<span class="indicator-dot mr-1">•</span>{% endif %}
+                    {{ toc.title }}
+                  </span>
+                </span>
+              </a>
+            </div>
+          </div>
         </div>
+        <div class="toc-children"></div>
       </li>
       {% endfor %}
     </ul>
@@ -88,16 +153,108 @@
 $(document).ready(function() {
   let selectedTocItems = new Set();
   
-  // Apply level-based styling
-  $('[data-level]').each(function() {
-    const level = parseInt($(this).data('level')) || 0;
-    this.style.setProperty('--toc-level', level);
-    if (level > 0) {
-      $(this).addClass('is-child');
-    } else {
-      $(this).removeClass('is-child');
+  const openNodes = window._tocOpenNodes || new Set();
+  window._tocOpenNodes = openNodes;
+
+  function escapeSelector(value) {
+    if (window.CSS && CSS.escape) {
+      return CSS.escape(value);
     }
-  });
+    return value.replace(/([ #.;?+<>~=!:^$\[\](){}|\\/])/g, '\\$1');
+  }
+
+  function expandNode(node, remember = true) {
+    if (!node || node.dataset.hasChildren !== 'true') return;
+    node.classList.add('expanded');
+    node.classList.remove('collapsed');
+    node.setAttribute('aria-expanded', 'true');
+    const toggleButton = node.querySelector('[data-action="toggle"]');
+    if (toggleButton) {
+      toggleButton.setAttribute('aria-label', '收起目录');
+    }
+    if (remember) {
+      openNodes.add(node.dataset.href);
+    }
+  }
+
+  function collapseNode(node, remember = true) {
+    if (!node || node.dataset.hasChildren !== 'true') return;
+    node.classList.remove('expanded');
+    node.classList.add('collapsed');
+    node.setAttribute('aria-expanded', 'false');
+    const toggleButton = node.querySelector('[data-action="toggle"]');
+    if (toggleButton) {
+      toggleButton.setAttribute('aria-label', '展开目录');
+    }
+    if (remember) {
+      openNodes.delete(node.dataset.href);
+    }
+  }
+
+  function toggleNode(node) {
+    if (!node || node.dataset.hasChildren !== 'true') return;
+    if (node.classList.contains('expanded')) {
+      collapseNode(node);
+    } else {
+      expandNode(node);
+    }
+  }
+
+  function buildTocTree() {
+    const tocList = document.getElementById('toc-list');
+    if (!tocList) return;
+
+    const nodes = Array.from(tocList.children);
+    tocList.innerHTML = '';
+
+    const stack = [{ level: -1, container: tocList }];
+
+    nodes.forEach(node => {
+      const level = parseInt(node.dataset.level || '0', 10);
+      node.style.setProperty('--toc-level', level);
+
+      while (stack.length && level <= stack[stack.length - 1].level) {
+        stack.pop();
+      }
+
+      const parentContainer = stack[stack.length - 1].container;
+      parentContainer.appendChild(node);
+
+      const childContainer = node.querySelector('.toc-children');
+      stack.push({ level, container: childContainer });
+    });
+
+    tocList.querySelectorAll('.toc-node[data-has-children="true"]').forEach(node => {
+      collapseNode(node, false);
+    });
+
+    const validHrefs = new Set(nodes.map(node => node.dataset.href));
+    const staleHrefs = [];
+
+    openNodes.forEach(href => {
+      const selector = `.toc-node[data-href="${escapeSelector(href)}"]`;
+      const node = tocList.querySelector(selector);
+      if (node) {
+        expandNode(node, false);
+      } else if (!validHrefs.has(href)) {
+        staleHrefs.push(href);
+      }
+    });
+
+    staleHrefs.forEach(href => openNodes.delete(href));
+
+    const activeItem = tocList.querySelector('.toc-item.active');
+    if (activeItem) {
+      let ancestor = activeItem.closest('.toc-node');
+      while (ancestor) {
+        expandNode(ancestor, false);
+        ancestor = ancestor.parentElement ? ancestor.parentElement.closest('.toc-node') : null;
+      }
+    }
+  }
+
+  buildTocTree();
+  updateSelectionUI();
   
   // Function to update selection count and button states
   function updateSelectionUI() {
@@ -110,17 +267,26 @@ $(document).ready(function() {
       const href = $(this).data('toc-href');
       $(this).prop('checked', selectedTocItems.has(href));
     });
+
+    // Highlight selected items
+    $('.toc-item').removeClass('active');
+    $('.toc-link').each(function() {
+      const href = $(this).data('toc-href');
+      if (selectedTocItems.has(href)) {
+        $(this).closest('.toc-item').addClass('active');
+      }
+    });
   }
   
   // Function to scroll active element into view
   function scrollActiveIntoView() {
-    const activeElement = $('.toc-link.active, .toc-link.bg-base-300');
+    const activeElement = $('.toc-item.active');
     if (activeElement.length) {
       const container = $('.toc-container .flex-1'); // Updated selector to use the scrollable container
       // Ensure the container is scrollable
       if (container.prop('scrollHeight') > container.height()) {
         container.animate({
-          scrollTop: activeElement.offset().top - container.offset().top + container.scrollTop() - (container.height() / 2) + (activeElement.height() / 2)
+          scrollTop: activeElement.offset().top - container.offset().top + container.scrollTop() - (container.height() / 2) + (activeElement.outerHeight() / 2)
         }, 200);
       }
     }
@@ -141,6 +307,8 @@ $(document).ready(function() {
   // Function to load selected TOC items
   function loadSelectedTocItems() {
     if (selectedTocItems.size === 0) return;
+
+    updateSelectionUI();
     
     // Show loading indicator
     $('.loading-container').removeClass('hidden');
@@ -176,16 +344,6 @@ $(document).ready(function() {
           if (response.ocr_used) {
             showOCRResultInfo(response);
           }
-          
-          // Update UI to show multiple selections
-          $('.toc-link').removeClass('bg-base-300 active');
-          // 按照TOC顺序高亮选中的项目
-          $('.toc-link').each(function() {
-            const href = $(this).data('toc-href');
-            if (selectedTocItems.has(href)) {
-              $(this).addClass('bg-base-300');
-            }
-          });
           
           // Update page state (use first selected item's info based on TOC order)
           const sortedSelectedItems = getSelectedItemsInOrder();
@@ -256,12 +414,34 @@ $(document).ready(function() {
     });
   }
   
+  // 展开/收起按钮
+  $('#toc-list').on('click', '[data-action="toggle"]', function(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    const node = this.closest('.toc-node');
+    toggleNode(node);
+  });
+
+  // 点击文件夹图标也可展开/收起
+  $('#toc-list').on('click', '.toc-item i.fa-folder-open', function(event) {
+    const node = this.closest('.toc-node');
+    if (node && node.dataset.hasChildren === 'true') {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleNode(node);
+    }
+  });
+
   // Handle checkbox changes
   $('.toc-container').on('change', '.toc-checkbox', function() {
     const href = $(this).data('toc-href');
+    const node = this.closest('.toc-node');
     
     if ($(this).is(':checked')) {
       selectedTocItems.add(href);
+      if (node && node.dataset.hasChildren === 'true') {
+        expandNode(node);
+      }
     } else {
       selectedTocItems.delete(href);
     }
@@ -274,6 +454,15 @@ $(document).ready(function() {
     e.preventDefault();
     
     const href = $(this).data('toc-href');
+    const node = this.closest('.toc-node');
+
+    if (node) {
+      let ancestor = node;
+      while (ancestor) {
+        expandNode(ancestor);
+        ancestor = ancestor.parentElement ? ancestor.parentElement.closest('.toc-node') : null;
+      }
+    }
     
     // Clear previous selections and select only this item
     selectedTocItems.clear();
