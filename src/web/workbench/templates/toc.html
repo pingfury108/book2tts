@@ -1,91 +1,5 @@
 {% load custom_filters %}
 <!-- TOC navigation component - optimized for jQuery loading into #src-text with multi-select support -->
-<style>
-  .toc-link {
-    display: block;
-    color: rgba(30, 41, 59, 0.88);
-    text-decoration: none;
-    width: 100%;
-  }
-
-  .toc-item {
-    position: relative;
-    --toc-level: 0;
-    margin-left: calc(var(--toc-level) * 0.85rem);
-    display: flex;
-    align-items: center;
-    width: 100%;
-    padding: 0.25rem 0.5rem 0.25rem 0.75rem;
-    border-radius: 0.45rem;
-    transition: background-color 150ms ease, box-shadow 150ms ease;
-  }
-
-  .toc-item:hover {
-    background-color: rgba(148, 163, 184, 0.1);
-  }
-
-  .toc-item.active {
-    background-color: rgba(79, 70, 229, 0.12);
-    box-shadow: inset 0 0 0 1px rgba(79, 70, 229, 0.22);
-  }
-
-  .toc-item.active .toc-link {
-    color: rgba(15, 23, 42, 0.92);
-    font-weight: 600;
-  }
-
-  .toc-node-header {
-    display: grid;
-    grid-template-columns: 1.5rem auto;
-    align-items: center;
-    gap: 0.4rem;
-    width: 100%;
-  }
-
-  .toc-toggle {
-    border: none;
-    background: none;
-    width: 1.25rem;
-    height: 1.25rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 0.4rem;
-    color: rgba(71, 85, 105, 0.75);
-    transition: background 120ms ease, color 120ms ease;
-  }
-
-  .toc-toggle:hover {
-    background-color: rgba(148, 163, 184, 0.2);
-    color: rgba(37, 99, 235, 0.85);
-  }
-
-  .toc-toggle-icon {
-    transition: transform 150ms ease;
-  }
-
-  .toc-node.collapsed > .toc-children {
-    display: none;
-  }
-
-  .toc-node.expanded > .toc-item .toc-toggle-icon {
-    transform: rotate(90deg);
-  }
-
-  .toc-children {
-    display: flex;
-    flex-direction: column;
-    gap: 0.1rem;
-    margin-left: 0.75rem;
-    margin-top: 0.2rem;
-    border-left: 1px dashed rgba(148, 163, 184, 0.25);
-    padding-left: 0.75rem;
-  }
-
-  .toc-item .fa-file-lines {
-    color: rgba(71, 85, 105, 0.7);
-  }
-</style>
 <div class="toc-container h-full flex flex-col">
   <!-- Fixed control bar at the top -->
   <div class="flex justify-between items-center p-2 border-b border-base-300 bg-base-100 flex-shrink-0">
@@ -104,38 +18,36 @@
     <ul id="toc-list" class="menu menu-sm bg-base-100 rounded-box w-full flex flex-col single-column" style="column-count:1 !important; columns:1 !important; display:block !important;">
       {% for toc in tocs %}
       <li class="toc-node {% if toc.has_children %}collapsed{% else %}toc-leaf{% endif %}" data-level="{{ toc.level|default:0 }}" data-has-children="{{ toc.has_children|yesno:"true,false" }}" data-href="{{ toc.href }}">
-        <div class="toc-item{% if request.GET.toc == toc.href %} active{% endif %}">
-          <div class="toc-node-header">
+        <div class="toc-item flex w-full flex-col gap-1 rounded-lg px-2 py-1 transition-colors duration-200 hover:bg-base-200"{% if request.GET.toc == toc.href %} data-initial-active="true"{% endif %}>
+          <div class="toc-node-header flex w-full items-center gap-1">
             {% if toc.has_children %}
-              <button class="toc-toggle" type="button" aria-label="展开目录" data-action="toggle">
-                <i class="fas fa-chevron-right toc-toggle-icon text-xs"></i>
+              <button class="toc-toggle btn btn-ghost btn-xs btn-square flex-shrink-0 w-5 h-5 min-h-5 p-0" type="button" aria-label="展开目录" data-action="toggle">
+                <i class="fas fa-chevron-right toc-toggle-icon text-xs transition-transform duration-200"></i>
               </button>
             {% else %}
-              <span class="w-5 h-5"></span>
+              <span class="w-5 h-5 flex-shrink-0 inline-flex items-center justify-center"></span>
             {% endif %}
-            <div class="flex items-center gap-2 min-w-0">
-              <input type="checkbox" class="toc-checkbox checkbox checkbox-sm" value="{{ toc.href }}" data-toc-href="{{ toc.href }}" />
-              <a class="flex-1 toc-link transition-all duration-300 ease-in-out"
-                 data-text-url="{% url 'text_by_toc' book_id=book_id %}"
-                 data-toc-href="{{ toc.href }}"
-                 data-names="{{ toc.href|stringformat:"s" }}"
-              >
-                <span class="flex items-center gap-2 min-w-0">
-                  {% if toc.has_children %}
-                    <i class="fas fa-folder-open text-primary text-xs"></i>
-                  {% else %}
-                    <i class="fas fa-file-lines text-base-content/70 text-xs"></i>
-                  {% endif %}
-                  <span class="truncate">
-                    {% if request.GET.toc == toc.href %}<span class="indicator-dot mr-1">•</span>{% endif %}
-                    {{ toc.title }}
-                  </span>
+            <input type="checkbox" class="toc-checkbox checkbox checkbox-sm flex-shrink-0" value="{{ toc.href }}" data-toc-href="{{ toc.href }}" />
+            <a class="flex-1 toc-link text-base-content opacity-80 hover:opacity-100 transition-colors duration-200 min-w-0"
+               data-text-url="{% url 'text_by_toc' book_id=book_id %}"
+               data-toc-href="{{ toc.href }}"
+               data-names="{{ toc.href|stringformat:"s" }}"
+            >
+              <span class="flex items-center gap-2 min-w-0">
+                {% if toc.has_children %}
+                  <i class="fas fa-folder-open text-primary text-xs flex-shrink-0"></i>
+                {% else %}
+                  <i class="fas fa-file-lines text-base-content/70 text-xs flex-shrink-0"></i>
+                {% endif %}
+                <span class="truncate">
+                  {% if request.GET.toc == toc.href %}<span class="indicator-dot mr-1">•</span>{% endif %}
+                  {{ toc.title }}
                 </span>
-              </a>
-            </div>
+              </span>
+            </a>
           </div>
         </div>
-        <div class="toc-children"></div>
+        <ul class="toc-children hidden mt-1 space-y-0.5 border-l border-dashed border-base-300 ml-6"></ul>
       </li>
       {% endfor %}
     </ul>
@@ -156,6 +68,9 @@ $(document).ready(function() {
   const openNodes = window._tocOpenNodes || new Set();
   window._tocOpenNodes = openNodes;
 
+  const activeItemClasses = ['bg-base-200', 'ring-1', 'ring-base-300/70', 'shadow-inner', 'font-medium'];
+  const levelPaddingClasses = ['pl-0', 'pl-0', 'pl-0', 'pl-0', 'pl-0'];
+
   function escapeSelector(value) {
     if (window.CSS && CSS.escape) {
       return CSS.escape(value);
@@ -169,8 +84,17 @@ $(document).ready(function() {
     node.classList.remove('collapsed');
     node.setAttribute('aria-expanded', 'true');
     const toggleButton = node.querySelector('[data-action="toggle"]');
+    const icon = node.querySelector('.toc-toggle-icon');
+    const children = node.querySelector('.toc-children');
+    if (children) {
+      children.classList.remove('hidden');
+    }
+    if (icon) {
+      icon.classList.add('rotate-90');
+    }
     if (toggleButton) {
       toggleButton.setAttribute('aria-label', '收起目录');
+      toggleButton.classList.add('btn-active');
     }
     if (remember) {
       openNodes.add(node.dataset.href);
@@ -183,8 +107,17 @@ $(document).ready(function() {
     node.classList.add('collapsed');
     node.setAttribute('aria-expanded', 'false');
     const toggleButton = node.querySelector('[data-action="toggle"]');
+    const icon = node.querySelector('.toc-toggle-icon');
+    const children = node.querySelector('.toc-children');
+    if (children) {
+      children.classList.add('hidden');
+    }
+    if (icon) {
+      icon.classList.remove('rotate-90');
+    }
     if (toggleButton) {
       toggleButton.setAttribute('aria-label', '展开目录');
+      toggleButton.classList.remove('btn-active');
     }
     if (remember) {
       openNodes.delete(node.dataset.href);
@@ -211,23 +144,35 @@ $(document).ready(function() {
 
     nodes.forEach(node => {
       const level = parseInt(node.dataset.level || '0', 10);
-      node.style.setProperty('--toc-level', level);
 
-      while (stack.length && level <= stack[stack.length - 1].level) {
+      // 找到正确的父容器
+      while (stack.length > 1 && level <= stack[stack.length - 1].level) {
         stack.pop();
       }
 
       const parentContainer = stack[stack.length - 1].container;
       parentContainer.appendChild(node);
 
+      // 为当前节点添加正确的缩进
+      const header = node.querySelector('.toc-node-header');
+      if (header) {
+        levelPaddingClasses.forEach(cls => header.classList.remove(cls));
+        header.classList.add(levelPaddingClasses[Math.min(levelPaddingClasses.length - 1, level)]);
+      }
+
+      // 如果有子容器，将其作为下一级的容器
       const childContainer = node.querySelector('.toc-children');
-      stack.push({ level, container: childContainer });
+      if (childContainer) {
+        stack.push({ level, container: childContainer });
+      }
     });
 
+    // 初始化所有有子节点的节点为折叠状态
     tocList.querySelectorAll('.toc-node[data-has-children="true"]').forEach(node => {
       collapseNode(node, false);
     });
 
+    // 恢复之前展开的节点状态
     const validHrefs = new Set(nodes.map(node => node.dataset.href));
     const staleHrefs = [];
 
@@ -243,7 +188,8 @@ $(document).ready(function() {
 
     staleHrefs.forEach(href => openNodes.delete(href));
 
-    const activeItem = tocList.querySelector('.toc-item.active');
+    // 展开包含活动项的所有祖先节点
+    const activeItem = tocList.querySelector('.toc-item[data-selected="true"], .toc-item[data-initial-active="true"]');
     if (activeItem) {
       let ancestor = activeItem.closest('.toc-node');
       while (ancestor) {
@@ -254,6 +200,19 @@ $(document).ready(function() {
   }
 
   buildTocTree();
+
+  // 处理初始激活节点（来自服务器渲染）
+  const initialActiveItem = document.querySelector('.toc-item[data-initial-active="true"]');
+  if (initialActiveItem) {
+    const initialLink = initialActiveItem.querySelector('.toc-link');
+    if (initialLink) {
+      const href = initialLink.dataset.tocHref;
+      if (href) {
+        selectedTocItems.add(href);
+      }
+    }
+  }
+
   updateSelectionUI();
   
   // Function to update selection count and button states
@@ -269,21 +228,35 @@ $(document).ready(function() {
     });
 
     // Highlight selected items
-    $('.toc-item').removeClass('active');
-    $('.toc-link').each(function() {
-      const href = $(this).data('toc-href');
+    document.querySelectorAll('.toc-item').forEach(item => {
+      item.classList.remove(...activeItemClasses);
+      item.removeAttribute('data-selected');
+      const link = item.querySelector('.toc-link');
+      if (link) {
+        link.classList.remove('font-semibold', 'opacity-100');
+        link.classList.add('opacity-80');
+      }
+    });
+
+    document.querySelectorAll('.toc-link').forEach(link => {
+      const href = link.dataset.tocHref;
       if (selectedTocItems.has(href)) {
-        $(this).closest('.toc-item').addClass('active');
+        const item = link.closest('.toc-item');
+        if (item) {
+          item.classList.add(...activeItemClasses);
+          item.setAttribute('data-selected', 'true');
+        }
+        link.classList.remove('opacity-80');
+        link.classList.add('font-semibold', 'opacity-100');
       }
     });
   }
   
   // Function to scroll active element into view
   function scrollActiveIntoView() {
-    const activeElement = $('.toc-item.active');
+    const activeElement = $('.toc-item[data-selected="true"]');
     if (activeElement.length) {
       const container = $('.toc-container .flex-1'); // Updated selector to use the scrollable container
-      // Ensure the container is scrollable
       if (container.prop('scrollHeight') > container.height()) {
         container.animate({
           scrollTop: activeElement.offset().top - container.offset().top + container.scrollTop() - (container.height() / 2) + (activeElement.outerHeight() / 2)
