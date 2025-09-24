@@ -1,6 +1,34 @@
 {% load custom_filters %}
 <!-- TOC navigation component - optimized for jQuery loading into #src-text with multi-select support -->
 <style>
+  .toc-item {
+    position: relative;
+    --toc-level: 0;
+    margin-left: calc(var(--toc-level) * 0.85rem);
+    padding-left: 1.25rem;
+    transition: background-color 150ms ease;
+  }
+
+  .toc-item.is-child {
+    padding-left: 1.25rem;
+  }
+
+  .toc-connector {
+    width: 0.75rem;
+    height: 0.75rem;
+    border-left: 1px solid rgba(148, 163, 184, 0.35);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+    border-radius: 0 0 0 0.25rem;
+    flex-shrink: 0;
+  }
+
+  .toc-item .fa-folder-open {
+    color: var(--fallback-pr, oklch(var(--p)));
+  }
+
+  .toc-item .fa-file-lines {
+    color: rgba(71, 85, 105, 0.75);
+  }
 </style>
 <div class="toc-container h-full flex flex-col">
   <!-- Fixed control bar at the top -->
@@ -20,15 +48,18 @@
     <ul id="toc-list" class="menu menu-sm bg-base-100 rounded-box w-full flex flex-col single-column" style="column-count:1 !important; columns:1 !important; display:block !important;">
       {% for toc in tocs %}
       <li class="flex items-center w-full hover:bg-base-200 transition-colors duration-200">
-        <div class="flex items-center w-full py-1.5 px-3{% if request.GET.toc == toc.href %} active{% endif %}" data-level="{{ toc.level|default:0 }}">
-          <input type="checkbox" class="toc-checkbox checkbox checkbox-sm mr-2" value="{{ toc.href }}" data-toc-href="{{ toc.href }}" />
+        <div class="toc-item flex items-center w-full py-1.5 px-3{% if request.GET.toc == toc.href %} active{% endif %}" data-level="{{ toc.level|default:0 }}">
+          <input type="checkbox" class="toc-checkbox checkbox checkbox-sm" value="{{ toc.href }}" data-toc-href="{{ toc.href }}" />
           <a class="flex-1 toc-link transition-all duration-300 ease-in-out hover:bg-opacity-20 hover:bg-base-300"
              data-text-url="{% url 'text_by_toc' book_id=book_id %}"
              data-toc-href="{{ toc.href }}"
              data-names="{{ toc.href|stringformat:"s" }}"
           >
             <span class="flex items-center gap-2 min-w-0">
-              {% if toc.level|default:0 == 0 %}
+              {% if toc.level|default:0 > 0 %}
+                <span class="toc-connector" aria-hidden="true"></span>
+              {% endif %}
+              {% if toc.has_children %}
                 <i class="fas fa-folder-open text-primary text-xs"></i>
               {% else %}
                 <i class="fas fa-file-lines text-base-content/70 text-xs"></i>
@@ -60,9 +91,11 @@ $(document).ready(function() {
   // Apply level-based styling
   $('[data-level]').each(function() {
     const level = parseInt($(this).data('level')) || 0;
-    $(this).css('margin-left', (level * 16) + 'px');
+    this.style.setProperty('--toc-level', level);
     if (level > 0) {
-      $(this).css('padding-left', '0.5rem');
+      $(this).addClass('is-child');
+    } else {
+      $(this).removeClass('is-child');
     }
   });
   

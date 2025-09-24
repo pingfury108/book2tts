@@ -140,7 +140,8 @@ def traverse_toc_with_level(items, toc, level=0):
             toc.append({
                 "title": section.title,
                 "href": section.href.split("#")[0],
-                "level": level
+                "level": level,
+                "has_children": bool(children)
             })
             # 递归处理子目录，层级加1
             traverse_toc_with_level(children, toc, level + 1)
@@ -148,7 +149,8 @@ def traverse_toc_with_level(items, toc, level=0):
             toc.append({
                 "title": item.title,
                 "href": item.href.split("#")[0],
-                "level": level
+                "level": level,
+                "has_children": False
             })
     return
 
@@ -170,6 +172,35 @@ def ebook_toc_with_level(book):
             seen.add(t["href"])
             result.append(t)
     return result
+
+
+def annotate_toc_children(flat_tocs):
+    """根据层级信息标记目录项是否包含子节点"""
+    if not flat_tocs:
+        return flat_tocs
+
+    total = len(flat_tocs)
+
+    for index, entry in enumerate(flat_tocs):
+        level = entry.get("level", 0) or 0
+
+        # 如果已有 has_children 设置，沿用并仅在未知时计算
+        has_children = entry.get("has_children")
+        if has_children is None:
+            has_children = False
+
+        if not has_children:
+            # 查找后续第一个层级 <= 当前层级的项，判断是否存在子节点
+            for next_index in range(index + 1, total):
+                next_level = flat_tocs[next_index].get("level", 0) or 0
+                if next_level <= level:
+                    break
+                has_children = True
+                break
+
+        entry["has_children"] = has_children
+
+    return flat_tocs
 
 
 def calculate_toc_page_ranges(toc_list, total_pages):
@@ -306,6 +337,17 @@ def index(request, book_id):
         total_pages = len(list(pbook.pages()))
         toc_with_ranges = calculate_toc_page_ranges(toc_list, total_pages)
         
+        tocs = [
+            {
+                "title": f"{toc[1]}", 
+                "href": f"{toc[2]}-{toc[3]}",
+                "start_page": toc[2],
+                "end_page": toc[3],
+                "level": toc[0] - 1 if toc[0] > 0 else 0  # PDF层级从1开始，转换为从0开始
+            } for toc in toc_with_ranges
+        ]
+        annotate_toc_children(tocs)
+
         return render(
             request,
             "index.html",
@@ -313,15 +355,7 @@ def index(request, book_id):
                 "book": book,  # Pass the entire book object for access to pdf_type
                 "book_id": book.id,
                 "title": book.name,  # Always use the database book name
-                "tocs": [
-                    {
-                        "title": f"{toc[1]}", 
-                        "href": f"{toc[2]}-{toc[3]}",
-                        "start_page": toc[2],
-                        "end_page": toc[3],
-                        "level": toc[0] - 1 if toc[0] > 0 else 0  # PDF层级从1开始，转换为从0开始
-                    } for toc in toc_with_ranges
-                ],
+                "tocs": tocs,
                 "pages": [
                     {"title": f"第{page.number+1}页", "href": page.number}
                     for page in pbook.pages()
@@ -334,6 +368,19 @@ def index(request, book_id):
         toc_list = ebook_toc_with_level(ebook)
         toc_with_ranges = calculate_epub_toc_page_ranges(toc_list, all_pages)
         
+        tocs = [
+            {
+                "title": toc.get("title"),
+                "href": toc.get("href").replace("/", "_"),  # 已经是逗号分隔的页面列表
+                "level": toc.get("level", 0),
+                "start_page_index": toc.get("start_page_index"),
+                "end_page_index": toc.get("end_page_index"),
+                "page_count": toc.get("page_count", 1)
+            }
+            for toc in toc_with_ranges
+        ]
+        annotate_toc_children(tocs)
+
         return render(
             request,
             "index.html",
@@ -341,17 +388,7 @@ def index(request, book_id):
                 "book": book,  # Pass the entire book object for access to pdf_type
                 "book_id": book.id,
                 "title": book.name,  # Always use the database book name
-                "tocs": [
-                    {
-                        "title": toc.get("title"),
-                        "href": toc.get("href").replace("/", "_"),  # 已经是逗号分隔的页面列表
-                        "level": toc.get("level", 0),
-                        "start_page_index": toc.get("start_page_index"),
-                        "end_page_index": toc.get("end_page_index"),
-                        "page_count": toc.get("page_count", 1)
-                    }
-                    for toc in toc_with_ranges
-                ],
+                "tocs": tocs,
                 "pages": all_pages,
             },
         )
@@ -423,21 +460,24 @@ def toc(request, book_id):
         total_pages = len(list(pbook.pages()))
         toc_with_ranges = calculate_toc_page_ranges(toc_list, total_pages)
         
+        tocs = [
+            {
+                "title": f"{toc[1]}", 
+                "href": f"{toc[2]}-{toc[3]}",
+                "start_page": toc[2],
+                "end_page": toc[3],
+                "level": toc[0] - 1 if toc[0] > 0 else 0  # PDF层级从1开始，转换为从0开始
+            } for toc in toc_with_ranges
+        ]
+        annotate_toc_children(tocs)
+
         return render(
             request,
             "toc.html",
             {
                 "book_id": book.id,
                 "title": book.name,  # Already using database book name
-                "tocs": [
-                    {
-                        "title": f"{toc[1]}", 
-                        "href": f"{toc[2]}-{toc[3]}",
-                        "start_page": toc[2],
-                        "end_page": toc[3],
-                        "level": toc[0] - 1 if toc[0] > 0 else 0  # PDF层级从1开始，转换为从0开始
-                    } for toc in toc_with_ranges
-                ],
+                "tocs": tocs,
             },
         )
     elif book.file_type == ".epub":
@@ -446,23 +486,26 @@ def toc(request, book_id):
         toc_list = ebook_toc_with_level(ebook)
         toc_with_ranges = calculate_epub_toc_page_ranges(toc_list, all_pages)
         
+        tocs = [
+            {
+                "title": toc.get("title"), 
+                "href": toc.get("href"),  # 已经是逗号分隔的页面列表
+                "level": toc.get("level", 0),
+                "start_page_index": toc.get("start_page_index"),
+                "end_page_index": toc.get("end_page_index"),
+                "page_count": toc.get("page_count", 1)
+            }
+            for toc in toc_with_ranges
+        ]
+        annotate_toc_children(tocs)
+
         return render(
             request,
             "toc.html",
             {
                 "book_id": book.id,
                 "title": book.name,  # Use database book name instead of ebook.title
-                "tocs": [
-                    {
-                        "title": toc.get("title"), 
-                        "href": toc.get("href"),  # 已经是逗号分隔的页面列表
-                        "level": toc.get("level", 0),
-                        "start_page_index": toc.get("start_page_index"),
-                        "end_page_index": toc.get("end_page_index"),
-                        "page_count": toc.get("page_count", 1)
-                    }
-                    for toc in toc_with_ranges
-                ],
+                "tocs": tocs,
             },
         )
 
