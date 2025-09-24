@@ -1,11 +1,6 @@
 {% load custom_filters %}
 <!-- TOC navigation component - optimized for jQuery loading into #src-text with multi-select support -->
 <style>
-  .toc-indent-prefix {
-    color: #9ca3af;
-    font-family: monospace;
-    font-size: 0.75rem;
-  }
 </style>
 <div class="toc-container h-full flex flex-col">
   <!-- Fixed control bar at the top -->
@@ -32,14 +27,16 @@
              data-toc-href="{{ toc.href }}"
              data-names="{{ toc.href|stringformat:"s" }}"
           >
-            <span class="truncate">
-              {% if toc.level > 0 %}
-                <span class="toc-indent-prefix mr-1">
-                  {% if toc.level == 1 %}├─{% elif toc.level == 2 %}├──{% elif toc.level == 3 %}├───{% elif toc.level == 4 %}├────{% else %}├─{% endif %}
-                </span>
+            <span class="flex items-center gap-2 min-w-0">
+              {% if toc.level|default:0 == 0 %}
+                <i class="fas fa-folder-open text-primary text-xs"></i>
+              {% else %}
+                <i class="fas fa-file-lines text-base-content/70 text-xs"></i>
               {% endif %}
-              {% if request.GET.toc == toc.href %}<span class="indicator-dot mr-1">•</span>{% endif %}
-              {{ toc.title }}
+              <span class="truncate">
+                {% if request.GET.toc == toc.href %}<span class="indicator-dot mr-1">•</span>{% endif %}
+                {{ toc.title }}
+              </span>
             </span>
           </a>
         </div>
@@ -65,7 +62,7 @@ $(document).ready(function() {
     const level = parseInt($(this).data('level')) || 0;
     $(this).css('margin-left', (level * 16) + 'px');
     if (level > 0) {
-      $(this).css('border-left', '2px solid #e5e7eb');
+      $(this).css('padding-left', '0.5rem');
     }
   });
   
