@@ -5749,6 +5749,11 @@ details.collapse summary::-webkit-details-marker {
   inset: 0px;
 }
 
+.inset-x-0 {
+  left: 0px;
+  right: 0px;
+}
+
 .bottom-0 {
   bottom: 0px;
 }
@@ -5815,6 +5820,10 @@ details.collapse summary::-webkit-details-marker {
 
 .top-0 {
   top: 0px;
+}
+
+.top-16 {
+  top: 4rem;
 }
 
 .z-0 {
@@ -6218,6 +6227,10 @@ details.collapse summary::-webkit-details-marker {
   min-height: 70vh;
 }
 
+.min-h-\[calc\(100vh-4rem\)\] {
+  min-height: calc(100vh - 4rem);
+}
+
 .w-1\/5 {
   width: 20%;
 }
@@ -6430,6 +6443,10 @@ details.collapse summary::-webkit-details-marker {
 
 .touch-manipulation {
   touch-action: manipulation;
+}
+
+.resize {
+  resize: both;
 }
 
 .list-inside {
@@ -6940,6 +6957,10 @@ details.collapse summary::-webkit-details-marker {
 
 .bg-base-content\/20 {
   background-color: var(--fallback-bc,oklch(var(--bc)/0.2));
+}
+
+.bg-base-200\/95 {
+  background-color: var(--fallback-b2,oklch(var(--b2)/0.95));
 }
 
 .bg-opacity-10 {

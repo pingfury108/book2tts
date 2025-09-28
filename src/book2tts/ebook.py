@@ -42,8 +42,43 @@ def get_content_with_href(book, href: str):
                 for a in soup.find_all("a"):
                     a.decompose()
                     
-                texts = soup.get_text("\n", strip=False)
-                lines = [line.rstrip() for line in texts.splitlines()]
+                for br in soup.find_all('br'):
+                    br.replace_with('\n')
+
+                block_level_tags = {
+                    'address', 'article', 'aside', 'blockquote', 'canvas', 'dd', 'div', 'dl', 'dt',
+                    'fieldset', 'figcaption', 'figure', 'footer', 'form', 'h1', 'h2', 'h3', 'h4',
+                    'h5', 'h6', 'header', 'hgroup', 'hr', 'li', 'main', 'nav', 'noscript',
+                    'ol', 'output', 'p', 'pre', 'section', 'table', 'tfoot', 'ul', 'video'
+                }
+
+                parts = []
+
+                def walk(node):
+                    from bs4 import NavigableString, Tag
+
+                    if isinstance(node, NavigableString):
+                        parts.append(str(node))
+                        return
+
+                    if isinstance(node, Tag):
+                        if node.name.lower() == 'br':
+                            parts.append('\n')
+                            return
+
+                        if node.name.lower() in block_level_tags:
+                            parts.append('\n')
+
+                        for child in node.children:
+                            walk(child)
+
+                        if node.name.lower() in block_level_tags:
+                            parts.append('\n')
+
+                walk(soup.body or soup)
+
+                merged = ''.join(parts)
+                lines = [line.rstrip() for line in merged.split('\n')]
 
                 while lines and not lines[0].strip():
                     lines.pop(0)

@@ -4,7 +4,14 @@
 {% block title %}{{ title }} - 制作工作台 - Book2TTS{% endblock %}
 
 {% block content %}
-<div class="flex p-2 w-full h-screen bg-base-100">
+<div id="desktop-warning" class="hidden w-full bg-base-200 text-base-content text-center py-12 min-h-[calc(100vh-4rem)] flex items-center justify-center">
+  <div class="max-w-md mx-auto space-y-3 px-6">
+    <h2 class="text-2xl font-bold">建议使用电脑端访问</h2>
+    <p class="text-sm">当前屏幕尺寸不足以正常使用制作工作台。请在宽屏设备上打开以获得完整体验。</p>
+  </div>
+</div>
+
+<div class="flex p-2 w-full h-screen bg-base-100" id="workbench-root">
     <div class="grow h-full w-1/5 overflow-hidden rounded-lg flex flex-col pb-2">
       <div class="container text-center p-2">
         <div role="tablist" class="tabs tabs-bordered">
@@ -475,8 +482,26 @@ window.currentSelectedPages = window.currentSelectedPages || []; // Track select
 window.currentSelectedContentIds = window.currentSelectedContentIds || [];
 
  // Tab switching
- $(document).ready(function() {
-   $('#tab_toc').on('click', function() {
+$(document).ready(function() {
+  function checkViewport() {
+    const warning = document.getElementById('desktop-warning');
+    const root = document.getElementById('workbench-root');
+    if (!warning || !root) return;
+
+    const isSmall = window.innerWidth < 1024 || window.innerHeight < 600;
+    if (isSmall) {
+      warning.classList.remove('hidden');
+      root.classList.add('hidden');
+    } else {
+      warning.classList.add('hidden');
+      root.classList.remove('hidden');
+    }
+  }
+
+  checkViewport();
+  window.addEventListener('resize', checkViewport);
+
+  $('#tab_toc').on('click', function() {
      $(this).addClass('tab-active');
      $('#tab_page').removeClass('tab-active');
      window.activeTab = 'tab_toc';
