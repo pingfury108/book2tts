@@ -4028,6 +4028,19 @@ details.collapse summary::-webkit-details-marker {
   isolation: isolate;
 }
 
+@supports (color:color-mix(in oklab,black,black)) {
+  @media (hover:hover) {
+    .link-secondary:hover {
+      color: color-mix(in oklab,var(--fallback-s,oklch(var(--s)/1)) 80%,black);
+    }
+  }
+}
+
+.link-secondary {
+  --tw-text-opacity: 1;
+  color: var(--fallback-s,oklch(var(--s)/var(--tw-text-opacity)));
+}
+
 .link:focus {
   outline: 2px solid transparent;
   outline-offset: 2px;
@@ -5728,6 +5741,10 @@ details.collapse summary::-webkit-details-marker {
   position: relative;
 }
 
+.sticky {
+  position: sticky;
+}
+
 .inset-0 {
   inset: 0px;
 }
@@ -5796,6 +5813,10 @@ details.collapse summary::-webkit-details-marker {
   top: 1rem;
 }
 
+.top-0 {
+  top: 0px;
+}
+
 .z-0 {
   z-index: 0;
 }
@@ -5810,6 +5831,10 @@ details.collapse summary::-webkit-details-marker {
 
 .z-\[1\] {
   z-index: 1;
+}
+
+.z-10 {
+  z-index: 10;
 }
 
 .order-1 {
@@ -5834,6 +5859,10 @@ details.collapse summary::-webkit-details-marker {
 
 .m-1 {
   margin: 0.25rem;
+}
+
+.m-4 {
+  margin: 1rem;
 }
 
 .mx-2 {
@@ -6097,6 +6126,18 @@ details.collapse summary::-webkit-details-marker {
   height: 1px;
 }
 
+.h-\[60vh\] {
+  height: 60vh;
+}
+
+.h-\[65vh\] {
+  height: 65vh;
+}
+
+.h-\[70vh\] {
+  height: 70vh;
+}
+
 .max-h-32 {
   max-height: 8rem;
 }
@@ -6133,6 +6174,14 @@ details.collapse summary::-webkit-details-marker {
   max-height: 100%;
 }
 
+.max-h-none {
+  max-height: none;
+}
+
+.max-h-\[92vh\] {
+  max-height: 92vh;
+}
+
 .min-h-0 {
   min-height: 0px;
 }
@@ -6163,6 +6212,10 @@ details.collapse summary::-webkit-details-marker {
 
 .min-h-\[4\.5rem\] {
   min-height: 4.5rem;
+}
+
+.min-h-\[70vh\] {
+  min-height: 70vh;
 }
 
 .w-1\/5 {
@@ -6249,6 +6302,10 @@ details.collapse summary::-webkit-details-marker {
   width: 100%;
 }
 
+.w-\[96vw\] {
+  width: 96vw;
+}
+
 .min-w-0 {
   min-width: 0px;
 }
@@ -6295,6 +6352,10 @@ details.collapse summary::-webkit-details-marker {
 
 .max-w-xs {
   max-width: 20rem;
+}
+
+.max-w-5xl {
+  max-width: 64rem;
 }
 
 .flex-1 {

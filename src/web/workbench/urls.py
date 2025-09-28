@@ -16,6 +16,8 @@ from .views import (
     get_page_image,
     check_page_audio_status,
     delete_book,
+    get_original_content,
+    get_epub_asset,
     toggle_publish_audio_segment,
 )
 from .views.audio_views import (
@@ -65,6 +67,8 @@ urlpatterns = [
     path("book/<int:book_id>/toc", views.toc, name="toc"),
     path("book/<int:book_id>/page", views.pages, name="pages"),
     path("book/reformat", views.reformat, name="reformat"),
+    path("book/<int:book_id>/original/", get_original_content, name="get_original_content"),
+    path("book/<int:book_id>/original/asset/", get_epub_asset, name="get_epub_asset"),
     path("audio/books", aggregated_audio_segments, name="aggregated_audio_segments"),
     path(
         "audio/book-details/<int:book_id>/", book_details_htmx, name="book_details_htmx"

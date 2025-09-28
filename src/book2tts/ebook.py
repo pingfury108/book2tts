@@ -42,19 +42,29 @@ def get_content_with_href(book, href: str):
                 for a in soup.find_all("a"):
                     a.decompose()
                     
-                texts = soup.get_text("\n", strip=True)
-                
-                # texts = "\n".join([p.text for p in p_tags])
-                texts = "\n".join(
-                    list(
-                        map(
-                            lambda s: s.replace(" ", "").replace("\xa0", ""),
-                            texts.split("\n"),
-                        )
-                    )
-                )
-                
-                return texts
+                texts = soup.get_text("\n", strip=False)
+                lines = [line.rstrip() for line in texts.splitlines()]
+
+                while lines and not lines[0].strip():
+                    lines.pop(0)
+                while lines and not lines[-1].strip():
+                    lines.pop()
+
+                normalized_lines = []
+                blank_pending = False
+                for line in lines:
+                    if line.strip():
+                        if blank_pending and normalized_lines:
+                            normalized_lines.append('')
+                        blank_pending = False
+                        normalized_lines.append(line)
+                    else:
+                        blank_pending = True
+
+                if blank_pending and normalized_lines:
+                    normalized_lines.append('')
+
+                return "\n".join(normalized_lines)
             except Exception as e:
                 return f"Error extracting content: {str(e)}"
         else:

@@ -42,6 +42,10 @@
                             </svg>
                             查看原图
                         </button>
+                        <button class="btn btn-xs btn-outline" id="view-original-btn" title="查看原始内容">
+                            <i class="fas fa-eye"></i>
+                            查看原文
+                        </button>
                     </div>
                     <div class="flex gap-2">
                         <button class="btn btn-xs btn-outline" id="format-text-btn">自动排版</button>
@@ -203,8 +207,31 @@
     <div class="modal-action">
       <button class="btn" onclick="document.getElementById('page-image-modal').classList.remove('modal-open')">关闭</button>
     </div>
+</div>
+<div class="modal-backdrop" onclick="document.getElementById('page-image-modal').classList.remove('modal-open')"></div>
+</div>
+
+<!-- 原始内容查看模态框 -->
+<div id="original-content-modal" class="modal">
+  <div class="modal-box max-w-6xl w-[96vw] max-h-[92vh] overflow-hidden">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="font-bold text-lg" id="original-modal-title">原始内容</h3>
+      <button class="btn btn-sm btn-circle btn-ghost" id="close-original-modal">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div id="original-content-container" class="bg-base-200 border border-base-300 rounded-lg overflow-hidden">
+      <div id="original-content-loading" class="flex justify-center items-center h-48" style="display:none;">
+        <span class="loading loading-spinner loading-lg"></span>
+      </div>
+      <div id="original-content-error" class="alert alert-error m-4" style="display:none;"></div>
+      <div id="original-content-body" class="space-y-4" style="display:none;"></div>
+    </div>
+    <div class="modal-action hidden">
+      <button class="btn" id="dismiss-original-modal">关闭</button>
+    </div>
   </div>
-  <div class="modal-backdrop" onclick="document.getElementById('page-image-modal').classList.remove('modal-open')"></div>
+  <div class="modal-backdrop" id="original-modal-backdrop"></div>
 </div>
 
 <!-- 微信二维码模态框 -->
@@ -442,7 +469,10 @@ function setupRightPanelTabs() {
  window.activeTab = window.activeTab || 'tab_toc'; // Track which tab is currently active
  window.currentAudioSegmentId = window.currentAudioSegmentId || 0;
 window.currentBookPdfType = window.currentBookPdfType || 'unknown'; // Track book PDF type
+window.currentBookFileType = window.currentBookFileType || '';
+window.currentBookFileUrl = window.currentBookFileUrl || '';
 window.currentSelectedPages = window.currentSelectedPages || []; // Track selected pages for multi-page viewing
+window.currentSelectedContentIds = window.currentSelectedContentIds || [];
 
  // Tab switching
  $(document).ready(function() {
@@ -1356,6 +1386,254 @@ function handleViewPageImage() {
   });
 }
 
+const ORIGINAL_MODAL_MAX_PDF_PAGES = 3;
+let originalModalEscHandlerBound = false;
+let currentPdfObjectUrl = null;
+
+function notifyUser(message, type = 'info') {
+  if (typeof showToast === 'function') {
+    showToast(message, type);
+  } else {
+    alert(message);
+  }
+}
+
+function prepareOriginalModal(title) {
+  const modalTitle = document.getElementById('original-modal-title');
+  const loadingEl = document.getElementById('original-content-loading');
+  const errorEl = document.getElementById('original-content-error');
+  const bodyEl = document.getElementById('original-content-body');
+
+  if (modalTitle && title) {
+    modalTitle.textContent = title;
+  }
+  if (loadingEl) {
+    loadingEl.style.display = 'flex';
+  }
+  if (errorEl) {
+    errorEl.style.display = 'none';
+    errorEl.textContent = '';
+  }
+  if (bodyEl) {
+    bodyEl.style.display = 'none';
+    bodyEl.innerHTML = '';
+  }
+}
+
+function handleOriginalModalEsc(event) {
+  if (event.key === 'Escape') {
+    closeOriginalModal();
+  }
+}
+
+function openOriginalModal() {
+  const modal = document.getElementById('original-content-modal');
+  if (!modal) return;
+  modal.classList.add('modal-open');
+  if (!originalModalEscHandlerBound) {
+    document.addEventListener('keydown', handleOriginalModalEsc);
+    originalModalEscHandlerBound = true;
+  }
+}
+
+function closeOriginalModal() {
+  const modal = document.getElementById('original-content-modal');
+  const loadingEl = document.getElementById('original-content-loading');
+  const errorEl = document.getElementById('original-content-error');
+  const bodyEl = document.getElementById('original-content-body');
+  if (modal) {
+    modal.classList.remove('modal-open');
+  }
+  if (loadingEl) {
+    loadingEl.style.display = 'none';
+  }
+  if (errorEl) {
+    errorEl.style.display = 'none';
+    errorEl.textContent = '';
+  }
+  if (bodyEl) {
+    bodyEl.style.display = 'none';
+    bodyEl.innerHTML = '';
+    if (currentPdfObjectUrl) {
+      URL.revokeObjectURL(currentPdfObjectUrl);
+      currentPdfObjectUrl = null;
+    }
+  }
+  if (originalModalEscHandlerBound) {
+    document.removeEventListener('keydown', handleOriginalModalEsc);
+    originalModalEscHandlerBound = false;
+  }
+}
+
+function showOriginalError(message) {
+  const loadingEl = document.getElementById('original-content-loading');
+  const errorEl = document.getElementById('original-content-error');
+  const bodyEl = document.getElementById('original-content-body');
+  if (loadingEl) {
+    loadingEl.style.display = 'none';
+  }
+  if (bodyEl) {
+    bodyEl.style.display = 'none';
+    bodyEl.innerHTML = '';
+  }
+  if (errorEl) {
+    errorEl.style.display = 'block';
+    errorEl.textContent = message;
+  }
+}
+
+function showOriginalContent(renderCallback) {
+  const loadingEl = document.getElementById('original-content-loading');
+  const errorEl = document.getElementById('original-content-error');
+  const bodyEl = document.getElementById('original-content-body');
+  if (!bodyEl) return;
+
+  if (loadingEl) {
+    loadingEl.style.display = 'none';
+  }
+  if (errorEl) {
+    errorEl.style.display = 'none';
+    errorEl.textContent = '';
+  }
+
+  bodyEl.style.display = 'block';
+  bodyEl.innerHTML = '';
+  if (typeof renderCallback === 'function') {
+    renderCallback(bodyEl);
+  }
+}
+
+async function renderPdfOriginalContent(pageIds) {
+  const normalizedPages = Array.from(new Set((pageIds || []).map(p => parseInt(p, 10)).filter(num => !isNaN(num) && num >= 0))).sort((a, b) => a - b);
+
+  if (normalizedPages.length === 0) {
+    showOriginalError('请先选择要查看的页码');
+    return;
+  }
+
+  if (!window.currentBookFileUrl) {
+    showOriginalError('无法定位原始PDF文件');
+    return;
+  }
+
+  try {
+    if (currentPdfObjectUrl) {
+      URL.revokeObjectURL(currentPdfObjectUrl);
+      currentPdfObjectUrl = null;
+    }
+
+    const response = await fetch(window.currentBookFileUrl, {
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      throw new Error(`加载PDF失败：${response.status}`);
+    }
+
+    const pdfBlob = await response.blob();
+    currentPdfObjectUrl = URL.createObjectURL(pdfBlob);
+
+    showOriginalContent(bodyEl => {
+      const previewPages = normalizedPages.slice(0, ORIGINAL_MODAL_MAX_PDF_PAGES);
+      const displayPages = previewPages.map(page => page + 1);
+      if (normalizedPages.length > ORIGINAL_MODAL_MAX_PDF_PAGES) {
+        const hint = document.createElement('div');
+        hint.className = 'px-4 pt-4 text-xs text-base-content/60';
+        hint.textContent = `本窗口预览第 ${displayPages.join('、')} 页，剩余 ${normalizedPages.length - ORIGINAL_MODAL_MAX_PDF_PAGES} 页可在新标签查看。`;
+        bodyEl.appendChild(hint);
+      }
+
+      previewPages.forEach(pageNumber => {
+        const displayPage = pageNumber + 1;
+        const wrapper = document.createElement('div');
+
+        const iframe = document.createElement('iframe');
+        iframe.className = 'w-full h-[70vh] rounded border border-base-300 bg-base-100';
+        iframe.setAttribute('loading', 'lazy');
+        iframe.setAttribute('title', `第 ${displayPage} 页原文`);
+        iframe.src = `${currentPdfObjectUrl}#page=${encodeURIComponent(displayPage)}`;
+        wrapper.appendChild(iframe);
+
+        const actions = document.createElement('div');
+        actions.className = 'flex justify-end';
+        const openLink = document.createElement('a');
+        openLink.href = `${window.currentBookFileUrl}#page=${encodeURIComponent(displayPage)}`;
+        openLink.target = '_blank';
+        openLink.rel = 'noopener';
+        openLink.className = 'link link-secondary text-sm';
+        openLink.textContent = '新标签打开';
+        actions.appendChild(openLink);
+        wrapper.appendChild(actions);
+
+        bodyEl.appendChild(wrapper);
+      });
+    });
+  } catch (error) {
+    console.error('[OriginalContent] PDF 加载失败:', error);
+    showOriginalError(error.message || '加载原始PDF失败');
+  }
+}
+
+async function fetchEpubOriginalContent(contentIds) {
+  const endpoint = `{% url 'get_original_content' book_id=book_id %}`;
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: JSON.stringify({ content_ids: contentIds })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || data.status !== 'success') {
+      throw new Error(data.message || '获取原始内容失败');
+    }
+
+    showOriginalContent(bodyEl => {
+      const iframe = document.createElement('iframe');
+      iframe.className = 'w-full h-[60vh] bg-base-100';
+      iframe.setAttribute('loading', 'lazy');
+      iframe.setAttribute('sandbox', 'allow-same-origin');
+      iframe.srcdoc = data.html || '<div style="padding:1rem;">暂无原始内容</div>';
+      bodyEl.appendChild(iframe);
+    });
+  } catch (error) {
+    console.error('[OriginalContent] 获取失败:', error);
+    showOriginalError(error.message || '获取原始内容失败');
+  }
+}
+
+function handleViewOriginalContent() {
+  const fileType = (window.currentBookFileType || '').toLowerCase();
+  let contentIds = Array.isArray(window.currentSelectedContentIds) ? window.currentSelectedContentIds.slice() : [];
+  if (!contentIds.length && window.currentPageId) {
+    contentIds = [window.currentPageId];
+  }
+
+  if (!contentIds.length) {
+    notifyUser('请先选择章节或页面', 'warning');
+    return;
+  }
+
+  if (fileType === '.pdf') {
+    prepareOriginalModal('原始PDF页面');
+    openOriginalModal();
+    const pages = Array.isArray(window.currentSelectedPages) && window.currentSelectedPages.length
+      ? window.currentSelectedPages
+      : contentIds;
+    renderPdfOriginalContent(pages);
+  } else if (fileType === '.epub') {
+    prepareOriginalModal('原始章节内容');
+    openOriginalModal();
+    fetchEpubOriginalContent(contentIds);
+  } else {
+    notifyUser('当前格式暂不支持原文查看', 'warning');
+  }
+}
+
 // 全屏查看单个图片
 function openImageFullscreen(imageData, title) {
   const fullscreenModal = document.createElement('div');
@@ -1394,20 +1672,33 @@ function openImageFullscreen(imageData, title) {
 
 // 解析PDF页码范围的简单函数
 function parsePdfPageIds(href) {
-  const pageIds = [];
-  if (!href) return pageIds;
-  
-  // PDF格式：start-end 或单页
+  const normalizedIds = [];
+  if (!href) return normalizedIds;
+
+  const addId = (value) => {
+    const num = parseInt(value, 10);
+    if (isNaN(num)) return;
+    const zeroBased = Math.max(num - 1, 0);
+    normalizedIds.push(zeroBased.toString());
+  };
+
   if (href.includes('-')) {
-    const [start, end] = href.split('-').map(num => parseInt(num));
-    for (let i = start; i <= end; i++) {
-      pageIds.push(i.toString());
+    const [startStr, endStr] = href.split('-', 2);
+    const start = parseInt(startStr, 10);
+    const end = parseInt(endStr, 10);
+    if (!isNaN(start)) {
+      const finalEnd = !isNaN(end) ? end : start;
+      const rangeStart = Math.max(Math.min(start, finalEnd), 1);
+      const rangeEnd = Math.max(start, finalEnd);
+      for (let i = rangeStart; i <= rangeEnd; i++) {
+        addId(i);
+      }
     }
   } else {
-    pageIds.push(href.toString());
+    addId(href);
   }
-  
-  return pageIds;
+
+  return normalizedIds;
 }
 
 // 检查页面音频状态
@@ -1559,7 +1850,7 @@ window.updateBookPdfType = function(pdfType) {
 };
 
 // 全局函数，供TOC和pages组件调用来更新当前页面状态
-window.updateCurrentPageState = function(pageId, pageName, pdfType, selectedPages) {
+window.updateCurrentPageState = function(pageId, pageName, pdfType, selectedPages, contentIds) {
   window.currentPageId = pageId;
   window.currentPageName = pageName;
   if (pdfType) {
@@ -1571,6 +1862,14 @@ window.updateCurrentPageState = function(pageId, pageName, pdfType, selectedPage
     window.currentSelectedPages = selectedPages;
   } else {
     window.currentSelectedPages = pageId ? [pageId] : [];
+  }
+  
+  if (contentIds && Array.isArray(contentIds)) {
+    window.currentSelectedContentIds = contentIds;
+  } else if (selectedPages && Array.isArray(selectedPages)) {
+    window.currentSelectedContentIds = selectedPages;
+  } else {
+    window.currentSelectedContentIds = pageId ? [pageId] : [];
   }
   
   showPageImageButton();
@@ -1586,9 +1885,32 @@ $(document).ready(function() {
   if (viewImageBtn) {
     viewImageBtn.addEventListener('click', handleViewPageImage);
   }
+  const viewOriginalBtn = document.getElementById('view-original-btn');
+  if (viewOriginalBtn) {
+    viewOriginalBtn.addEventListener('click', handleViewOriginalContent);
+  }
+
+  const closeOriginalModalBtn = document.getElementById('close-original-modal');
+  if (closeOriginalModalBtn) {
+    closeOriginalModalBtn.addEventListener('click', closeOriginalModal);
+  }
+
+  const dismissOriginalModalBtn = document.getElementById('dismiss-original-modal');
+  if (dismissOriginalModalBtn) {
+    dismissOriginalModalBtn.addEventListener('click', closeOriginalModal);
+  }
+
+  const originalBackdrop = document.getElementById('original-modal-backdrop');
+  if (originalBackdrop) {
+    originalBackdrop.addEventListener('click', closeOriginalModal);
+  }
   
   // 设置初始的PDF类型（从Django模板传递）
   {% if book %}
+    window.currentBookFileType = ('{{ book.file_type|default:"" }}' || '').toLowerCase();
+    {% if book.file %}
+      window.currentBookFileUrl = '{{ book.file.url|escapejs }}';
+    {% endif %}
     window.currentBookPdfType = '{{ book.pdf_type|default:"unknown" }}';
     showPageImageButton();
   {% endif %}

@@ -1,3 +1,5 @@
+import json
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
@@ -15,6 +17,9 @@ from book2tts.pdf import open_pdf, detect_scanned_pdf, get_page_image_data
 from ..utils.ocr_utils import perform_ocr_with_cache
 from home.models import UserQuota, OperationRecord
 from ebooklib import epub
+from bs4 import BeautifulSoup
+from urllib.parse import quote
+import posixpath
 
 
 def check_and_deduct_points_for_ocr(user, num_images, auto_ocr=False):
@@ -933,6 +938,233 @@ def text_by_page(request, book_id):
     
     # Return JSON response
     return JsonResponse(response_data)
+
+
+@login_required
+@require_http_methods(["POST"])
+def get_original_content(request, book_id):
+    """Return original EPUB HTML or PDF page references for the selected content."""
+    book = get_object_or_404(Books, pk=book_id)
+
+    # 权限校验：仅限书籍所有者或管理员
+    if book.user and book.user != request.user and not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({
+            'status': 'error',
+            'message': '您没有权限查看该书籍的原始内容'
+        }, status=403)
+
+    # 解析请求体
+    try:
+        payload = json.loads(request.body.decode('utf-8')) if request.body else {}
+    except json.JSONDecodeError:
+        payload = request.POST
+
+    content_ids = payload.get('content_ids') or payload.get('ids') or []
+    if isinstance(content_ids, str):
+        content_ids = [content_ids]
+    if hasattr(request, 'POST') and not content_ids:
+        post_list = request.POST.getlist('content_ids[]')
+        if post_list:
+            content_ids = post_list
+
+    flattened_ids = []
+    for identifier in content_ids:
+        if not identifier:
+            continue
+        if isinstance(identifier, (list, tuple)):
+            flattened_ids.extend(str(item).strip() for item in identifier if str(item).strip())
+        else:
+            ident_str = str(identifier).strip()
+            if not ident_str:
+                continue
+            if ',' in ident_str:
+                flattened_ids.extend(part.strip() for part in ident_str.split(',') if part.strip())
+            else:
+                flattened_ids.append(ident_str)
+
+    if not flattened_ids:
+        return JsonResponse({
+            'status': 'error',
+            'message': '请选择要查看的章节或页面'
+        }, status=400)
+
+    file_type = (book.file_type or '').lower()
+
+    if file_type == '.pdf':
+        pages = []
+        for identifier in flattened_ids:
+            ident_str = str(identifier)
+            try:
+                if '-' in ident_str:
+                    start_str, end_str = ident_str.split('-', 1)
+                    start = int(start_str)
+                    end = int(end_str) if end_str else start
+                    if start > end:
+                        start, end = end, start
+                    for page_num in range(start, end + 1):
+                        if page_num > 0:
+                            pages.append(page_num)
+                else:
+                    page_num = int(ident_str)
+                    if page_num > 0:
+                        pages.append(page_num)
+            except (ValueError, TypeError):
+                continue
+
+        if not pages:
+            return JsonResponse({
+                'status': 'error',
+                'message': '未找到有效的页码'
+            }, status=400)
+
+        unique_pages = sorted(set(pages))
+        return JsonResponse({
+            'status': 'success',
+            'type': 'pdf',
+            'pages': unique_pages,
+            'page_count': len(unique_pages),
+            'file_url': book.file.url if book.file else ''
+        })
+
+    if file_type == '.epub':
+        try:
+            ebook = open_ebook(book.file.path)
+        except Exception as exc:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'加载书籍失败: {exc}'
+            }, status=500)
+
+        html_segments = []
+        seen_sources = set()
+
+        for identifier in flattened_ids:
+            if not identifier:
+                continue
+
+            base_identifier = identifier.split('#')[0]
+            candidates = [base_identifier]
+            if '_' in base_identifier:
+                candidates.append(base_identifier.replace('_', '/'))
+
+            content_found = False
+            for candidate in candidates:
+                candidate = candidate.strip()
+                if not candidate or candidate in seen_sources:
+                    continue
+                try:
+                    item = ebook.get_item_with_href(candidate)
+                except KeyError:
+                    item = None
+
+                if item:
+                    try:
+                        raw_content = item.get_content()
+                        if isinstance(raw_content, bytes):
+                            html = raw_content.decode('utf-8', errors='ignore')
+                        else:
+                            html = raw_content
+
+                        soup = BeautifulSoup(html, 'html.parser')
+
+                        for img in soup.find_all('img'):
+                            src = img.get('src')
+                            if not src or src.startswith('data:') or src.startswith('http'):
+                                continue
+
+                            base_dir = posixpath.dirname(candidate)
+                            normalized_src = posixpath.normpath(posixpath.join(base_dir, src)) if base_dir else src
+
+                            asset_href = None
+                            try:
+                                ebook.get_item_with_href(normalized_src)
+                                asset_href = normalized_src
+                            except KeyError:
+                                try:
+                                    ebook.get_item_with_href(src)
+                                    asset_href = src
+                                except KeyError:
+                                    continue
+
+                            asset_url = f"{reverse('get_epub_asset', args=[book_id])}?href={quote(asset_href)}"
+                            img['src'] = asset_url
+
+                        html_segments.append(f'<article data-source="{candidate}">{soup.decode()}</article>')
+                        seen_sources.add(candidate)
+                        content_found = True
+                        break
+                    except Exception:
+                        continue
+
+            if not content_found:
+                fallback_id = base_identifier.replace('_', '/')
+                try:
+                    fallback_html = get_content_with_href(ebook, fallback_id)
+                    if fallback_html and fallback_id not in seen_sources:
+                        html_segments.append(
+                            f'<article data-source="{fallback_id}"><pre>{fallback_html}</pre></article>'
+                        )
+                        seen_sources.add(fallback_id)
+                except Exception:
+                    continue
+
+        if not html_segments:
+            return JsonResponse({
+                'status': 'error',
+                'message': '未能获取原始章节内容'
+            }, status=404)
+
+        combined_html = ''.join(html_segments)
+        return JsonResponse({
+            'status': 'success',
+            'type': 'epub',
+            'html': combined_html,
+            'segment_count': len(html_segments)
+        })
+
+    return JsonResponse({
+        'status': 'error',
+        'message': '当前格式暂不支持原文查看'
+    }, status=400)
+
+
+@login_required
+@require_http_methods(["GET"])
+def get_epub_asset(request, book_id):
+    book = get_object_or_404(Books, pk=book_id)
+
+    if book.user and book.user != request.user and not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'status': 'error', 'message': '您没有权限访问该资源'}, status=403)
+
+    if book.file_type != '.epub':
+        return JsonResponse({'status': 'error', 'message': '当前书籍不是 EPUB 格式'}, status=400)
+
+    href = request.GET.get('href') or request.GET.get('path')
+    if not href:
+        return JsonResponse({'status': 'error', 'message': '缺少资源路径参数'}, status=400)
+
+    try:
+        ebook = open_ebook(book.file.path)
+    except Exception as exc:
+        return JsonResponse({'status': 'error', 'message': f'加载书籍失败: {exc}'}, status=500)
+
+    normalized_href = href.lstrip('/')
+
+    try:
+        item = ebook.get_item_with_href(normalized_href)
+    except KeyError:
+        try:
+            item = ebook.get_item_with_href(href)
+        except KeyError:
+            return JsonResponse({'status': 'error', 'message': '资源未找到'}, status=404)
+
+    try:
+        content = item.get_content()
+    except Exception as exc:
+        return JsonResponse({'status': 'error', 'message': f'读取资源失败: {exc}'}, status=500)
+
+    content_type = getattr(item, 'media_type', '') or 'application/octet-stream'
+    return HttpResponse(content, content_type=content_type)
 
 
 @login_required

@@ -278,7 +278,8 @@
         
         // Update current page state and PDF type for image viewing
         if (typeof window.updateCurrentPageState === 'function') {
-          window.updateCurrentPageState(window.currentPageId, window.currentPageName, null, [window.currentPageId.toString()]);
+          const pageIdStr = window.currentPageId.toString();
+          window.updateCurrentPageState(window.currentPageId, window.currentPageName, null, [pageIdStr], [pageIdStr]);
         }
         
         // Update audio title placeholder
@@ -303,6 +304,7 @@
               window.currentPageId, 
               `${firstPageName} 等${selectedPages.length}页`, 
               null, 
+              selectedPages.map(p => p.toString()),
               selectedPages.map(p => p.toString())
             );
           }

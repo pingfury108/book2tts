@@ -337,12 +337,13 @@ $(document).ready(function() {
             });
             
             // Update current page state for image viewing
-            if (typeof window.updateCurrentPageState === 'function') {
-              window.updateCurrentPageState(
+           if (typeof window.updateCurrentPageState === 'function') {
+             window.updateCurrentPageState(
                 window.currentPageId, 
                 window.currentPageName, 
                 null, // 不改变PDF类型
-                allSelectedPages // 传递所有页码
+                allSelectedPages, // 传递所有页码
+                sortedSelectedItems
               );
             }
             
