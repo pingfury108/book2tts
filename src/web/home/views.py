@@ -34,7 +34,7 @@ def index(request):
     else:
         # 未登录用户：显示所有已发布的音频（跳过无关联书籍的对话脚本）
         all_audio_items = get_unified_audio_content(published_only=True)
-        display_title = 'Book2TTS 公开音频'
+        display_title = '公开的音频作品'
     
     # 添加分页
     page = request.GET.get('page', 1)

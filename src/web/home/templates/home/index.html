@@ -19,143 +19,216 @@
         </div>
       </div>
     </div>
+  {% else %}
+    <!-- 未登录状态的美化主页 - 匹配截图样式 -->
+    {% include "home/_guest_hero.html" %}
+  {% endif %}
 
-    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
-      <div class="flex flex-col sm:flex-row sm:items-center gap-2">
-        <h2 class="text-xl sm:text-2xl font-bold">{% if display_title %}{{ display_title }}{% else %}我的音频作品{% endif %}</h2>
-        <div class="flex items-center gap-3">
-          {% if user.is_authenticated and user.profile.rss_token %}
-          <a href="{% url 'token_audio_rss_feed' token=user.profile.rss_token|stringformat:'s' %}" class="flex items-center gap-1 text-xs sm:text-sm text-purple-700" title="个人 RSS 订阅">
-            <i class="fas fa-rss text-sm sm:text-base"></i>
-            全部RSS
-          </a>
-          {% endif %}
-          {% if book and user.profile.rss_token %}
-          <a href="{% url 'token_book_audio_rss_feed' token=user.profile.rss_token|stringformat:'s' book_id=book.id %}" class="flex items-center gap-1 text-xs sm:text-sm text-purple-700" title="此书的 RSS 订阅">
-            <i class="fas fa-rss text-sm sm:text-base"></i>
-            此书RSS
-          </a>
-          {% endif %}
-        </div>
+  <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
+    <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+      <h2 class="text-xl sm:text-2xl font-bold">{% if display_title %}{{ display_title }}{% else %}我的音频作品{% endif %}</h2>
+      <div class="flex items-center gap-3">
+        {% if user.is_authenticated and user.profile.rss_token %}
+        <a href="{% url 'token_audio_rss_feed' token=user.profile.rss_token|stringformat:'s' %}" class="flex items-center gap-1 text-xs sm:text-sm text-purple-700" title="个人 RSS 订阅">
+          <i class="fas fa-rss text-sm sm:text-base"></i>
+          全部RSS
+        </a>
+        {% endif %}
+        {% if user.is_authenticated and book and user.profile.rss_token %}
+        <a href="{% url 'token_book_audio_rss_feed' token=user.profile.rss_token|stringformat:'s' book_id=book.id %}" class="flex items-center gap-1 text-xs sm:text-sm text-purple-700" title="此书的 RSS 订阅">
+          <i class="fas fa-rss text-sm sm:text-base"></i>
+          此书RSS
+        </a>
+        {% endif %}
       </div>
-      {% if display_title %}
-        <a href="{% url 'home' %}" class="btn btn-sm border-purple-700 text-purple-700 hover:bg-purple-100 hover:border-purple-800 self-start sm:self-auto">返回全部</a>
-      {% endif %}
     </div>
-    
-    <!-- 音频列表区域 -->
-    {% if audio_segments %}
-      {% if audio_segments.object_list %}
+    {% if display_title and user.is_authenticated %}
+      <a href="{% url 'home' %}" class="btn btn-sm border-purple-700 text-purple-700 hover:bg-purple-100 hover:border-purple-800 self-start sm:self-auto">返回全部</a>
+    {% elif display_title and book %}
+      <a href="{% url 'home' %}" class="btn btn-sm border-purple-700 text-purple-700 hover:bg-purple-100 hover:border-purple-800 self-start sm:self-auto">返回全部</a>
+    {% endif %}
+  </div>
+  
+  <!-- 音频列表区域 -->
+  {% if audio_segments %}
+    {% if audio_segments.object_list %}
+      {% if user.is_authenticated %}
         <div class="flex flex-col gap-4">
           {% for segment in audio_segments %}
-            <div class="flex flex-col sm:flex-row items-start bg-base-100 p-3 sm:p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300">
-              <!-- 移动端：顶部区域包含图标和按钮 -->
-              <div class="flex sm:hidden w-full items-center justify-between mb-3">
-                <!-- 左侧封面图 - 移动端尺寸 -->
-                <div class="w-16 h-16 bg-purple-600 rounded-full flex-shrink-0 flex items-center justify-center">
-                  <i class="fas fa-music text-white text-2xl"></i>
+              <div class="flex flex-col sm:flex-row items-start bg-base-100 p-3 sm:p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300">
+                <!-- 移动端：顶部区域包含图标和按钮 -->
+                <div class="flex sm:hidden w-full items-center justify-between mb-3">
+                  <!-- 左侧封面图 - 移动端尺寸 -->
+                  <div class="w-16 h-16 bg-purple-600 rounded-full flex-shrink-0 flex items-center justify-center">
+                    <i class="fas fa-music text-white text-2xl"></i>
+                  </div>
+                  
+                  <!-- 右侧按钮 - 移动端水平排列 -->
+                  <div class="flex items-center gap-2">
+                    <a href="{% url 'audio_detail' segment.id %}" class="btn btn-xs sm:btn-sm border-purple-700 text-purple-700 hover:bg-purple-100">
+                      详情
+                    </a>
+                    
+                    <!-- 字幕功能按钮 - 移动端 -->
+                    {% if segment.subtitle_file %}
+                    <div class="dropdown dropdown-end">
+                      <div tabindex="0" role="button" class="btn btn-xs btn-outline btn-secondary">
+                        <i class="fas fa-closed-captioning"></i>
+                      </div>
+                      <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-[1] w-32 p-2 shadow">
+                        <li><a href="{{ segment.subtitle_file.url }}" download><i class="fas fa-download"></i>下载</a></li>
+                        <li><a href="#" class="view-subtitles" data-segment-id="{{ segment.id }}" data-subtitle-url="{{ segment.subtitle_file.url }}"><i class="fas fa-eye"></i>查看</a></li>
+                      </ul>
+                    </div>
+                    {% endif %}
+                    
+                    <button 
+                      class="btn btn-circle bg-purple-700 hover:bg-purple-800 border-none text-white btn-sm play-audio-btn hover:scale-105 transition-transform" 
+                      data-audio-url="{{ segment.file_url }}"
+                      data-audio-title="{{ segment.title }}"
+                      data-subtitle-url="{% if segment.subtitle_file %}{{ segment.subtitle_file.url }}{% endif %}"
+                    >
+                      <i class="fas fa-play text-white"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 桌面端：左侧封面图 -->
+                <div class="hidden sm:flex w-20 h-20 lg:w-24 lg:h-24 bg-purple-600 rounded-full flex-shrink-0 items-center justify-center">
+                  <i class="fas fa-music text-white text-2xl lg:text-3xl"></i>
                 </div>
                 
-                <!-- 右侧按钮 - 移动端水平排列 -->
-                <div class="flex items-center gap-2">
-                  <a href="{% url 'audio_detail' segment.id %}" class="btn btn-xs sm:btn-sm border-purple-700 text-purple-700 hover:bg-purple-100">
+                <!-- 中间内容区 -->
+                <div class="flex-grow sm:mx-4 w-full sm:w-auto">
+                  <!-- 标题行 -->
+                  <div class="mb-2">
+                    <div class="flex items-center gap-2 mb-1">
+                      {% if segment.book %}
+                      <a href="{% url 'book_audio_list' segment.book.id %}" class="inline-block px-2 py-1 bg-purple-600 text-white text-xs sm:text-sm rounded-md hover:bg-purple-700 transition-colors duration-300">{{ segment.book.name }}</a>
+                      {% endif %}
+                    </div>
+                    <h3 class="text-lg sm:text-xl font-bold text-gray-900 leading-tight">{{ segment.title }}</h3>
+                  </div>
+                  
+                  <!-- 信息行 -->
+                  <div class="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-opacity-70 text-base-content mb-2">
+                    <div class="flex items-center">
+                      <i class="fas fa-calendar-alt text-xs sm:text-sm mr-1"></i>
+                      {{ segment.updated_at|date:"Y-m-d H:i" }}
+                    </div>
+                  </div>
+                  
+                  <!-- 内容预览 -->
+                  <p class="text-xs sm:text-sm text-base-content opacity-80 line-clamp-2 sm:line-clamp-1 leading-relaxed">
+                    {{ segment.text|truncatechars:100 }}
+                  </p>
+                </div>
+                
+                <!-- 桌面端：右侧按钮 -->
+                <div class="hidden sm:flex flex-col gap-2">
+                  <a href="{% url 'audio_detail' segment.id %}" class="btn btn-sm border-purple-700 text-purple-700 hover:bg-purple-100">
                     详情
                   </a>
                   
-                  <!-- 字幕功能按钮 - 移动端 -->
+                  <!-- 字幕功能按钮 - 桌面端 -->
                   {% if segment.subtitle_file %}
-                  <div class="dropdown dropdown-end">
-                    <div tabindex="0" role="button" class="btn btn-xs btn-outline btn-secondary">
+                  <div class="flex gap-1">
+                    <a href="{{ segment.subtitle_file.url }}" class="btn btn-sm btn-outline btn-secondary" download title="下载字幕">
+                      <i class="fas fa-download"></i>
+                    </a>
+                    <button class="btn btn-sm btn-outline btn-secondary view-subtitles" 
+                            data-segment-id="{{ segment.id }}" 
+                            data-subtitle-url="{{ segment.subtitle_file.url }}" 
+                            title="查看字幕">
                       <i class="fas fa-closed-captioning"></i>
-                    </div>
-                    <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-[1] w-32 p-2 shadow">
-                      <li><a href="{{ segment.subtitle_file.url }}" download><i class="fas fa-download"></i>下载</a></li>
-                      <li><a href="#" class="view-subtitles" data-segment-id="{{ segment.id }}" data-subtitle-url="{{ segment.subtitle_file.url }}"><i class="fas fa-eye"></i>查看</a></li>
-                    </ul>
+                    </button>
                   </div>
                   {% endif %}
                   
                   <button 
-                    class="btn btn-circle bg-purple-700 hover:bg-purple-800 border-none text-white btn-sm play-audio-btn hover:scale-105 transition-transform" 
+                    class="btn btn-circle bg-purple-700 hover:bg-purple-800 border-none text-white btn-lg play-audio-btn hover:scale-105 transition-transform" 
                     data-audio-url="{{ segment.file_url }}"
                     data-audio-title="{{ segment.title }}"
                     data-subtitle-url="{% if segment.subtitle_file %}{{ segment.subtitle_file.url }}{% endif %}"
                   >
-                    <i class="fas fa-play text-white"></i>
+                    <i class="fas fa-play text-white text-2xl"></i>
                   </button>
                 </div>
               </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {% for segment in audio_segments %}
+            <div class="card bg-base-100 border border-base-200 shadow-lg hover:shadow-xl transition-transform duration-200 hover:-translate-y-1">
+              <div class="card-body gap-4">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-purple-600 to-purple-800 flex items-center justify-center text-white">
+                      <i class="fas fa-headphones text-lg"></i>
+                    </div>
+                    <div class="flex flex-col">
+                      {% if segment.book %}
+                        <a href="{% url 'book_audio_list' segment.book.id %}"
+                           class="badge badge-primary badge-outline text-xs sm:text-sm whitespace-nowrap">{{ segment.book.name }}</a>
+                      {% else %}
+                        <span class="badge badge-outline text-xs sm:text-sm">独立片段</span>
+                      {% endif %}
+                      <span class="text-xs text-base-content/60 mt-1 flex items-center gap-1">
+                        <i class="fas fa-calendar-alt"></i>
+                        {{ segment.updated_at|date:"Y-m-d H:i" }}
+                      </span>
+                    </div>
+                  </div>
+                  <button 
+                    class="btn btn-sm btn-circle bg-purple-700 hover:bg-purple-800 border-none text-white play-audio-btn" 
+                    title="播放"
+                    data-audio-url="{{ segment.file_url }}"
+                    data-audio-title="{{ segment.title }}"
+                    data-subtitle-url="{% if segment.subtitle_file %}{{ segment.subtitle_file.url }}{% endif %}"
+                  >
+                    <i class="fas fa-play"></i>
+                  </button>
+                </div>
 
-              <!-- 桌面端：左侧封面图 -->
-              <div class="hidden sm:flex w-20 h-20 lg:w-24 lg:h-24 bg-purple-600 rounded-full flex-shrink-0 items-center justify-center">
-                <i class="fas fa-music text-white text-2xl lg:text-3xl"></i>
-              </div>
-              
-              <!-- 中间内容区 -->
-              <div class="flex-grow sm:mx-4 w-full sm:w-auto">
-                <!-- 标题行 -->
-                <div class="mb-2">
-                  <div class="flex items-center gap-2 mb-1">
-                    <a href="{% url 'book_audio_list' segment.book.id %}" class="inline-block px-2 py-1 bg-purple-600 text-white text-xs sm:text-sm rounded-md hover:bg-purple-700 transition-colors duration-300">{{ segment.book.name }}</a>
-                  </div>
-                  <h3 class="text-lg sm:text-xl font-bold text-gray-900 leading-tight">{{ segment.title }}</h3>
+                <div class="space-y-2">
+                  <h3 class="text-lg font-semibold text-base-content line-clamp-2 min-h-[3rem]">{{ segment.title }}</h3>
+                  <p class="text-sm text-base-content/80 line-clamp-3 min-h-[4.5rem]">
+                    {{ segment.text|truncatechars:180 }}
+                  </p>
                 </div>
-                
-                <!-- 信息行 -->
-                <div class="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-opacity-70 text-base-content mb-2">
-                  <div class="flex items-center">
-                    <i class="fas fa-calendar-alt text-xs sm:text-sm mr-1"></i>
-                    {{ segment.updated_at|date:"Y-m-d H:i" }}
-                  </div>
-                </div>
-                
-                <!-- 内容预览 -->
-                <p class="text-xs sm:text-sm text-base-content opacity-80 line-clamp-2 sm:line-clamp-1 leading-relaxed">
-                  {{ segment.text|truncatechars:100 }}
-                </p>
-              </div>
-              
-              <!-- 桌面端：右侧按钮 -->
-              <div class="hidden sm:flex flex-col gap-2">
-                <a href="{% url 'audio_detail' segment.id %}" class="btn btn-sm border-purple-700 text-purple-700 hover:bg-purple-100">
-                  详情
-                </a>
-                
-                <!-- 字幕功能按钮 - 桌面端 -->
-                {% if segment.subtitle_file %}
-                <div class="flex gap-1">
-                  <a href="{{ segment.subtitle_file.url }}" class="btn btn-sm btn-outline btn-secondary" download title="下载字幕">
-                    <i class="fas fa-download"></i>
+
+                <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-base-200">
+                  <a href="{% url 'audio_detail' segment.id %}"
+                     class="btn btn-sm btn-outline border-purple-700 text-purple-700 hover:bg-purple-100">
+                    详情
                   </a>
-                  <button class="btn btn-sm btn-outline btn-secondary view-subtitles" 
-                          data-segment-id="{{ segment.id }}" 
-                          data-subtitle-url="{{ segment.subtitle_file.url }}" 
-                          title="查看字幕">
-                    <i class="fas fa-closed-captioning"></i>
-                  </button>
+                  <div class="flex items-center gap-2">
+                    {% if segment.subtitle_file %}
+                      <a href="{{ segment.subtitle_file.url }}" class="btn btn-sm btn-ghost" download>
+                        <i class="fas fa-download mr-1"></i>字幕
+                      </a>
+                      <button class="btn btn-sm btn-ghost view-subtitles"
+                              data-segment-id="{{ segment.id }}"
+                              data-subtitle-url="{{ segment.subtitle_file.url }}">
+                        <i class="fas fa-closed-captioning mr-1"></i>查看
+                      </button>
+                    {% endif %}
+                  </div>
                 </div>
-                {% endif %}
-                
-                <button 
-                  class="btn btn-circle bg-purple-700 hover:bg-purple-800 border-none text-white btn-lg play-audio-btn hover:scale-105 transition-transform" 
-                  data-audio-url="{{ segment.file_url }}"
-                  data-audio-title="{{ segment.title }}"
-                  data-subtitle-url="{% if segment.subtitle_file %}{{ segment.subtitle_file.url }}{% endif %}"
-                >
-                  <i class="fas fa-play text-white text-2xl"></i>
-                </button>
               </div>
             </div>
           {% endfor %}
         </div>
-      {% else %}
-        <div class="alert alert-info shadow-lg">
-          <div>
-            <i class="fas fa-info-circle text-lg"></i>
-            <span>您还没有发布任何音频片段。</span>
-          </div>
-        </div>
       {% endif %}
+    {% else %}
+      <div class="alert alert-info shadow-lg">
+        <div>
+          <i class="fas fa-info-circle text-lg"></i>
+          <span>{% if user.is_authenticated %}您还没有发布任何音频片段。{% else %}暂时没有公开音频。{% endif %}</span>
+        </div>
+      </div>
+    {% endif %}
       
       <!-- 分页导航 - 只有有音频数据时才显示 -->
       {% if paginator %}
@@ -214,21 +287,6 @@
         </div>
       {% endif %}
     {% endif %}
-  {% else %}
-    <!-- 未登录状态的美化主页 - 匹配截图样式 -->
-    <div class="hero my-6">
-      <div class="hero-content text-center py-16">
-        <div class="max-w-md">
-          <h1 class="text-5xl font-bold mb-2">Book2TTS</h1>
-          <p class="py-6">将您喜爱的书籍转换为有声读物。上传、转换并聆听您的个人有声书库。</p>
-          <div class="flex justify-center gap-4">
-            <a href="{% url 'login' %}" class="btn btn-primary">登录</a>
-            <a href="{% url 'register' %}" class="btn btn-outline btn-primary">注册</a>
-          </div>
-        </div>
-      </div>
-    </div>
-  {% endif %}
 </div>
 
 <!-- 字幕查看模态窗口 -->
