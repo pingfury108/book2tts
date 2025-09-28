@@ -1,6 +1,6 @@
 {% load static tailwind_tags %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 
 <head>
     <title>{% block title %}Book2TTS - 文本转语音和有声书制作平台{% endblock %}</title>
@@ -19,6 +19,18 @@
     {% tailwind_css %}
     {% endif %}
     {% load static %}
+    <script>
+      (function() {
+        try {
+          const storedTheme = localStorage.getItem('theme');
+          const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          const theme = storedTheme || (prefersDark ? 'dark' : 'light');
+          document.documentElement.setAttribute('data-theme', theme);
+        } catch (err) {
+          console.warn('Theme initialization failed', err);
+        }
+      })();
+    </script>
     <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
     <!-- Font Awesome Local -->
     <link rel="stylesheet" href="{% static 'fontawesome-free-6.7.2-web/css/all.min.css' %}">
@@ -50,10 +62,7 @@
                         <a>有声书</a>
                         <ul class="p-2">
                             <li><a href="{% url 'aggregated_audio_segments' %}">成品</a></li>
-                            <li><a href="{% url 'task_queue' %}">队列</a></li>
-                            <li>
-                                <hr class="my-1">
-                            </li>
+                            <li><a href="{% url 'task_queue' %}">队列</a></li> 
                             <li><a href="{% url 'dialogue_list' %}">对话脚本</a></li>
                             <li><a href="{% url 'voice_roles_list' %}">音色角色</a></li>
                         </ul>
@@ -68,14 +77,11 @@
             <ul class="menu menu-horizontal px-1">
                 <li><a href="{% url 'index' %}">制作</a></li>
                 <li>
-                    <details>
+                    <details data-nav-details="audiobook">
                         <summary>有声书</summary>
                         <ul class="p-2 z-50 relative">
                             <li><a href="{% url 'aggregated_audio_segments' %}">成品</a></li>
-                            <li><a href="{% url 'task_queue' %}">队列</a></li>
-                            <li>
-                                <hr class="my-1">
-                            </li>
+                            <li><a href="{% url 'task_queue' %}">队列</a></li> 
                             <li><a href="{% url 'dialogue_list' %}">对话脚本</a></li>
                             <li><a href="{% url 'voice_roles_list' %}">音色角色</a></li>
                         </ul>
@@ -85,7 +91,13 @@
                 <li><a href="{% url 'about' %}">关于</a></li>
             </ul>
         </div>
-        <div class="navbar-end">
+        <div class="navbar-end gap-2">
+            <button id="theme-toggle"
+                    class="btn btn-ghost btn-circle"
+                    aria-label="切换主题"
+                    title="切换主题">
+                <i class="fas fa-sun" id="theme-toggle-icon"></i>
+            </button>
             <div class="dropdown dropdown-end">
                 <div tabindex="0" role="button" class="btn btn-ghost btn-circle avatar">
                     <div class="w-10 rounded-full">
@@ -188,6 +200,93 @@
 
     {% block script %}
     {% endblock %}
+
+    <!-- 主题切换脚本 -->
+    <script>
+      (function() {
+        const toggleBtn = document.getElementById('theme-toggle');
+        const icon = document.getElementById('theme-toggle-icon');
+        const themes = ['light', 'dark'];
+
+        function updateIcon(theme) {
+          if (!icon) return;
+          icon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+        }
+
+        function setTheme(theme, persist = true) {
+          document.documentElement.setAttribute('data-theme', theme);
+          updateIcon(theme);
+          if (persist) {
+            try {
+              localStorage.setItem('theme', theme);
+            } catch (err) {
+              console.warn('Failed to persist theme', err);
+            }
+          }
+        }
+
+        function getStoredTheme() {
+          try {
+            return localStorage.getItem('theme');
+          } catch (err) {
+            return null;
+          }
+        }
+
+        const storedTheme = getStoredTheme();
+        if (storedTheme) {
+          setTheme(storedTheme, false);
+        } else {
+          updateIcon(document.documentElement.getAttribute('data-theme') || 'light');
+        }
+
+        if (toggleBtn) {
+          toggleBtn.addEventListener('click', function() {
+            const current = document.documentElement.getAttribute('data-theme') || 'light';
+            const next = current === themes[0] ? themes[1] : themes[0];
+            setTheme(next);
+          });
+        }
+
+        if (window.matchMedia) {
+          const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+          mediaQuery.addEventListener('change', (event) => {
+            const stored = getStoredTheme();
+            if (stored) {
+              updateIcon(stored);
+              return;
+            }
+            setTheme(event.matches ? 'dark' : 'light', false);
+          });
+        }
+      })();
+    </script>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const details = document.querySelector('[data-nav-details="audiobook"]');
+        if (!details) {
+          return;
+        }
+
+        document.addEventListener('click', function(event) {
+          if (!details.open) {
+            return;
+          }
+          if (details.contains(event.target)) {
+            return;
+          }
+          details.open = false;
+        });
+
+        details.addEventListener('keydown', function(event) {
+          if (event.key === 'Escape' && details.open) {
+            details.open = false;
+            event.preventDefault();
+          }
+        });
+      });
+    </script>
 
     <!-- 全局音频播放器JavaScript -->
     <script>

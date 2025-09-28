@@ -6093,6 +6093,10 @@ details.collapse summary::-webkit-details-marker {
   height: calc(100% - 4rem);
 }
 
+.h-px {
+  height: 1px;
+}
+
 .max-h-32 {
   max-height: 8rem;
 }
@@ -6871,6 +6875,10 @@ details.collapse summary::-webkit-details-marker {
 
 .bg-primary\/10 {
   background-color: var(--fallback-p,oklch(var(--p)/0.1));
+}
+
+.bg-base-content\/20 {
+  background-color: var(--fallback-bc,oklch(var(--bc)/0.2));
 }
 
 .bg-opacity-10 {
