@@ -1728,11 +1728,25 @@ function parsePdfPageIds(href) {
 
 // 检查页面音频状态
 function checkPageAudioStatus(pageIds) {
-  if (!pageIds || pageIds.length === 0) {
+  let ids = Array.isArray(pageIds) ? pageIds.filter(id => id !== undefined && id !== null && id !== '') : [];
+
+  if (!ids.length && Array.isArray(window.currentSelectedPages)) {
+    ids = window.currentSelectedPages.filter(id => id !== undefined && id !== null && id !== '');
+  }
+
+  if (!ids.length && Array.isArray(window.currentSelectedContentIds)) {
+    ids = window.currentSelectedContentIds.filter(id => id !== undefined && id !== null && id !== '');
+  }
+
+  if (!ids.length && window.currentPageId) {
+    ids = [window.currentPageId];
+  }
+
+  if (!ids.length) {
     updateAudioStatusDisplay('请先选择页面');
     return;
   }
-  
+
   const statusContainer = document.getElementById('page-audio-status');
   if (!statusContainer) return;
   
@@ -1745,7 +1759,15 @@ function checkPageAudioStatus(pageIds) {
   `;
   
   // 构建请求URL
-  const url = `{% url 'check_page_audio_status' book_id=book_id %}?page_ids=${pageIds.join(',')}`;
+  const requestIds = ids.map(id => {
+    const numeric = parseInt(id, 10);
+    if (isNaN(numeric)) {
+      return id;
+    }
+    return Math.max(numeric + 1, 1).toString();
+  });
+
+  const url = `{% url 'check_page_audio_status' book_id=book_id %}?page_ids=${requestIds.join(',')}`;
   
   fetch(url, {
     method: 'GET',

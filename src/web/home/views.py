@@ -31,18 +31,25 @@ def index(request):
         # 已登录用户：显示自己的已发布音频（包括对话脚本）
         all_audio_items = get_unified_audio_content(user=request.user, published_only=True)
         display_title = '我的音频作品'
+        page_size_options = [5, 10, 20, 50]
+        default_page_size = 10
     else:
         # 未登录用户：显示所有已发布的音频（跳过无关联书籍的对话脚本）
         all_audio_items = get_unified_audio_content(published_only=True)
         display_title = '公开的音频作品'
+        page_size_options = [12, 24, 36, 48]
+        default_page_size = 12
     
+    min_page_size = min(page_size_options)
+    max_page_size = max(page_size_options)
+
     # 添加分页
     page = request.GET.get('page', 1)
     try:
-        page_size = int(request.GET.get('page_size', 10))
-        page_size = min(max(page_size, 5), 50)  # 限制在5-50之间
+        page_size = int(request.GET.get('page_size', default_page_size))
+        page_size = min(max(page_size, min_page_size), max_page_size)
     except (ValueError, TypeError):
-        page_size = 10
+        page_size = default_page_size
         
     # 创建分页器
     paginator = Paginator(all_audio_items, page_size)
@@ -62,7 +69,7 @@ def index(request):
         'display_title': display_title,
         'paginator': paginator,
         'page_size': page_size,
-        'page_size_options': [5, 10, 20, 50]
+        'page_size_options': page_size_options
     }
     
     return render(request, "home/index.html", context)
@@ -109,7 +116,7 @@ def book_audio_list(request, book_id):
     page = request.GET.get('page', 1)
     try:
         page_size = int(request.GET.get('page_size', 10))
-        page_size = min(max(page_size, 5), 50)  # 限制在5-50之间
+        page_size = min(max(page_size, 5), 50)  # 保持与工作台一致
     except (ValueError, TypeError):
         page_size = 10
         
