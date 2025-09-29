@@ -1,7 +1,18 @@
 from django.contrib import admin
+from django.utils.html import format_html
 
 # Register your models here.
-from .models import Books, AudioSegment, VoiceRole, DialogueScript, DialogueSegment, UserProfile, OCRCache
+from .models import (
+    Books,
+    AudioSegment,
+    VoiceRole,
+    DialogueScript,
+    DialogueSegment,
+    UserProfile,
+    OCRCache,
+    TTSVoicePreview,
+    TTSProviderConfig,
+)
 
 
 class BooksAdmin(admin.ModelAdmin):
@@ -90,3 +101,41 @@ class OCRCacheAdmin(admin.ModelAdmin):
     def text_preview(self, obj):
         return obj.ocr_text[:50] + "..." if len(obj.ocr_text) > 50 else obj.ocr_text
     text_preview.short_description = "文本预览"
+
+
+@admin.register(TTSVoicePreview)
+class TTSVoicePreviewAdmin(admin.ModelAdmin):
+    list_display = ('voice_name', 'tts_provider', 'file_link', 'last_generated_at', 'updated_at')
+    list_filter = ('tts_provider',)
+    search_fields = ('voice_name',)
+    readonly_fields = ('created_at', 'updated_at', 'last_generated_at')
+    actions = ['regenerate_selected_previews']
+
+    def file_link(self, obj):
+        if obj.file:
+            return format_html('<a href="{}" target="_blank">预览</a>', obj.file.url)
+        return '—'
+    file_link.short_description = "音频文件"
+
+    def regenerate_selected_previews(self, request, queryset):
+        for preview in queryset:
+            preview.file.delete(save=False)
+            preview.file = ''
+            preview.last_generated_at = None
+            preview.save(update_fields=['file', 'last_generated_at', 'updated_at'])
+        self.message_user(request, f"已清除 {queryset.count()} 条试听缓存，重新点击试听即可生成。")
+    regenerate_selected_previews.short_description = "清除并重建所选试听缓存"
+
+
+@admin.register(TTSProviderConfig)
+class TTSProviderConfigAdmin(admin.ModelAdmin):
+    list_display = ('default_provider', 'updated_at')
+    list_filter = ('default_provider',)
+    readonly_fields = ('created_at', 'updated_at')
+    actions = []
+
+    def has_add_permission(self, request):
+        # 限制为单实例配置，已存在则禁止再新增
+        if TTSProviderConfig.objects.exists():
+            return False
+        return super().has_add_permission(request)

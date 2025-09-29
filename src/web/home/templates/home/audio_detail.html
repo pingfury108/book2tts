@@ -15,9 +15,9 @@
   <!-- 顶部区域: 标题、书名和播放按钮 -->
   <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start bg-base-100 p-4 sm:p-6 rounded-lg shadow-md mb-6 sm:mb-8 gap-4">
     <div class="flex-grow">
-      <span class="font-medium text-sm sm:text-base text-gray-600 break-words break-all">{{ segment.book.name }}</span>
-      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 leading-tight break-words break-all">{{ segment.title }}</h1>
-      <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 text-xs sm:text-sm text-base-content opacity-70">
+      <span class="font-medium text-sm sm:text-base text-base-content/80 break-words break-all">{{ segment.book.name }}</span>
+      <h1 class="text-2xl sm:text-3xl font-bold text-base-content mb-2 leading-tight break-words break-all">{{ segment.title }}</h1>
+      <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 text-xs sm:text-sm text-base-content/70">
         <div class="flex items-center">
           <i class="fas fa-calendar-alt mr-1"></i>
           {{ segment.updated_at|date:"Y-m-d H:i" }}
@@ -94,7 +94,7 @@
       {% endif %}
     </h2>
     <div class="prose max-w-none">
-      <p class="whitespace-pre-line text-sm sm:text-base leading-relaxed">
+      <p class="whitespace-pre-line text-sm sm:text-base leading-relaxed text-base-content/80">
         {% if segment_type == 'dialogue_script' %}
           {{ segment.original_text }}
         {% else %}

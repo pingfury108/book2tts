@@ -4,6 +4,7 @@ from django.db import models
 from django.conf import settings
 import uuid
 import hashlib
+import re
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
@@ -181,11 +182,17 @@ class UserTask(models.Model):
         """检查任务是否已完成（无论成功还是失败）"""
         return self.status in ['success', 'failure', 'revoked']
 
+TTS_PROVIDER_CHOICES = [
+    ('edge_tts', 'Edge TTS'),
+    ('azure', 'Azure TTS'),
+]
+
+
 class VoiceRole(models.Model):
     """音色角色模型，用于管理对话中的角色和对应的TTS音色"""
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='voice_roles')
     name = models.CharField(max_length=100, help_text="角色名称，如：主持人、嘉宾、旁白等")
-    tts_provider = models.CharField(max_length=20, choices=[('edge_tts', 'Edge TTS'), ('azure', 'Azure TTS')], default='azure')
+    tts_provider = models.CharField(max_length=20, choices=TTS_PROVIDER_CHOICES, default='azure')
     voice_name = models.CharField(max_length=100, help_text="TTS语音模型名称")
     is_default = models.BooleanField(default=False, help_text="是否为默认角色")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -198,6 +205,53 @@ class VoiceRole(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.name} ({self.voice_name})"
 
+
+def tts_preview_upload_to(instance, filename):
+    """生成固定的试听文件路径，避免重复文件。"""
+    safe_voice = re.sub(r'[^A-Za-z0-9._-]+', '_', instance.voice_name or 'voice')
+    return f"tts_previews/{instance.tts_provider}/{safe_voice}.wav"
+
+
+class TTSVoicePreview(models.Model):
+    """缓存不同提供商音色的试听音频文件。"""
+
+    tts_provider = models.CharField(max_length=20, choices=TTS_PROVIDER_CHOICES)
+    voice_name = models.CharField(max_length=100)
+    file = models.FileField(upload_to=tts_preview_upload_to, blank=True)
+    last_generated_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('tts_provider', 'voice_name')
+        ordering = ['tts_provider', 'voice_name']
+
+    def __str__(self) -> str:
+        return f"{self.get_tts_provider_display()} - {self.voice_name}"
+
+
+class TTSProviderConfig(models.Model):
+    """全局 TTS 供应商配置，允许后台管理默认供应商。"""
+
+    default_provider = models.CharField(max_length=20, choices=TTS_PROVIDER_CHOICES, default='edge_tts')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "TTS 供应商配置"
+        verbose_name_plural = "TTS 供应商配置"
+
+    def __str__(self) -> str:
+        return f"默认供应商：{self.get_default_provider_display()}"
+
+    @classmethod
+    def get_default_provider(cls) -> str:
+        return (
+            cls.objects.order_by('-updated_at')
+            .values_list('default_provider', flat=True)
+            .first()
+            or 'edge_tts'
+        )
 
 class DialogueScript(models.Model):
     """对话脚本模型，存储LLM转换后的对话脚本"""

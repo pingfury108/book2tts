@@ -11,7 +11,7 @@ from django.conf import settings
 from django.db import transaction
 
 from ..forms import UploadFileForm
-from ..models import Books
+from ..models import Books, TTSProviderConfig
 from book2tts.ebook import open_ebook, ebook_toc, get_content_with_href, ebook_pages
 from book2tts.pdf import open_pdf, detect_scanned_pdf, get_page_image_data
 from ..utils.ocr_utils import perform_ocr_with_cache
@@ -335,6 +335,7 @@ def calculate_epub_toc_page_ranges(toc_list, all_pages):
 def index(request, book_id):
     """Display book index with table of contents and pages"""
     book = get_object_or_404(Books, pk=book_id)
+    default_tts_provider = TTSProviderConfig.get_default_provider()
     if book.file_type == ".pdf":
         pbook = open_pdf(book.file.path)
         # 计算TOC页面范围
@@ -365,6 +366,7 @@ def index(request, book_id):
                     {"title": f"第{page.number+1}页", "href": page.number}
                     for page in pbook.pages()
                 ],
+                "default_tts_provider": default_tts_provider,
             },
         )
     elif book.file_type == ".epub":
@@ -395,6 +397,7 @@ def index(request, book_id):
                 "title": book.name,  # Always use the database book name
                 "tocs": tocs,
                 "pages": all_pages,
+                "default_tts_provider": default_tts_provider,
             },
         )
 

@@ -7539,12 +7539,31 @@ details.collapse summary::-webkit-details-marker {
   box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
 }
 
+.ring-2 {
+  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+}
+
 .ring-primary\/30 {
   --tw-ring-color: var(--fallback-p,oklch(var(--p)/0.3));
 }
 
 .ring-base-300\/70 {
   --tw-ring-color: var(--fallback-b3,oklch(var(--b3)/0.7));
+}
+
+.ring-primary {
+  --tw-ring-opacity: 1;
+  --tw-ring-color: var(--fallback-p,oklch(var(--p)/var(--tw-ring-opacity)));
+}
+
+.ring-offset-2 {
+  --tw-ring-offset-width: 2px;
+}
+
+.ring-offset-base-100 {
+  --tw-ring-offset-color: var(--fallback-b1,oklch(var(--b1)/1));
 }
 
 .filter {
@@ -7595,6 +7614,10 @@ details.collapse summary::-webkit-details-marker {
 
 .duration-300 {
   transition-duration: 300ms;
+}
+
+.duration-150 {
+  transition-duration: 150ms;
 }
 
 .ease-in-out {

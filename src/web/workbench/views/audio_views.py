@@ -1,6 +1,8 @@
 import os
 import time
 import tempfile
+import asyncio
+import re
 from collections import defaultdict
 
 from django.shortcuts import render, get_object_or_404, redirect
@@ -15,14 +17,83 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.utils import timezone
 from django.contrib import messages
 from django.db.models import Q
+from filelock import FileLock, Timeout
 
-from ..models import Books, AudioSegment, UserTask, DialogueScript, VoiceRole
+from ..models import (
+    Books,
+    AudioSegment,
+    UserTask,
+    DialogueScript,
+    VoiceRole,
+    TTSVoicePreview,
+    TTSProviderConfig,
+    TTS_PROVIDER_CHOICES,
+)
 from ..tasks import synthesize_audio_task, start_audio_synthesis_on_commit
-from book2tts.tts import edge_tts_volices
+from book2tts.tts import edge_tts_volices, azure_text_to_speech
 from book2tts.edgetts import EdgeTTS
 from book2tts.audio_utils import get_audio_duration, estimate_audio_duration_from_text
 from home.models import UserQuota, OperationRecord
 from book2tts.multi_voice_tts import MultiVoiceTTS
+
+
+LANGUAGE_PREVIEW_TEXT = {
+    'zh': "您好，这是 Book2TTS 为您准备的试听音色示例。 将您喜爱的书籍转换为有声读物。 上传、转换并聆听您的个人有声书库。",
+    'en': "Hello, this is a voice preview from Book2TTS. Turn your favourite books into audiobooks. Upload, convert, and listen to your personal library.",
+    'es': "Hola, esta es una muestra de voz de Book2TTS. Convierte tus libros favoritos en audiolibros. Sube, convierte y escucha tu biblioteca personal.",
+    'fr': "Bonjour, voici un aperçu vocal de Book2TTS. Transformez vos livres préférés en livres audio. Téléchargez, convertissez et écoutez votre bibliothèque personnelle.",
+    'de': "Hallo, dies ist eine Stimmprobe von Book2TTS. Verwandeln Sie Ihre Lieblingsbücher in Hörbücher. Laden Sie hoch, konvertieren Sie und hören Sie Ihre persönliche Bibliothek.",
+    'ja': "こんにちは、Book2TTSの音声プレビューです。 お気に入りの本をオーディオブックに変換しましょう。 アップロードして変換し、あなたのパーソナルライブラリをお聴きください。",
+    'ko': "안녕하세요, Book2TTS 음성 미리 듣기입니다. 좋아하는 책을 오디오북으로 바꿔 보세요. 업로드하고 변환하여 나만의 오디오 라이브러리를 감상하세요.",
+    'pt': "Olá, esta é uma amostra de voz do Book2TTS. Transforme seus livros favoritos em audiolivros. Envie, converta e ouça sua biblioteca pessoal.",
+    'it': "Ciao, questa è un'anteprima vocale di Book2TTS. Trasforma i tuoi libri preferiti in audiolibri. Carica, converti e ascolta la tua libreria personale.",
+    'ru': "Здравствуйте, это демонстрация голоса Book2TTS. Превратите любимые книги в аудиокниги. Загружайте, конвертируйте и слушайте свою личную библиотеку.",
+}
+
+DEFAULT_PREVIEW_TEXT = LANGUAGE_PREVIEW_TEXT['en']
+
+
+def _detect_language_from_voice(voice_name: str) -> str:
+    if not voice_name:
+        return ''
+    match = re.match(r'([a-z]{2})', voice_name.lower())
+    return match.group(1) if match else ''
+
+
+def get_preview_text_for_voice(voice_name: str) -> str:
+    lang = _detect_language_from_voice(voice_name)
+    return LANGUAGE_PREVIEW_TEXT.get(lang, DEFAULT_PREVIEW_TEXT)
+PREVIEW_LOCK_TIMEOUT = 60  # seconds
+
+
+def _normalize_provider(provider_value: str) -> str:
+    return (provider_value or "").strip().replace('-', '_')
+
+
+def _get_cached_preview_url(preview: TTSVoicePreview, relative_path: str, absolute_path: str):
+    storage = preview.file.storage if preview.file else None
+
+    if preview.file and preview.file.name and storage.exists(preview.file.name):
+        return preview.file.url
+
+    if os.path.exists(absolute_path):
+        # 同步数据库中的文件引用
+        if preview.file.name != relative_path:
+            preview.file.name = relative_path
+            preview.save(update_fields=['file'])
+        return preview.file.url
+
+    return None
+
+
+async def _synthesize_edge_preview(voice_name: str, preview_text: str, output_file: str):
+    tts = EdgeTTS(voice_name=voice_name)
+    return await tts.synthesize_with_subtitles_v2(
+        text=preview_text,
+        output_file=output_file,
+        subtitle_file=None,
+        words_in_cue=8,
+    )
 
 
 def get_or_create_dialogue_virtual_book(user):
@@ -238,6 +309,102 @@ def get_voice_list(request):
     """Get available voices from edge_tts"""
     voices = edge_tts_volices()
     return render(request, "voice_list.html", {"voices": voices})
+
+
+@login_required
+@require_http_methods(["POST"])
+def preview_tts_voice(request):
+    """生成或返回缓存的音色试听音频。"""
+    provider = _normalize_provider(
+        request.POST.get("provider")
+        or request.POST.get("tts_provider")
+        or TTSProviderConfig.get_default_provider()
+    )
+    voice_name = (request.POST.get("voice_name") or "").strip()
+
+    if not provider or not voice_name:
+        return JsonResponse({"status": "error", "message": "缺少必要的参数"}, status=400)
+
+    valid_providers = {choice for choice, _ in TTS_PROVIDER_CHOICES}
+    if provider not in valid_providers:
+        return JsonResponse({"status": "error", "message": "不支持的TTS供应商"}, status=400)
+
+    preview, _ = TTSVoicePreview.objects.get_or_create(
+        tts_provider=provider,
+        voice_name=voice_name,
+    )
+
+    relative_path = preview.file.field.upload_to(preview, "preview.wav")
+    absolute_path = os.path.join(settings.MEDIA_ROOT, relative_path)
+
+    preview_text = get_preview_text_for_voice(voice_name)
+
+    cached_url = _get_cached_preview_url(preview, relative_path, absolute_path)
+    if cached_url:
+        return JsonResponse({"status": "ok", "audio_url": cached_url, "cached": True})
+
+    os.makedirs(os.path.dirname(absolute_path), exist_ok=True)
+    lock = FileLock(f"{absolute_path}.lock")
+
+    try:
+        lock.acquire(timeout=PREVIEW_LOCK_TIMEOUT)
+    except Timeout:
+        return JsonResponse({"status": "error", "message": "试听生成繁忙，请稍后重试"}, status=409)
+
+    try:
+        cached_url = _get_cached_preview_url(preview, relative_path, absolute_path)
+        if cached_url:
+            return JsonResponse({"status": "ok", "audio_url": cached_url, "cached": True})
+
+        temp_file = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+        temp_path = temp_file.name
+        temp_file.close()
+
+        try:
+            if provider == 'edge_tts':
+                result = asyncio.run(_synthesize_edge_preview(voice_name, preview_text, temp_path))
+                if not result.get("success"):
+                    raise RuntimeError("Edge TTS 生成失败")
+            elif provider == 'azure':
+                azure_key = getattr(settings, 'AZURE_KEY', None) or os.getenv('AZURE_KEY')
+                azure_region = getattr(settings, 'AZURE_REGION', None) or os.getenv('AZURE_REGION')
+                if not azure_key or not azure_region:
+                    raise RuntimeError("Azure 配置缺失，无法生成试听音频")
+                azure_text_to_speech(
+                    key=azure_key,
+                    region=azure_region,
+                    text=preview_text,
+                    output_file=temp_path,
+                    voice_name=voice_name,
+                )
+            else:
+                raise RuntimeError("当前供应商暂未支持试听")
+
+            if not os.path.exists(temp_path) or os.path.getsize(temp_path) == 0:
+                raise RuntimeError("试听音频生成失败")
+
+            os.replace(temp_path, absolute_path)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
+        preview.file.name = relative_path
+        preview.last_generated_at = timezone.now()
+        preview.save(update_fields=['file', 'last_generated_at', 'updated_at'])
+
+        return JsonResponse({
+            "status": "ok",
+            "audio_url": preview.file.url,
+            "cached": False,
+        })
+
+    except RuntimeError as exc:
+        return JsonResponse({"status": "error", "message": str(exc)}, status=400)
+    except Exception as exc:  # pylint: disable=broad-except
+        return JsonResponse({"status": "error", "message": f"试听失败：{exc}"}, status=500)
+    finally:
+        if lock.is_locked:
+            lock.release()
 
 
 @login_required

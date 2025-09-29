@@ -18,13 +18,13 @@
     <div id="book-list-view">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for book_name, book_data in books_with_ids.items %}
-            <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer"
+            <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer text-base-content"
                 hx-get="/workbench/audio/book-details/{{ book_data.book_id }}/" hx-target="#main-content" hx-swap="innerHTML"
                 hx-trigger="click">
                 <div class="card-body">
-                    <h2 class="card-title text-xl font-bold">📚 {{ book_name }}</h2>
-                    <div class="flex justify-between items-center mt-2">
-                        <div class="badge badge-primary badge-lg">{{ book_data.segments|length }} 个音频</div>
+                    <h2 class="card-title text-xl font-bold text-base-content">📚 {{ book_name }}</h2>
+                    <div class="flex justify-between items-center mt-2 text-base-content/80">
+                        <div class="badge badge-primary badge-lg text-base-content">{{ book_data.segments|length }} 个音频</div>
                         <button class="btn btn-sm btn-circle btn-primary">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor">

@@ -20,6 +20,7 @@ from .book_views import (
 from .audio_views import (
     aggregated_audio_segments,
     get_voice_list,
+    preview_tts_voice,
     get_user_quota,
     get_points_rules,
     synthesize_audio,
@@ -59,6 +60,7 @@ __all__ = [
     # Audio views
     'aggregated_audio_segments',
     'get_voice_list',
+    'preview_tts_voice',
     'get_user_quota',
     'get_points_rules',
     'synthesize_audio',

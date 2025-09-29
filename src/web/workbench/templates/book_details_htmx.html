@@ -318,12 +318,12 @@
                     <!-- 自定义折叠图标 -->
                     <div class="absolute right-3 sm:right-4 lg:right-5 top-3 sm:top-4 lg:top-5">
                         <i
-                            class="fas fa-chevron-down transition-transform duration-200 text-gray-400 hover:text-gray-600 collapse-icon"></i>
+                            class="fas fa-chevron-down transition-transform duration-200 text-base-content/60 hover:text-base-content collapse-icon"></i>
                     </div>
                     <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-6 items-center pr-8">
                         <!-- 标题 -->
                         <div class="lg:col-span-9">
-                            <h3 class="text-lg sm:text-xl font-bold text-gray-900 leading-tight break-words">
+                            <h3 class="text-lg sm:text-xl font-bold text-base-content leading-tight break-words">
                                 {% if segment.type == 'dialogue_script' %}
                                 🎭 {{ segment.title }}
                                 {% else %}
@@ -331,7 +331,7 @@
                                 {% endif %}
                             </h3>
                             {% if segment.type == 'dialogue_script' and segment.speakers %}
-                            <p class="text-sm text-gray-500 mt-1">{{ segment.speakers|length }}个角色</p>
+                            <p class="text-sm text-base-content/70 mt-1">{{ segment.speakers|length }}个角色</p>
                             {% endif %}
                         </div>
 
@@ -497,11 +497,11 @@
                                                       min-h-0 touch-manipulation border-b border-gray-100">
                                             <div class="flex items-center">
                                                 <i
-                                                    class="fas fa-align-left h-3 w-3 sm:h-4 sm:w-4 mr-2 text-gray-500"></i>
+                                                class="fas fa-align-left h-3 w-3 sm:h-4 sm:w-4 mr-2 text-base-content/60"></i>
                                                 <span>文本内容</span>
                                             </div>
                                             <i
-                                                class="fas fa-chevron-down transition-transform duration-200 text-gray-400 text-collapse-icon"></i>
+                                                class="fas fa-chevron-down transition-transform duration-200 text-base-content/60 text-collapse-icon"></i>
                                         </label>
                                         <div class="collapse-content max-h-32 sm:max-h-40 lg:max-h-64 overflow-y-auto
                                                     text-xs sm:text-sm px-3 sm:px-4 pb-3 sm:pb-4">

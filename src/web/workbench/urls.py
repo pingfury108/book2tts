@@ -4,6 +4,7 @@ from . import views
 from .views import (
     aggregated_audio_segments,
     get_voice_list,
+    preview_tts_voice,
     get_user_quota,
     get_points_rules,
     synthesize_audio,
@@ -74,6 +75,7 @@ urlpatterns = [
         "audio/book-details/<int:book_id>/", book_details_htmx, name="book_details_htmx"
     ),
     path("voices/", get_voice_list, name="voice_list"),
+    path("tts/preview/", preview_tts_voice, name="tts_preview"),
     path("quota/", get_user_quota, name="get_user_quota"),
     path("points/rules/", get_points_rules, name="get_points_rules"),
     path("synthesize-audio/", synthesize_audio, name="synthesize_audio"),

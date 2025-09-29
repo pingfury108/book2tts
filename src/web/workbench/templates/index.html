@@ -100,12 +100,14 @@
                         <div class="card-body p-4">
                             <h3 class="card-title text-lg font-bold">🔊 音频处理</h3>
                             <div class="space-y-1">
-                                <select class="select select-bordered w-full text-sm" id="tts-provider">
-                                    <option disabled selected>TTS 供应商</option>
-                                    <option value="azure">azure</option>
-                                    <option value="edge-tts" selected>edge-tts</option>
-                                </select>
-                                <select class="select select-bordered w-full text-sm" id="voice-model"
+                                <div class="relative" id="voice-dropdown">
+                                    <button type="button" id="voice-dropdown-toggle" class="btn btn-outline btn-sm w-full justify-between">
+                                        <span id="voice-dropdown-label">语音模型</span>
+                                        <i class="fas fa-chevron-down text-xs"></i>
+                                    </button>
+                                    <div id="voice-dropdown-menu" class="hidden absolute z-20 mt-1 w-full max-h-60 overflow-y-auto rounded-md border border-base-300 bg-base-100 shadow-lg"></div>
+                                </div>
+                                <select class="hidden" id="voice-model"
                                         hx-get="{% url 'voice_list' %}"
                                         hx-trigger="load"
                                         hx-target="this"
@@ -509,14 +511,187 @@ $(document).ready(function() {
      logState('Tab switched to TOC');
    });
 
-   $('#tab_page').on('click', function() {
-     $(this).addClass('tab-active');
-     $('#tab_toc').removeClass('tab-active');
-     window.activeTab = 'tab_page';
-     resetAudioDisplay(); // 切换到页面选项卡时重置音频显示
-     logState('Tab switched to Page');
-   });
- });
+  $('#tab_page').on('click', function() {
+    $(this).addClass('tab-active');
+    $('#tab_toc').removeClass('tab-active');
+    window.activeTab = 'tab_page';
+    resetAudioDisplay(); // 切换到页面选项卡时重置音频显示
+    logState('Tab switched to Page');
+  });
+});
+
+// 音色下拉 & 试听
+const voiceDropdown = document.getElementById('voice-dropdown');
+const voiceDropdownToggle = document.getElementById('voice-dropdown-toggle');
+const voiceDropdownMenu = document.getElementById('voice-dropdown-menu');
+const voiceDropdownLabel = document.getElementById('voice-dropdown-label');
+const voiceHiddenSelect = document.getElementById('voice-model');
+
+if (voiceDropdownToggle) {
+  voiceDropdownToggle.addEventListener('click', () => {
+    if (!voiceDropdownMenu) return;
+    voiceDropdownMenu.classList.toggle('hidden');
+    if (!voiceDropdownMenu.classList.contains('hidden')) {
+      scrollSelectedVoiceIntoView();
+    }
+  });
+}
+
+document.addEventListener('click', (event) => {
+  if (!voiceDropdown || !voiceDropdownMenu) return;
+  if (!voiceDropdown.contains(event.target)) {
+    voiceDropdownMenu.classList.add('hidden');
+  }
+});
+
+document.addEventListener('htmx:afterSwap', (event) => {
+  if (event.target && event.target.id === 'voice-model') {
+    buildVoiceDropdown();
+  }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  buildVoiceDropdown();
+});
+
+function buildVoiceDropdown() {
+  if (!voiceHiddenSelect || !voiceDropdownMenu || !voiceDropdownLabel) {
+    return;
+  }
+
+  const options = Array.from(voiceHiddenSelect.options);
+  if (!options.length) {
+    voiceDropdownLabel.textContent = '语音模型';
+    voiceDropdownMenu.innerHTML = '';
+    return;
+  }
+
+  voiceDropdownMenu.classList.add('hidden');
+  voiceDropdownMenu.innerHTML = '';
+
+  const placeholder = options.find((opt) => opt.disabled);
+  const selectedOption = options.find((opt) => opt.selected && !opt.disabled);
+  voiceDropdownLabel.textContent = selectedOption ? selectedOption.textContent : (placeholder ? placeholder.textContent : '语音模型');
+
+  options.forEach((option) => {
+    if (option.disabled) {
+      return;
+    }
+
+    const item = document.createElement('div');
+    item.className = 'flex items-center gap-2 px-3 py-2 cursor-pointer transition-colors duration-150';
+    item.dataset.voiceValue = option.value;
+
+    const selectBtn = document.createElement('button');
+    selectBtn.type = 'button';
+    selectBtn.className = 'flex-1 text-left text-sm';
+    selectBtn.textContent = option.textContent;
+
+    selectBtn.addEventListener('click', () => {
+      voiceHiddenSelect.value = option.value;
+      voiceDropdownLabel.textContent = option.textContent;
+      voiceDropdownMenu.classList.add('hidden');
+      voiceHiddenSelect.dispatchEvent(new Event('change'));
+      buildVoiceDropdown();
+    });
+
+    const previewBtn = document.createElement('button');
+    previewBtn.type = 'button';
+    previewBtn.className = 'btn btn-ghost btn-xs';
+    previewBtn.innerHTML = '<i class="fas fa-headphones"></i>';
+    previewBtn.addEventListener('click', async (event) => {
+      event.stopPropagation();
+      await previewVoice(option.value, previewBtn);
+    });
+
+    item.appendChild(selectBtn);
+    item.appendChild(previewBtn);
+
+    if (selectedOption && selectedOption.value === option.value) {
+      item.classList.add('bg-primary', 'text-primary-content');
+      selectBtn.classList.add('text-primary-content');
+      previewBtn.classList.add('text-primary-content');
+      item.classList.add('ring-2', 'ring-primary', 'ring-offset-2', 'ring-offset-base-100');
+      item.dataset.selected = 'true';
+    }
+    else {
+      item.dataset.selected = 'false';
+      item.classList.add('hover:bg-base-200');
+    }
+
+    voiceDropdownMenu.appendChild(item);
+  });
+}
+
+function scrollSelectedVoiceIntoView() {
+  if (!voiceDropdownMenu) return;
+  const selectedItem = voiceDropdownMenu.querySelector('[data-selected="true"]');
+  if (selectedItem) {
+    selectedItem.scrollIntoView({ block: 'nearest' });
+  }
+}
+
+async function previewVoice(voiceName, triggerButton) {
+  const providerValue = '{{ default_tts_provider|default:"edge_tts" }}';
+
+  if (!voiceName) {
+    alert('请先选择语音模型');
+    return;
+  }
+
+  const originalContent = triggerButton.innerHTML;
+  triggerButton.innerHTML = '<span class="loading loading-spinner loading-xs"></span>';
+  triggerButton.disabled = true;
+
+  try {
+    const response = await fetch(`{% url 'tts_preview' %}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: new URLSearchParams({
+        provider: providerValue,
+        voice_name: voiceName
+      })
+    });
+
+    let data;
+    try {
+      data = await response.json();
+    } catch (parseError) {
+      throw new Error('服务器返回格式异常');
+    }
+
+    if (!response.ok || data.status !== 'ok') {
+      throw new Error(data?.message || '试听失败');
+    }
+
+    if (window.voicePreviewAudio) {
+      try {
+        window.voicePreviewAudio.pause();
+      } catch (pauseError) {
+        console.warn('暂停上一段试听音频失败:', pauseError);
+      }
+    }
+
+    const audio = new Audio(data.audio_url);
+    window.voicePreviewAudio = audio;
+
+    try {
+      await audio.play();
+    } catch (playError) {
+      console.error('播放试听音频失败:', playError);
+      alert('浏览器阻止了自动播放，请点击播放按钮重试');
+    }
+  } catch (error) {
+    console.error('音色试听失败:', error);
+    alert(error.message || '试听失败，请稍后重试');
+  } finally {
+    triggerButton.innerHTML = originalContent;
+    triggerButton.disabled = false;
+  }
+}
 
  // 音频合成和管理
  const synthesizeBtn = document.getElementById('synthesize-btn');
