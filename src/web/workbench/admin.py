@@ -5,7 +5,6 @@ from django.utils.html import format_html
 from .models import (
     Books,
     AudioSegment,
-    VoiceRole,
     DialogueScript,
     DialogueSegment,
     UserProfile,
@@ -42,14 +41,6 @@ admin.site.register(Books, BooksAdmin)
 # 注册 AudioSegment 模型
 admin.site.register(AudioSegment, AudioSegmentAdmin)
 
-@admin.register(VoiceRole)
-class VoiceRoleAdmin(admin.ModelAdmin):
-    list_display = ('name', 'user', 'tts_provider', 'voice_name', 'is_default', 'created_at')
-    list_filter = ('tts_provider', 'is_default', 'user')
-    search_fields = ('name', 'voice_name', 'user__username')
-    readonly_fields = ('created_at', 'updated_at')
-
-
 @admin.register(DialogueScript)
 class DialogueScriptAdmin(admin.ModelAdmin):
     list_display = ('title', 'user', 'book', 'segment_count', 'published', 'created_at')
@@ -64,8 +55,8 @@ class DialogueScriptAdmin(admin.ModelAdmin):
 
 @admin.register(DialogueSegment)
 class DialogueSegmentAdmin(admin.ModelAdmin):
-    list_display = ('script', 'speaker', 'voice_role', 'sequence', 'dialogue_type', 'created_at')
-    list_filter = ('dialogue_type', 'speaker', 'voice_role')
+    list_display = ('script', 'speaker', 'sequence', 'dialogue_type', 'created_at')
+    list_filter = ('dialogue_type', 'speaker')
     search_fields = ('script__title', 'speaker', 'utterance')
     readonly_fields = ('created_at', 'updated_at')
     ordering = ['script', 'sequence']

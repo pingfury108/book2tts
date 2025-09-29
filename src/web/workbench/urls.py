@@ -42,9 +42,6 @@ from .views.dialogue_views import (
     dialogue_segment_delete,
     dialogue_segment_update,
     dialogue_segment_preview,
-    voice_roles_list,
-    voice_role_create,
-    voice_role_delete,
     task_status,
 )
 from .views.ocr_views import (
@@ -127,12 +124,7 @@ urlpatterns = [
     path("dialogue/segment/<int:segment_id>/delete/", dialogue_segment_delete, name="dialogue_segment_delete"),
     path("dialogue/segment/<int:segment_id>/update/", dialogue_segment_update, name="dialogue_segment_update"),
     path("dialogue/segment/<int:segment_id>/preview/", dialogue_segment_preview, name="dialogue_segment_preview"),
-    
-    # 音色角色管理
-    path("voice-roles/", voice_roles_list, name="voice_roles_list"),
-    path("voice-roles/create/", voice_role_create, name="voice_role_create"),
-    path("voice-roles/<int:role_id>/delete/", voice_role_delete, name="voice_role_delete"),
-    
+
     # 任务状态查询
     path("task/<str:task_id>/status/", task_status, name="task_status"),
     

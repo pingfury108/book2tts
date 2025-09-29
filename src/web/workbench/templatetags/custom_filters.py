@@ -12,3 +12,11 @@ def replace(value, args):
         old, new = args.split(",", 1)
         return value.replace(old, new)
     return value
+
+
+@register.filter
+def dict_get(value, key):
+    """从字典中安全获取键值。"""
+    if isinstance(value, dict):
+        return value.get(key, {})
+    return {}

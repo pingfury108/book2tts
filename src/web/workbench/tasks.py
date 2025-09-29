@@ -507,9 +507,9 @@ def convert_text_to_dialogue_task(self, user_id, text, title, book_id=None, cust
             user_task.save()
         
         # 分段处理逻辑
-        if total_length > 3000:
+        if total_length > 1000:
             # 长文本分段处理
-            chunk_size = 3000
+            chunk_size = 1000
             text_chunks = dialogue_service.split_long_text(text, max_length=chunk_size)
             total_chunks = len(text_chunks)
             
@@ -590,6 +590,9 @@ def convert_text_to_dialogue_task(self, user_id, text, title, book_id=None, cust
             logger.error(error_msg)
             raise Exception(error_msg)
         
+        # 将对话标题强制同步为用户提交的标题，避免后续脚本编辑被生成结果覆盖
+        dialogue_data['title'] = title
+
         # 保存到数据库
         self.update_state(state='PROCESSING', meta={'message': '正在保存对话脚本...'})
         if 'user_task' in locals():
@@ -600,7 +603,7 @@ def convert_text_to_dialogue_task(self, user_id, text, title, book_id=None, cust
             script = DialogueScript.objects.create(
                 user=user,
                 book=book,
-                title=dialogue_data.get('title', title),
+                title=title,
                 original_text=text,
                 script_data=dialogue_data
             )

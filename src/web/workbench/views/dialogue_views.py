@@ -11,14 +11,14 @@ from django.contrib import messages
 from django.conf import settings
 
 # Import our models
-from ..models import Books, DialogueScript, DialogueSegment, VoiceRole, UserTask
+from ..models import Books, DialogueScript, DialogueSegment, UserTask, TTSProviderConfig
 
 # Import dialogue services
 import sys
 sys.path.append(os.path.join(settings.BASE_DIR, 'src'))
 from book2tts.dialogue_service import DialogueService
-from book2tts.multi_voice_tts import MultiVoiceTTS
 from book2tts.llm_service import LLMService
+from book2tts.tts import edge_tts_volices
 
 @login_required
 def dialogue_list(request):
@@ -107,24 +107,33 @@ def dialogue_detail(request, script_id):
     """对话脚本详情页面"""
     script = get_object_or_404(DialogueScript, id=script_id, user=request.user)
     segments = script.segments.all().order_by('sequence')
-    
-    # 获取用户的音色角色
-    voice_roles = VoiceRole.objects.filter(user=request.user).order_by('name')
-    
+
     # 获取用户的书籍列表
     books = Books.objects.filter(user=request.user).order_by('name')
-    
-    # 获取可用音色列表
-    multi_voice_tts = MultiVoiceTTS()
-    edge_voices = multi_voice_tts.get_available_voices('edge_tts')
-    
+
+    # 获取可用音色列表，与工作台保持一致
+    voices = edge_tts_volices() or []
+    available_voices = [
+        {
+            'value': voice,
+            'name': voice,
+        }
+        for voice in voices
+    ]
+
+    voice_settings = script.voice_settings
+    default_provider = TTSProviderConfig.get_default_provider()
+
     return render(request, 'dialogue_detail.html', {
         'script': script,
         'segments': segments,
-        'voice_roles': voice_roles,
         'books': books,
-        'edge_voices_json': json.dumps(edge_voices),
-        'speakers': script.speakers
+        'available_voices_json': json.dumps(available_voices),
+        'voice_settings_json': json.dumps(voice_settings),
+        'voice_settings': voice_settings,
+        'default_provider': default_provider,
+        'speakers': script.speakers,
+        'speakers_json': json.dumps(script.speakers),
     })
 
 @login_required
@@ -136,20 +145,30 @@ def dialogue_configure_voices(request, script_id):
         script = get_object_or_404(DialogueScript, id=script_id, user=request.user)
         data = json.loads(request.body)
         voice_mapping = data.get('voice_mapping', {})
-        
-        # 更新对话片段的音色配置
+        script_data = script.script_data or {}
+        voice_settings = script.voice_settings.copy()
+        updated = False
+        default_provider = TTSProviderConfig.get_default_provider()
+
         for speaker, voice_config in voice_mapping.items():
-            voice_role_id = voice_config.get('voice_role_id')
-            voice_role = None
-            
-            if voice_role_id:
-                try:
-                    voice_role = VoiceRole.objects.get(id=voice_role_id, user=request.user)
-                except VoiceRole.DoesNotExist:
-                    pass
-            
-            # 更新该说话者的所有片段
-            script.segments.filter(speaker=speaker).update(voice_role=voice_role)
+            voice_name = (voice_config.get('voice_name') or '').strip()
+
+            if voice_name:
+                new_config = {
+                    'provider': default_provider,
+                    'voice_name': voice_name,
+                }
+                if voice_settings.get(speaker) != new_config:
+                    voice_settings[speaker] = new_config
+                    updated = True
+            elif speaker in voice_settings:
+                voice_settings.pop(speaker)
+                updated = True
+
+        if updated:
+            script_data['voice_settings'] = voice_settings
+            script.script_data = script_data
+            script.save(update_fields=['script_data', 'updated_at'])
         
         return JsonResponse({
             'success': True,
@@ -171,25 +190,31 @@ def dialogue_generate_audio(request, script_id):
         
         # 检查是否已配置音色
         segments = script.segments.all()
-        voice_mapping = {}
-        
+        configured_voices = script.voice_settings
+        default_provider = TTSProviderConfig.get_default_provider()
+
+        voice_mapping: Dict[str, Dict[str, str]] = {}
         for segment in segments:
             speaker = segment.speaker
-            if speaker not in voice_mapping:
-                if segment.voice_role:
-                    voice_mapping[speaker] = {
-                        'provider': segment.voice_role.tts_provider,
-                        'voice_name': segment.voice_role.voice_name
-                    }
-                else:
-                    return JsonResponse({
-                        'success': False,
-                        'error': f'说话者 "{speaker}" 尚未配置音色'
-                    })
-        
+            config = configured_voices.get(speaker, {}) if configured_voices else {}
+
+            provider = config.get('provider') or default_provider or 'edge_tts'
+            voice_name = config.get('voice_name')
+
+            if not voice_name:
+                return JsonResponse({
+                    'success': False,
+                    'error': f'说话者 "{speaker}" 尚未配置音色'
+                })
+
+            voice_mapping[speaker] = {
+                'provider': provider,
+                'voice_name': voice_name
+            }
+
         # 创建异步任务
         from ..tasks import generate_dialogue_audio_task
-        
+
         task_result = generate_dialogue_audio_task.delay(
             script_id=script.id,
             voice_mapping=voice_mapping
@@ -219,101 +244,6 @@ def dialogue_generate_audio(request, script_id):
         return JsonResponse({'success': False, 'error': '无效的JSON数据'})
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'任务创建失败: {str(e)}'})
-
-@login_required
-def voice_roles_list(request):
-    """音色角色管理页面"""
-    voice_roles = VoiceRole.objects.filter(user=request.user).order_by('name')
-    
-    # 获取可用音色列表
-    multi_voice_tts = MultiVoiceTTS()
-    edge_voices = multi_voice_tts.get_available_voices('edge_tts')
-    
-    # Azure音色列表（静态定义常用的中文音色）
-    azure_voices = [
-        {"name": "晓晓 (女声)", "value": "zh-CN-XiaoxiaoNeural"},
-        {"name": "云希 (男声)", "value": "zh-CN-YunxiNeural"},
-        {"name": "晓伊 (女声)", "value": "zh-CN-XiaoyiNeural"},
-        {"name": "云扬 (男声)", "value": "zh-CN-YunyangNeural"},
-        {"name": "晓梦 (女声)", "value": "zh-CN-XiaomengNeural"},
-        {"name": "云健 (男声)", "value": "zh-CN-YunjianNeural"},
-        {"name": "晓墨 (女声)", "value": "zh-CN-XiaomoNeural"},
-        {"name": "晓睿 (女声)", "value": "zh-CN-XiaoruiNeural"},
-        {"name": "晓双 (女声)", "value": "zh-CN-XiaoshuangNeural"},
-        {"name": "晓悠 (女声)", "value": "zh-CN-XiaoyouNeural"},
-        {"name": "云野 (男声)", "value": "zh-CN-YunyeNeural"},
-        {"name": "云泽 (男声)", "value": "zh-CN-YunzeNeural"},
-    ]
-    
-    return render(request, 'voice_roles.html', {
-        'voice_roles': voice_roles,
-        'edge_voices_json': json.dumps(edge_voices),
-        'azure_voices_json': json.dumps(azure_voices)
-    })
-
-@login_required
-@csrf_exempt
-@require_POST
-def voice_role_create(request):
-    """创建音色角色"""
-    try:
-        data = json.loads(request.body)
-        name = data.get('name', '').strip()
-        tts_provider = data.get('tts_provider', 'azure')
-        voice_name = data.get('voice_name', '').strip()
-        is_default = data.get('is_default', False)
-        
-        if not name or not voice_name:
-            return JsonResponse({'success': False, 'error': '角色名称和音色名称不能为空'})
-        
-        # 检查是否已存在同名角色
-        if VoiceRole.objects.filter(user=request.user, name=name).exists():
-            return JsonResponse({'success': False, 'error': f'角色 "{name}" 已存在'})
-        
-        # 如果设为默认，先取消其他默认角色
-        if is_default:
-            VoiceRole.objects.filter(user=request.user, is_default=True).update(is_default=False)
-        
-        voice_role = VoiceRole.objects.create(
-            user=request.user,
-            name=name,
-            tts_provider=tts_provider,
-            voice_name=voice_name,
-            is_default=is_default
-        )
-        
-        return JsonResponse({
-            'success': True,
-            'voice_role': {
-                'id': voice_role.id,
-                'name': voice_role.name,
-                'tts_provider': voice_role.tts_provider,
-                'voice_name': voice_role.voice_name,
-                'is_default': voice_role.is_default
-            }
-        })
-        
-    except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': '无效的JSON数据'})
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': f'创建失败: {str(e)}'})
-
-@login_required
-@csrf_exempt
-@require_POST
-def voice_role_delete(request, role_id):
-    """删除音色角色"""
-    try:
-        voice_role = get_object_or_404(VoiceRole, id=role_id, user=request.user)
-        voice_role.delete()
-        
-        return JsonResponse({
-            'success': True,
-            'message': '音色角色已删除'
-        })
-        
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': f'删除失败: {str(e)}'})
 
 @login_required
 def task_status(request, task_id):
@@ -561,11 +491,16 @@ def dialogue_segment_preview(request, segment_id):
     """预览单个对话片段的音频"""
     try:
         segment = get_object_or_404(DialogueSegment, id=segment_id, script__user=request.user)
-        
-        if not segment.voice_role:
+        voice_config = segment.script.voice_settings.get(segment.speaker, {})
+
+        default_provider = TTSProviderConfig.get_default_provider()
+        provider = voice_config.get('provider') or default_provider or 'edge_tts'
+        voice_name = voice_config.get('voice_name')
+
+        if not voice_name:
             return JsonResponse({
                 'success': False,
-                'error': '该片段尚未配置音色角色'
+                'error': '该片段尚未配置音色'
             })
         
         # 创建异步任务生成预览音频
@@ -574,8 +509,8 @@ def dialogue_segment_preview(request, segment_id):
         task_result = generate_segment_preview_task.delay(
             segment_id=segment.id,
             voice_config={
-                'provider': segment.voice_role.tts_provider,
-                'voice_name': segment.voice_role.voice_name
+                'provider': provider,
+                'voice_name': voice_name
             }
         )
         
@@ -601,4 +536,4 @@ def dialogue_segment_preview(request, segment_id):
         })
         
     except Exception as e:
-        return JsonResponse({'success': False, 'error': f'预览生成失败: {str(e)}'}) 
+        return JsonResponse({'success': False, 'error': f'预览生成失败: {str(e)}'})

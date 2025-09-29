@@ -24,7 +24,6 @@ from ..models import (
     AudioSegment,
     UserTask,
     DialogueScript,
-    VoiceRole,
     TTSVoicePreview,
     TTSProviderConfig,
     TTS_PROVIDER_CHOICES,

@@ -182,34 +182,16 @@ class UserTask(models.Model):
         """检查任务是否已完成（无论成功还是失败）"""
         return self.status in ['success', 'failure', 'revoked']
 
-TTS_PROVIDER_CHOICES = [
-    ('edge_tts', 'Edge TTS'),
-    ('azure', 'Azure TTS'),
-]
-
-
-class VoiceRole(models.Model):
-    """音色角色模型，用于管理对话中的角色和对应的TTS音色"""
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='voice_roles')
-    name = models.CharField(max_length=100, help_text="角色名称，如：主持人、嘉宾、旁白等")
-    tts_provider = models.CharField(max_length=20, choices=TTS_PROVIDER_CHOICES, default='azure')
-    voice_name = models.CharField(max_length=100, help_text="TTS语音模型名称")
-    is_default = models.BooleanField(default=False, help_text="是否为默认角色")
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    class Meta:
-        unique_together = ['user', 'name']
-        ordering = ['name']
-    
-    def __str__(self):
-        return f"{self.user.username} - {self.name} ({self.voice_name})"
-
-
 def tts_preview_upload_to(instance, filename):
     """生成固定的试听文件路径，避免重复文件。"""
     safe_voice = re.sub(r'[^A-Za-z0-9._-]+', '_', instance.voice_name or 'voice')
     return f"tts_previews/{instance.tts_provider}/{safe_voice}.wav"
+
+
+TTS_PROVIDER_CHOICES = [
+    ('edge_tts', 'Edge TTS'),
+    ('azure', 'Azure TTS'),
+]
 
 
 class TTSVoicePreview(models.Model):
@@ -291,6 +273,16 @@ class DialogueScript(models.Model):
             for segment in self.script_data['segments']:
                 speakers.add(segment.get('speaker', ''))
         return list(speakers)
+
+    def get_voice_settings(self) -> dict:
+        """获取脚本内保存的音色配置。"""
+        data = self.script_data or {}
+        voice_settings = data.get('voice_settings', {})
+        return voice_settings if isinstance(voice_settings, dict) else {}
+
+    @property
+    def voice_settings(self) -> dict:
+        return self.get_voice_settings()
     
     def sync_script_data_with_segments(self):
         """同步script_data与DialogueSegment表数据"""
@@ -323,7 +315,6 @@ class DialogueSegment(models.Model):
     """对话片段模型，用于存储角色音色配置"""
     script = models.ForeignKey(DialogueScript, on_delete=models.CASCADE, related_name='segments')
     speaker = models.CharField(max_length=100, help_text="说话者名称")
-    voice_role = models.ForeignKey(VoiceRole, on_delete=models.SET_NULL, null=True, blank=True, help_text="分配的音色角色")
     sequence = models.IntegerField(help_text="片段顺序")
     utterance = models.TextField(help_text="说话内容")
     dialogue_type = models.CharField(max_length=20, choices=[('dialogue', '对话'), ('narration', '旁白')], default='dialogue')

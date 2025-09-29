@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load custom_filters %}
 
 {% block content %}
 <style>
@@ -9,32 +10,32 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-    background: #f1f5f9;
+    background: hsl(var(--b2));
     border-radius: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
+    background: hsl(var(--b3));
     border-radius: 4px;
     transition: background-color 0.2s;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
+    background: hsl(var(--b4));
 }
 
 /* Firefox */
 .custom-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: #cbd5e1 #f1f5f9;
+    scrollbar-color: hsl(var(--b3)) hsl(var(--b2));
 }
 </style>
 <div class="container mx-auto px-4 py-8">
     <div class="mb-6">
-        <div class="flex justify-between items-center">
+        <div class="flex justify-between items-center text-base-content">
             <div>
                 <div class="flex items-center">
-                    <h1 class="text-3xl font-bold text-gray-900 mr-3" id="script-title-display">{{ script.title }}</h1>
+                    <h1 class="text-3xl font-bold mr-3" id="script-title-display">{{ script.title }}</h1>
                     <button type="button" 
                             id="edit-script-btn"
                             class="btn btn-ghost btn-sm text-blue-600 hover:text-blue-800">
@@ -42,16 +43,16 @@
                     </button>
                 </div>
                 <div class="mt-2">
-                    <span class="text-gray-600">关联书籍：</span>
-                    <span id="script-book-display" class="text-gray-600">
+                    <span class="text-base-content/70">关联书籍：</span>
+                    <span id="script-book-display" class="text-base-content/70">
                         {% if script.book %}{{ script.book.name }}{% else %}无关联书籍{% endif %}
                     </span>
-                    <span class="text-gray-600 ml-4">| 创建时间：{{ script.created_at|date:"Y-m-d H:i" }}</span>
+                    <span class="text-base-content/70 ml-4">| 创建时间：{{ script.created_at|date:"Y-m-d H:i" }}</span>
                 </div>
             </div>
             <div class="flex space-x-3">
                 <a href="{% url 'dialogue_list' %}" 
-                   class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded-lg">
+                   class="btn btn-outline">
                     <i class="fas fa-arrow-left mr-2"></i>返回列表
                 </a>
                 {% if script.audio_file and not script.published %}
@@ -79,31 +80,39 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6  min-h-[80vh]">
         <!-- 对话内容预览 -->
         <div class="lg:col-span-2">
-            <div class="bg-white shadow-md rounded-lg h-full flex flex-col relative">
-                <h2 class="text-xl font-semibold p-6 pb-4 border-b border-gray-200 flex-shrink-0">对话内容</h2>
+            <div class="bg-base-100 shadow-md rounded-lg h-full flex flex-col relative">
+                <h2 class="text-xl font-semibold p-6 pb-4 border-b border-base-200 flex-shrink-0">对话内容</h2>
                 <div class="flex-1 overflow-y-auto custom-scrollbar p-6 pt-4 min-h-[60vh] max-h-[73.5vh]">
                     {% for segment in segments %}
-                    <div class="mb-3 p-4 rounded-lg transition-all {% if segment.dialogue_type == 'narration' %}bg-gray-50 hover:bg-gray-100{% else %}bg-blue-50 hover:bg-blue-100{% endif %} border border-transparent hover:border-gray-200 group">
+                    <div class="mb-3 p-4 rounded-lg transition-all border border-transparent group {% if segment.dialogue_type == 'narration' %}bg-base-200/60 hover:bg-base-200{% else %}bg-primary/10 hover:bg-primary/20{% endif %}">
                         <div class="flex items-center justify-between mb-2">
                             <span class="font-medium text-sm 
-                                {% if segment.dialogue_type == 'narration' %}text-gray-600{% else %}text-blue-600{% endif %}">
+                                {% if segment.dialogue_type == 'narration' %}text-base-content/70{% else %}text-primary{% endif %}">
                                 {{ segment.speaker }}
-                                {% if segment.voice_role %}
-                                    <span class="text-xs bg-green-100 text-green-600 px-2 py-1 rounded ml-2">
-                                        {{ segment.voice_role.voice_name }}
-                                    </span>
-                                {% endif %}
+                                {% with voice_config=voice_settings|dict_get:segment.speaker %}
+                                    {% with voice_name=voice_config|dict_get:'voice_name' %}
+                                        {% if voice_name %}
+                                            <span class="badge badge-success badge-sm ml-2">
+                                                {{ voice_name }}
+                                            </span>
+                                        {% endif %}
+                                    {% endwith %}
+                                {% endwith %}
                             </span>
                             <div class="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <span class="text-xs text-gray-500">#{{ segment.sequence }}</span>
-                                {% if segment.voice_role %}
-                                <button type="button" 
-                                        data-segment-id="{{ segment.id }}"
-                                        class="preview-segment-btn text-green-600 hover:text-green-800 p-1" 
-                                        title="听见">
-                                    <i class="fas fa-play"></i>
-                                </button>
-                                {% endif %}
+                                <span class="text-xs text-base-content/60">#{{ segment.sequence }}</span>
+                                {% with voice_config=voice_settings|dict_get:segment.speaker %}
+                                    {% with voice_name=voice_config|dict_get:'voice_name' %}
+                                        {% if voice_name %}
+                                            <button type="button" 
+                                                    data-segment-id="{{ segment.id }}"
+                                                    class="preview-segment-btn text-green-600 hover:text-green-800 p-1" 
+                                                    title="听见">
+                                                <i class="fas fa-play"></i>
+                                            </button>
+                                        {% endif %}
+                                    {% endwith %}
+                                {% endwith %}
                                 <button type="button" 
                                         data-segment-id="{{ segment.id }}"
                                         data-speaker="{{ segment.speaker|escapejs }}"
@@ -121,13 +130,13 @@
                                 </button>
                             </div>
                         </div>
-                        <p class="text-gray-800" id="segment-text-{{ segment.id }}">{{ segment.utterance }}</p>
+                        <p class="text-base-content" id="segment-text-{{ segment.id }}">{{ segment.utterance }}</p>
                     </div>
                     {% endfor %}
                 </div>
                 <!-- 字幕下载和查看按钮 -->
                 {% if script.subtitle_file and script.subtitle_file.name %}
-                <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+                <div class="mt-4 p-4 bg-base-200/70 rounded-lg">
                     <div class="flex gap-2">
                         <a href="{{ script.subtitle_file.url }}" class="btn btn-secondary btn-sm" download>
                             <i class="fas fa-download"></i>
@@ -141,9 +150,9 @@
                     
                     <!-- 字幕内容显示区域 -->
                     <div id="subtitles-content" class="mt-4 hidden">
-                        <h4 class="font-medium text-sm text-gray-700 mb-2">字幕内容</h4>
-                        <div id="subtitles-text" class="text-xs text-gray-600 max-h-40 overflow-y-auto custom-scrollbar p-3 bg-white rounded border">
-                            <div class="text-center text-gray-400">
+                        <h4 class="font-medium text-sm text-base-content mb-2">字幕内容</h4>
+                        <div id="subtitles-text" class="text-xs text-base-content/70 max-h-40 overflow-y-auto custom-scrollbar p-3 bg-base-100 rounded border border-base-300">
+                            <div class="text-center text-base-content/50">
                                 <i class="fas fa-spinner fa-spin mr-2"></i>
                                 加载字幕中...
                             </div>
@@ -152,14 +161,14 @@
                 </div>
                 {% endif %}
                 <!-- 滚动渐变提示 -->
-                <div class="absolute bottom-0 left-6 right-6 h-8 bg-gradient-to-t from-white via-white/90 to-transparent pointer-events-none opacity-0 transition-opacity duration-300" id="scroll-fade"></div>
+                <div class="absolute bottom-0 left-6 right-6 h-8 bg-gradient-to-t from-base-100 via-base-100/90 to-transparent pointer-events-none opacity-0 transition-opacity duration-300" id="scroll-fade"></div>
             </div>
         </div>
 
         <!-- 音色配置和控制面板 -->
         <div class="lg:col-span-1">
             <!-- 状态信息 -->
-            <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+            <div class="bg-base-100 shadow-md rounded-lg p-6 mb-6 text-base-content">
                 <h3 class="text-lg font-semibold mb-3">状态信息</h3>
                 <div class="space-y-2 text-sm">
                     <div class="flex justify-between">
@@ -175,12 +184,12 @@
                         <span>
                             {% if script.audio_file %}
                                 {% if script.published %}
-                                    <span class="text-green-600">已发布</span>
+                                    <span class="text-success">已发布</span>
                                 {% else %}
-                                    <span class="text-blue-600">已生成</span>
+                                    <span class="text-primary">已生成</span>
                                 {% endif %}
                             {% else %}
-                                <span class="text-gray-600">未生成</span>
+                                <span class="text-base-content/70">未生成</span>
                             {% endif %}
                         </span>
                     </div>
@@ -202,26 +211,32 @@
             </div>
 
             <!-- 音色配置 -->
-            <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+            <div class="bg-base-100 shadow-md rounded-lg p-6 mb-6">
                 <h3 class="text-lg font-semibold mb-3">音色配置</h3>
                 <form id="voice-config-form">
                     {% for speaker in speakers %}
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <label class="block text-sm font-medium text-base-content mb-2">
                             {{ speaker }}
                         </label>
-                        <select name="voice_mapping[{{ speaker }}][voice_role_id]" 
-                                class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm">
-                            <option value="">选择音色角色</option>
-                            {% for role in voice_roles %}
-                            <option value="{{ role.id }}"
-                                {% for segment in segments %}
-                                    {% if segment.speaker == speaker and segment.voice_role.id == role.id %}selected{% endif %}
-                                {% endfor %}>
-                                {{ role.name }} ({{ role.voice_name }})
-                            </option>
-                            {% endfor %}
-                        </select>
+                        {% with config=voice_settings|dict_get:speaker %}
+                        {% with selected_voice=config|dict_get:'voice_name' %}
+                        <div class="relative" data-voice-dropdown data-speaker="{{ speaker|escape }}">
+                            <button type="button"
+                                    class="btn btn-outline btn-sm w-full justify-between"
+                                    data-role="voice-toggle">
+                                <span data-role="voice-label">{{ selected_voice|default:"选择音色" }}</span>
+                                <i class="fas fa-chevron-down text-xs"></i>
+                            </button>
+                            <div class="hidden absolute z-20 mt-1 w-full max-h-60 overflow-y-auto rounded-md border border-base-300 bg-base-100 shadow-lg"
+                                 data-role="voice-menu"></div>
+                            <input type="hidden"
+                                   name="voice_mapping[{{ speaker }}][voice_name]"
+                                   data-role="voice-input"
+                                   value="{{ selected_voice|default:"" }}">
+                        </div>
+                        {% endwith %}
+                        {% endwith %}
                     </div>
                     {% endfor %}
                     
@@ -232,20 +247,13 @@
             </div>
 
             <!-- 音频生成 -->
-            <div class="bg-white shadow-md rounded-lg p-6">
+            <div class="bg-base-100 shadow-md rounded-lg p-6">
                 <h3 class="text-lg font-semibold mb-3">音频生成</h3>
                 <form id="audio-generation-form">
                     <button type="submit" id="generate-audio-btn"
-                            class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg"
-                            {% if not voice_roles %}disabled{% endif %}>
+                            class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg">
                         <i class="fas fa-microphone mr-2"></i>生成音频
                     </button>
-                    
-                    {% if not voice_roles %}
-                    <p class="text-sm text-red-500 mt-2">
-                        请先<a href="{% url 'voice_roles_list' %}" class="underline">创建音色角色</a>并配置音色
-                    </p>
-                    {% endif %}
                 </form>
             </div>
         </div>
@@ -688,7 +696,7 @@ function checkTaskStatus(taskId, callback) {
 function showPreviewAudio(audioUrl, segmentId) {
     // 创建音频播放元素
     const audioContainer = document.createElement('div');
-    audioContainer.className = 'mt-2 p-2 bg-gray-100 rounded';
+    audioContainer.className = 'mt-2 p-2 bg-base-200 rounded';
     audioContainer.innerHTML = `
         <audio controls class="w-full">
             <source src="${audioUrl}" type="audio/wav">
@@ -731,6 +739,241 @@ document.addEventListener('DOMContentLoaded', function() {
     const toggleSubtitlesBtn = document.getElementById('toggle-subtitles-btn');
     const subtitlesContent = document.getElementById('subtitles-content');
     const subtitlesText = document.getElementById('subtitles-text');
+    const availableVoices = JSON.parse('{{ available_voices_json|escapejs }}') || [];
+    const defaultProvider = '{{ default_provider }}';
+    const voiceSettings = JSON.parse('{{ voice_settings_json|escapejs }}') || {};
+    const speakers = JSON.parse('{{ speakers_json|escapejs }}') || [];
+
+    const voiceDropdowns = new Map();
+
+    if (voiceConfigForm) {
+        voiceConfigForm.querySelectorAll('[data-voice-dropdown]').forEach((container) => {
+            const speaker = container.dataset.speaker;
+            if (!speaker) {
+                return;
+            }
+            voiceDropdowns.set(speaker, {
+                container,
+                toggle: container.querySelector('[data-role="voice-toggle"]'),
+                label: container.querySelector('[data-role="voice-label"]'),
+                menu: container.querySelector('[data-role="voice-menu"]'),
+                hiddenInput: container.querySelector('[data-role="voice-input"]'),
+            });
+        });
+    }
+
+    function ensureVoiceDefaults(speaker) {
+        if (!voiceSettings[speaker]) {
+            voiceSettings[speaker] = {};
+        }
+        voiceSettings[speaker].provider = defaultProvider || 'edge_tts';
+    }
+
+    function getVoiceDisplayName(value) {
+        if (!value) {
+            return '选择音色';
+        }
+        const match = availableVoices.find((voice) => voice.value === value);
+        return match ? (match.name || match.value) : `${value}（当前选择）`;
+    }
+
+    function buildDropdownMenu(speaker) {
+        const dropdown = voiceDropdowns.get(speaker);
+        if (!dropdown) {
+            return;
+        }
+
+        const {menu, label, hiddenInput} = dropdown;
+        if (!menu || !label || !hiddenInput) {
+            return;
+        }
+
+        const selectedValue = hiddenInput.value || '';
+        menu.classList.add('hidden');
+        menu.innerHTML = '';
+
+        if (!availableVoices.length && !selectedValue) {
+            const emptyItem = document.createElement('div');
+            emptyItem.className = 'px-3 py-2 text-xs text-base-content/60';
+            emptyItem.textContent = '暂无音色';
+            menu.appendChild(emptyItem);
+        }
+
+        availableVoices.forEach((option) => {
+            const item = document.createElement('div');
+            item.className = 'flex items-center gap-2 px-3 py-2 cursor-pointer transition-colors duration-150';
+            item.dataset.voiceValue = option.value;
+
+            const selectBtn = document.createElement('button');
+            selectBtn.type = 'button';
+            selectBtn.className = 'flex-1 text-left text-sm';
+            selectBtn.textContent = option.name || option.value;
+            selectBtn.addEventListener('click', () => {
+                selectVoice(speaker, option.value, option.name || option.value);
+            });
+
+            const previewBtn = document.createElement('button');
+            previewBtn.type = 'button';
+            previewBtn.className = 'btn btn-ghost btn-xs';
+            previewBtn.innerHTML = '<i class="fas fa-headphones"></i>';
+            previewBtn.addEventListener('click', async (event) => {
+                event.stopPropagation();
+                await previewVoice(option.value, previewBtn);
+            });
+
+            item.appendChild(selectBtn);
+            item.appendChild(previewBtn);
+
+            if (option.value === selectedValue) {
+                item.classList.add('bg-primary', 'text-primary-content', 'ring-2', 'ring-primary', 'ring-offset-2', 'ring-offset-base-100');
+                selectBtn.classList.add('text-primary-content');
+                previewBtn.classList.add('text-primary-content');
+                item.dataset.selected = 'true';
+            } else {
+                item.dataset.selected = 'false';
+                item.classList.add('hover:bg-base-200');
+            }
+
+            menu.appendChild(item);
+        });
+
+        label.textContent = getVoiceDisplayName(selectedValue);
+    }
+
+    function selectVoice(speaker, value, labelText) {
+        const dropdown = voiceDropdowns.get(speaker);
+        if (!dropdown) {
+            return;
+        }
+
+        const {hiddenInput, label, menu} = dropdown;
+        if (hiddenInput) {
+            hiddenInput.value = value || '';
+        }
+        if (label) {
+            label.textContent = labelText || getVoiceDisplayName(value);
+        }
+
+        ensureVoiceDefaults(speaker);
+        if (value) {
+            voiceSettings[speaker].voice_name = value;
+        } else {
+            delete voiceSettings[speaker];
+        }
+
+        if (menu) {
+            menu.classList.add('hidden');
+        }
+
+        buildDropdownMenu(speaker);
+    }
+
+    function scrollSelectedIntoView(dropdown) {
+        if (!dropdown || !dropdown.menu) {
+            return;
+        }
+        const selectedItem = dropdown.menu.querySelector('[data-selected="true"]');
+        if (selectedItem) {
+            selectedItem.scrollIntoView({ block: 'nearest' });
+        }
+    }
+
+    if (voiceConfigForm) {
+        speakers.forEach((speaker) => {
+            ensureVoiceDefaults(speaker);
+            const dropdown = voiceDropdowns.get(speaker);
+            if (dropdown && dropdown.hiddenInput && dropdown.hiddenInput.value) {
+                voiceSettings[speaker].voice_name = dropdown.hiddenInput.value;
+            }
+            buildDropdownMenu(speaker);
+        });
+
+        voiceDropdowns.forEach((dropdown) => {
+            if (dropdown.toggle) {
+                dropdown.toggle.addEventListener('click', () => {
+                    if (!dropdown.menu) return;
+                    dropdown.menu.classList.toggle('hidden');
+                    if (!dropdown.menu.classList.contains('hidden')) {
+                        scrollSelectedIntoView(dropdown);
+                    }
+                });
+            }
+        });
+
+        document.addEventListener('click', (event) => {
+            voiceDropdowns.forEach((dropdown) => {
+                if (!dropdown.container.contains(event.target)) {
+                    dropdown.menu.classList.add('hidden');
+                }
+            });
+        });
+    }
+
+    async function previewVoice(voiceName, triggerButton) {
+        const providerValue = defaultProvider || 'edge_tts';
+
+        if (!voiceName) {
+            showToast('请先选择音色', 'error');
+            return;
+        }
+
+        if (!triggerButton) {
+            return;
+        }
+
+        const originalContent = triggerButton.innerHTML;
+        triggerButton.innerHTML = '<span class="loading loading-spinner loading-xs"></span>';
+        triggerButton.disabled = true;
+
+        try {
+            const response = await fetch(`{% url 'tts_preview' %}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: new URLSearchParams({
+                    provider: providerValue,
+                    voice_name: voiceName
+                })
+            });
+
+            let data;
+            try {
+                data = await response.json();
+            } catch (parseError) {
+                throw new Error('服务器返回格式异常');
+            }
+
+            if (!response.ok || data.status !== 'ok') {
+                throw new Error(data?.message || '试听失败');
+            }
+
+            if (window.voicePreviewAudio) {
+                try {
+                    window.voicePreviewAudio.pause();
+                } catch (pauseError) {
+                    console.warn('暂停上一段试听音频失败:', pauseError);
+                }
+            }
+
+            const audio = new Audio(data.audio_url);
+            window.voicePreviewAudio = audio;
+
+            try {
+                await audio.play();
+            } catch (playError) {
+                console.error('播放试听音频失败:', playError);
+                showToast('浏览器阻止了自动播放，请点击播放按钮重试', 'error');
+            }
+        } catch (error) {
+            console.error('音色试听失败:', error);
+            showToast(error.message || '试听失败，请稍后重试', 'error');
+        } finally {
+            triggerButton.innerHTML = originalContent;
+            triggerButton.disabled = false;
+        }
+    }
     
     // 字幕功能
     let subtitlesLoaded = false;
@@ -780,7 +1023,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 格式化字幕内容
     function formatSubtitles(srtText) {
       if (!srtText.trim()) {
-        return '<div class="text-center text-gray-500">暂无字幕内容</div>';
+        return '<div class="text-center text-base-content/60">暂无字幕内容</div>';
       }
       
       // 解析SRT格式字幕
@@ -799,7 +1042,7 @@ document.addEventListener('DOMContentLoaded', function() {
           
           html += `
             <div class="border-l-2 border-blue-300 pl-3 py-1">
-              <div class="text-xs text-gray-500 mb-1">${timestamp}</div>
+              <div class="text-xs text-base-content/60 mb-1">${timestamp}</div>
               <div class="text-sm">${text}</div>
             </div>
           `;
@@ -885,18 +1128,20 @@ document.addEventListener('DOMContentLoaded', function() {
         voiceConfigForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            const formData = new FormData(voiceConfigForm);
             const voiceMapping = {};
-            
-            // 构建音色映射数据
-            for (const [key, value] of formData.entries()) {
-                if (key.startsWith('voice_mapping[') && key.endsWith('][voice_role_id]') && value) {
-                    const speaker = key.match(/voice_mapping\[(.+?)\]\[voice_role_id\]/)[1];
+
+            speakers.forEach((speaker) => {
+                const dropdown = voiceDropdowns.get(speaker);
+                const voiceName = dropdown && dropdown.hiddenInput ? (dropdown.hiddenInput.value || '') : '';
+
+                if (voiceName) {
                     voiceMapping[speaker] = {
-                        voice_role_id: value
+                        voice_name: voiceName,
                     };
+                } else {
+                    voiceMapping[speaker] = {};
                 }
-            }
+            });
             
             fetch('{% url "dialogue_configure_voices" script.id %}', {
                 method: 'POST',
@@ -929,6 +1174,16 @@ document.addEventListener('DOMContentLoaded', function() {
         audioGenerationForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
+            const unconfiguredSpeakers = speakers.filter((speaker) => {
+                const dropdown = voiceDropdowns.get(speaker);
+                return !dropdown || !dropdown.hiddenInput || !dropdown.hiddenInput.value;
+            });
+
+            if (unconfiguredSpeakers.length) {
+                showToast('请先为以下说话者配置音色：' + unconfiguredSpeakers.join('、'), 'error');
+                return;
+            }
+
             // 检查是否已经有音频文件
             const hasAudio = {% if script.audio_file %}true{% else %}false{% endif %};
             
