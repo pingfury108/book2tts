@@ -8758,8 +8758,28 @@ details.collapse summary::-webkit-details-marker {
     height: 1.25rem;
   }
 
+  .lg\:h-full {
+    height: 100%;
+  }
+
+  .lg\:h-\[calc\(100vh-14rem\)\] {
+    height: calc(100vh - 14rem);
+  }
+
   .lg\:max-h-64 {
     max-height: 16rem;
+  }
+
+  .lg\:max-h-\[calc\(100vh-14rem\)\] {
+    max-height: calc(100vh - 14rem);
+  }
+
+  .lg\:min-h-0 {
+    min-height: 0px;
+  }
+
+  .lg\:min-h-\[32rem\] {
+    min-height: 32rem;
   }
 
   .lg\:w-1\/2 {
@@ -8780,6 +8800,14 @@ details.collapse summary::-webkit-details-marker {
 
   .lg\:w-3\/5 {
     width: 60%;
+  }
+
+  .lg\:flex-\[1\] {
+    flex: 1;
+  }
+
+  .lg\:flex-\[2\] {
+    flex: 2;
   }
 
   .lg\:grid-cols-12 {
@@ -8806,6 +8834,10 @@ details.collapse summary::-webkit-details-marker {
     align-items: center;
   }
 
+  .lg\:items-stretch {
+    align-items: stretch;
+  }
+
   .lg\:justify-end {
     justify-content: flex-end;
   }
@@ -8820,6 +8852,10 @@ details.collapse summary::-webkit-details-marker {
 
   .lg\:gap-6 {
     gap: 1.5rem;
+  }
+
+  .lg\:overflow-y-auto {
+    overflow-y: auto;
   }
 
   .lg\:p-5 {

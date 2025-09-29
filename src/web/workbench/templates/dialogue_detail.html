@@ -63,26 +63,26 @@
                     {% csrf_token %}
                     <button type="button" 
                             id="publish-btn"
-                            class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg">
+                            class="btn btn-success">
                         <i class="fas fa-upload mr-2"></i>发布音频
                     </button>
                 </form>
                 {% endif %}
                 <button type="button" 
                         id="delete-script-btn"
-                        class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg">
+                        class="btn btn-error">
                     <i class="fas fa-trash mr-2"></i>删除脚本
                 </button>
             </div>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6  min-h-[80vh]">
+    <div class="flex flex-col gap-6 lg:flex-row lg:items-stretch lg:h-[calc(100vh-14rem)] lg:min-h-[32rem] lg:max-h-[calc(100vh-14rem)] lg:min-h-0">
         <!-- 对话内容预览 -->
-        <div class="lg:col-span-2">
-            <div class="bg-base-100 shadow-md rounded-lg h-full flex flex-col relative">
+        <div class="flex flex-col min-h-0 lg:flex-[2] lg:min-h-0">
+            <div class="bg-base-100 shadow-md rounded-lg flex flex-col flex-1 min-h-0 relative">
                 <h2 class="text-xl font-semibold p-6 pb-4 border-b border-base-200 flex-shrink-0">对话内容</h2>
-                <div class="flex-1 overflow-y-auto custom-scrollbar p-6 pt-4 min-h-[60vh] max-h-[73.5vh]">
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-6 pt-4 min-h-0">
                     {% for segment in segments %}
                     <div class="mb-3 p-4 rounded-lg transition-all border border-transparent group {% if segment.dialogue_type == 'narration' %}bg-base-200/60 hover:bg-base-200{% else %}bg-primary/10 hover:bg-primary/20{% endif %}">
                         <div class="flex items-center justify-between mb-2">
@@ -166,9 +166,9 @@
         </div>
 
         <!-- 音色配置和控制面板 -->
-        <div class="lg:col-span-1">
+        <div class="flex flex-col gap-6 min-h-0 lg:flex-[1] lg:min-h-0 lg:overflow-y-auto">
             <!-- 状态信息 -->
-            <div class="bg-base-100 shadow-md rounded-lg p-6 mb-6 text-base-content">
+            <div class="bg-base-100 shadow-md rounded-lg p-6 text-base-content">
                 <h3 class="text-lg font-semibold mb-3">状态信息</h3>
                 <div class="space-y-2 text-sm">
                     <div class="flex justify-between">
@@ -211,7 +211,7 @@
             </div>
 
             <!-- 音色配置 -->
-            <div class="bg-base-100 shadow-md rounded-lg p-6 mb-6">
+            <div class="bg-base-100 shadow-md rounded-lg p-6">
                 <h3 class="text-lg font-semibold mb-3">音色配置</h3>
                 <form id="voice-config-form">
                     {% for speaker in speakers %}
