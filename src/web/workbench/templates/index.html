@@ -77,10 +77,8 @@
                 <div id="production-panel" class="space-y-3 right-panel-tab">
                     <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow duration-200">
                         <div class="card-body p-4">
-                            <h3 class="card-title text-lg font-bold">📚 书籍信息</h3>
                             <div class="flex flex-col gap-1">
                                 <div>
-                                    <label class="font-bold">书名:</label>
                                     <span class="text-sm">{{ title }}</span>
                                 </div>
                             </div>
@@ -88,7 +86,6 @@
                     </div>
                     <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow duration-200">
                         <div class="card-body p-4">
-                            <h3 class="card-title text-lg font-bold">📊 页面音频状态</h3>
                             <div class="space-y-2" id="page-audio-status">
                                 <div class="text-sm text-gray-500 text-center">
                                     选择页面查看音频生成状态
@@ -98,8 +95,7 @@
                     </div>
                     <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow duration-200">
                         <div class="card-body p-4">
-                            <h3 class="card-title text-lg font-bold">🔊 音频处理</h3>
-                            <div class="space-y-1">
+                            <div class="space-y-3">
                                 <div class="relative" id="voice-dropdown">
                                     <button type="button" id="voice-dropdown-toggle" class="btn btn-outline btn-sm w-full justify-between">
                                         <span id="voice-dropdown-label">语音模型</span>
@@ -120,12 +116,17 @@
                                     <span class="text-sm w-12 text-center" id="audio-rate-value">100%</span>
                                     <input type="hidden" id="audio-rate" value="+0%" />
                                 </div>
-                                <input type="text" id="audio-title-input" class="input input-bordered w-full text-sm" placeholder="音频标题（选填）" />
-                                <button class="btn btn-outline w-full text-sm h-10" id="create-dialogue-btn">
-                                    <i class="fas fa-comments h-4 w-4 mr-1"></i>
-                                    制作对话脚本
-                                </button>
-                                <button class="btn btn-primary w-full text-sm h-10" id="synthesize-btn">合成音频</button>
+                                <div class="flex flex-col gap-3">
+                                    <input type="text" id="audio-title-input" class="input input-bordered input-sm w-full text-sm" placeholder="音频标题（选填）" />
+                                    <button class="btn btn-outline btn-sm w-full text-sm" id="create-dialogue-btn">
+                                        <i class="fas fa-comments h-4 w-4 mr-1"></i>
+                                        生成多角色音频
+                                    </button>
+                                    <button class="btn btn-primary btn-sm w-full text-sm" id="synthesize-btn">
+                                        <i class="fas fa-wave-square h-4 w-4 mr-1"></i>
+                                        合成音频
+                                    </button>
+                                </div>
                                 <div id="audio-player-container" class="hidden mt-2 p-3 rounded-lg">
                                     <div class="text-center mb-3">
                                         <div class="inline-block bg-primary text-primary-content px-3 py-2 rounded-lg text-sm font-medium leading-relaxed max-w-full break-words" id="audio-title" style="min-height: 2.5rem; line-height: 1.4;"></div>
@@ -145,11 +146,11 @@
                                     <div id="audio-status" class="text-sm mt-1 text-center font-medium text-success"></div>
                                 </div>
                                 <div class="flex gap-2 mt-2">
-                                    <button class="btn btn-secondary flex-1 text-sm h-9" id="download-btn" disabled>
+                                    <button class="btn btn-secondary btn-sm flex-1 text-sm" id="download-btn" disabled>
                                         <i class="fas fa-download h-4 w-4 mr-1"></i>
                                         下载
                                     </button>
-                                    <button class="btn btn-accent flex-1 text-sm h-9" id="publish-btn" disabled
+                                    <button class="btn btn-accent btn-sm flex-1 text-sm" id="publish-btn" disabled
                                             onclick="handlePublishClick()">
                                         <i class="fas fa-upload h-4 w-4 mr-1"></i>
                                         发布
@@ -983,7 +984,7 @@ async function previewVoice(voiceName, triggerButton) {
      console.log("Setting audio segment ID:", window.currentAudioSegmentId);
      
      // 重置按钮为未发布状态
-     publishBtn.className = 'btn btn-success flex-1';
+     publishBtn.className = 'btn btn-success btn-sm flex-1';
      publishBtn.innerHTML = `
        <i class="fas fa-check h-5 w-5 mr-1"></i>
        发布
@@ -1478,7 +1479,7 @@ async function playWorkbenchAudioInGlobal() {
    
    if (data.published) {
      // 已发布状态 - 显示取消发布按钮
-     publishBtn.className = 'btn btn-warning flex-1';
+     publishBtn.className = 'btn btn-warning btn-sm flex-1';
      publishBtn.innerHTML = `
        <i class="fas fa-times h-5 w-5 mr-1"></i>
        取消发布
@@ -1486,7 +1487,7 @@ async function playWorkbenchAudioInGlobal() {
      publishBtn.title = '取消发布';
    } else {
      // 未发布状态 - 显示发布按钮
-     publishBtn.className = 'btn btn-success flex-1';
+     publishBtn.className = 'btn btn-success btn-sm flex-1';
      publishBtn.innerHTML = `
        <i class="fas fa-check h-5 w-5 mr-1"></i>
        发布

@@ -382,12 +382,18 @@ def preview_tts_voice(request):
             if not os.path.exists(temp_path) or os.path.getsize(temp_path) == 0:
                 raise RuntimeError("试听音频生成失败")
 
-            os.replace(temp_path, absolute_path)
+            if preview.file and preview.file.name:
+                try:
+                    preview.file.storage.delete(preview.file.name)
+                except Exception:
+                    pass
+
+            with open(temp_path, "rb") as temp_audio:
+                preview.file.save(relative_path, ContentFile(temp_audio.read()), save=False)
         finally:
             if os.path.exists(temp_path):
                 os.remove(temp_path)
 
-        preview.file.name = relative_path
         preview.last_generated_at = timezone.now()
         preview.save(update_fields=['file', 'last_generated_at', 'updated_at'])
 
