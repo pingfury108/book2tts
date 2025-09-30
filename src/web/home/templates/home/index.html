@@ -170,7 +170,12 @@
                     <div class="flex flex-col">
                       {% if segment.book %}
                         <a href="{% url 'book_audio_list' segment.book.id %}"
-                           class="badge badge-primary badge-outline text-xs sm:text-sm whitespace-nowrap">{{ segment.book.name }}</a>
+                           class="badge badge-primary badge-outline text-xs sm:text-sm inline-flex items-center shrink-0 px-0"
+                           title="{{ segment.book.name }}">
+                          <span class="block px-3 sm:px-4 py-0.5 max-w-[9rem] sm:max-w-[12rem] overflow-hidden text-ellipsis whitespace-nowrap text-left leading-tight">
+                            {{ segment.book.name }}
+                          </span>
+                        </a>
                       {% else %}
                         <span class="badge badge-outline text-xs sm:text-sm">独立片段</span>
                       {% endif %}

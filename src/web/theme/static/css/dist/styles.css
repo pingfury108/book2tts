@@ -6739,6 +6739,18 @@ details.collapse summary::-webkit-details-marker {
   max-width: 64rem;
 }
 
+.max-w-\[16rem\] {
+  max-width: 16rem;
+}
+
+.max-w-\[12rem\] {
+  max-width: 12rem;
+}
+
+.max-w-\[9rem\] {
+  max-width: 9rem;
+}
+
 .flex-1 {
   flex: 1 1 0%;
 }
@@ -7003,6 +7015,14 @@ details.collapse summary::-webkit-details-marker {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.text-ellipsis {
+  text-overflow: ellipsis;
+}
+
+.whitespace-normal {
+  white-space: normal;
 }
 
 .whitespace-nowrap {
@@ -7530,6 +7550,16 @@ details.collapse summary::-webkit-details-marker {
 .py-8 {
   padding-top: 2rem;
   padding-bottom: 2rem;
+}
+
+.py-0\.5 {
+  padding-top: 0.125rem;
+  padding-bottom: 0.125rem;
+}
+
+.px-0 {
+  padding-left: 0px;
+  padding-right: 0px;
 }
 
 .pb-3 {
@@ -8554,6 +8584,18 @@ details.collapse summary::-webkit-details-marker {
 
   .sm\:w-auto {
     width: auto;
+  }
+
+  .sm\:max-w-\[20rem\] {
+    max-width: 20rem;
+  }
+
+  .sm\:max-w-\[16rem\] {
+    max-width: 16rem;
+  }
+
+  .sm\:max-w-\[12rem\] {
+    max-width: 12rem;
   }
 
   .sm\:grid-cols-2 {

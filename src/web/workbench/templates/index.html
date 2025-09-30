@@ -121,6 +121,10 @@
                                     <input type="hidden" id="audio-rate" value="+0%" />
                                 </div>
                                 <input type="text" id="audio-title-input" class="input input-bordered w-full text-sm" placeholder="音频标题（选填）" />
+                                <button class="btn btn-outline w-full text-sm h-10" id="create-dialogue-btn">
+                                    <i class="fas fa-comments h-4 w-4 mr-1"></i>
+                                    制作对话脚本
+                                </button>
                                 <button class="btn btn-primary w-full text-sm h-10" id="synthesize-btn">合成音频</button>
                                 <div id="audio-player-container" class="hidden mt-2 p-3 rounded-lg">
                                     <div class="text-center mb-3">
@@ -692,6 +696,67 @@ async function previewVoice(voiceName, triggerButton) {
     triggerButton.disabled = false;
   }
 }
+
+ const dialogueDraftStorageKey = 'dialogue-draft';
+
+ function normalizeDialogueTitle(rawTitle) {
+   if (!rawTitle) {
+     return '';
+   }
+   const normalized = rawTitle.replace(/\s+/g, ' ').trim();
+   if (!normalized) {
+     return '';
+   }
+   const parts = normalized.split(' ');
+   if (parts.length % 2 === 0) {
+     const half = parts.length / 2;
+     const firstHalf = parts.slice(0, half).join(' ');
+     const secondHalf = parts.slice(half).join(' ');
+     if (firstHalf && firstHalf === secondHalf) {
+       return firstHalf;
+     }
+   }
+   return normalized;
+ }
+
+ const createDialogueBtn = document.getElementById('create-dialogue-btn');
+ if (createDialogueBtn) {
+   createDialogueBtn.addEventListener('click', function() {
+     const textarea = document.getElementById('src-text');
+     const textContent = textarea ? textarea.value.trim() : '';
+
+     if (!textContent) {
+       alert('请先加载或输入章节内容');
+       return;
+     }
+
+     const rawSuggestedTitle = (window.currentPageName && window.currentPageName.trim()) || '{{ title|escapejs }}';
+     const suggestedTitle = normalizeDialogueTitle(rawSuggestedTitle);
+
+     const draftData = {
+       bookId: '{{ book_id }}',
+       bookTitle: '{{ title|escapejs }}',
+       chapterId: window.currentPageId || '',
+       chapterName: window.currentPageName || '',
+       selectedContentIds: Array.isArray(window.currentSelectedContentIds) ? window.currentSelectedContentIds : [],
+       selectedPages: Array.isArray(window.currentSelectedPages) ? window.currentSelectedPages : [],
+       text: textContent,
+       suggestedTitle: suggestedTitle || '{{ title|escapejs }}',
+       source: 'workbench',
+       timestamp: Date.now()
+     };
+
+     try {
+       sessionStorage.setItem(dialogueDraftStorageKey, JSON.stringify(draftData));
+     } catch (error) {
+       console.error('无法缓存对话草稿数据', error);
+       alert('浏览器存储异常，暂时无法跳转');
+       return;
+     }
+
+     window.location.href = `{% url 'dialogue_create' %}`;
+   });
+ }
 
  // 音频合成和管理
  const synthesizeBtn = document.getElementById('synthesize-btn');

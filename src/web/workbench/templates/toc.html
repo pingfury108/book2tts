@@ -323,7 +323,11 @@ $(document).ready(function() {
           const firstSelectedHref = sortedSelectedItems[0]; // 使用排序后的第一个
           const firstSelectedLink = $(`.toc-link[data-toc-href="${firstSelectedHref}"]`);
           if (firstSelectedLink.length) {
-            window.currentPageName = firstSelectedLink.find('span').text().trim();
+            const tocTitleElement = firstSelectedLink.find('.truncate');
+            const resolvedTitle = tocTitleElement.length 
+              ? tocTitleElement.text().trim() 
+              : firstSelectedLink.text().trim();
+            window.currentPageName = resolvedTitle;
             window.currentPageId = firstSelectedHref;
             
             // 收集所有选中项的页码（仅对PDF有效），按TOC顺序排序

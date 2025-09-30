@@ -273,7 +273,11 @@
         scrollActiveLinkIntoView();
         
         // Update page state
-        window.currentPageName = $(linkElement).find('span').text().trim();
+        const pageTitleElement = $(linkElement).find('.truncate');
+        const resolvedTitle = pageTitleElement.length 
+          ? pageTitleElement.text().trim() 
+          : $(linkElement).text().trim();
+        window.currentPageName = resolvedTitle;
         window.currentPageId = $(linkElement).data('page-number');
         
         // Update current page state and PDF type for image viewing
@@ -292,7 +296,10 @@
         const checkedBoxes = document.querySelectorAll('.page-checkbox:checked');
         if (checkedBoxes.length > 0) {
           const selectedPages = Array.from(checkedBoxes).map(box => box.value);
-          const firstPageName = checkedBoxes[0].closest('li').querySelector('.page-link span').textContent.trim();
+          const firstPageNode = checkedBoxes[0].closest('li').querySelector('.page-link .truncate');
+          const firstPageName = firstPageNode 
+            ? firstPageNode.textContent.trim() 
+            : checkedBoxes[0].closest('li').querySelector('.page-link').textContent.trim();
           
           // 更新状态为批量选择
           window.currentPageName = firstPageName;

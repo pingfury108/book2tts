@@ -164,6 +164,28 @@
 </div>
 
 <script>
+const dialogueDraftStorageKey = 'dialogue-draft';
+
+function normalizeDialogueTitle(rawTitle) {
+    if (!rawTitle) {
+        return '';
+    }
+    const normalized = rawTitle.replace(/\s+/g, ' ').trim();
+    if (!normalized) {
+        return '';
+    }
+    const parts = normalized.split(' ');
+    if (parts.length % 2 === 0) {
+        const half = parts.length / 2;
+        const firstHalf = parts.slice(0, half).join(' ');
+        const secondHalf = parts.slice(half).join(' ');
+        if (firstHalf && firstHalf === secondHalf) {
+            return firstHalf;
+        }
+    }
+    return normalized;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('dialogue-form');
     const convertBtn = document.getElementById('convert-btn');
@@ -172,9 +194,47 @@ document.addEventListener('DOMContentLoaded', function() {
     const errorModal = document.getElementById('error-modal');
     const toggleBtn = document.getElementById('toggle-custom-prompt');
     const customPromptSection = document.getElementById('custom-prompt-section');
+    const titleInput = document.getElementById('title');
+    const textInput = document.getElementById('text');
+    const bookSelect = document.getElementById('book_id');
     
     let currentTaskId = null;
     let pollInterval = null;
+    let importedDraft = null;
+
+    const rawDraft = sessionStorage.getItem(dialogueDraftStorageKey);
+    if (rawDraft) {
+        try {
+            importedDraft = JSON.parse(rawDraft);
+            window.dialogueDraftFromWorkbench = importedDraft;
+        } catch (error) {
+            console.error('解析对话草稿失败', error);
+        }
+
+        try {
+            sessionStorage.removeItem(dialogueDraftStorageKey);
+        } catch (error) {
+            console.warn('清理对话草稿缓存失败', error);
+        }
+    }
+
+    if (importedDraft) {
+        if (importedDraft.suggestedTitle && titleInput && !titleInput.value.trim()) {
+            titleInput.value = normalizeDialogueTitle(importedDraft.suggestedTitle);
+        }
+
+        if (importedDraft.text && textInput && !textInput.value.trim()) {
+            textInput.value = importedDraft.text;
+        }
+
+        if (bookSelect && importedDraft.bookId) {
+            const options = Array.from(bookSelect.options);
+            const targetOption = options.find(option => option.value && option.value.toString() === importedDraft.bookId.toString());
+            if (targetOption) {
+                bookSelect.value = targetOption.value;
+            }
+        }
+    }
     
     // 切换自定义提示词显示
     toggleBtn.addEventListener('click', function() {
@@ -198,6 +258,18 @@ document.addEventListener('DOMContentLoaded', function() {
             text: formData.get('text'),
             custom_prompt: formData.get('custom_prompt')
         };
+
+        if (window.dialogueDraftFromWorkbench) {
+            const { chapterId, chapterName, selectedContentIds, selectedPages, source, timestamp } = window.dialogueDraftFromWorkbench;
+            data.related_metadata = {
+                chapter_id: chapterId || null,
+                chapter_name: chapterName || null,
+                selected_content_ids: Array.isArray(selectedContentIds) ? selectedContentIds : [],
+                selected_pages: Array.isArray(selectedPages) ? selectedPages : [],
+                source: source || 'workbench',
+                captured_at: timestamp || Date.now()
+            };
+        }
         
         // 验证必填字段
         if (!data.text.trim()) {
