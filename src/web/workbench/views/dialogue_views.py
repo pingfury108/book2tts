@@ -1,5 +1,7 @@
 import json
 import os
+import asyncio
+import tempfile
 from typing import Dict, Any
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse, HttpResponse
@@ -18,7 +20,8 @@ import sys
 sys.path.append(os.path.join(settings.BASE_DIR, 'src'))
 from book2tts.dialogue_service import DialogueService
 from book2tts.llm_service import LLMService
-from book2tts.tts import edge_tts_volices
+from book2tts.tts import edge_tts_volices, azure_text_to_speech
+from book2tts.edgetts import EdgeTTS
 
 @login_required
 def dialogue_list(request):
@@ -49,6 +52,96 @@ def dialogue_create(request):
 @login_required
 @csrf_exempt
 @require_POST
+def dialogue_segment_preview(request, segment_id):
+    """同步生成单个对话片段的预览音频并直接返回音频数据"""
+    try:
+        segment = get_object_or_404(DialogueSegment, id=segment_id, script__user=request.user)
+        text = (segment.utterance or '').strip()
+
+        if not text:
+            return JsonResponse({'success': False, 'error': '该片段没有可用内容'}, status=400)
+
+        voice_config = segment.script.voice_settings.get(segment.speaker, {})
+
+        default_provider = TTSProviderConfig.get_default_provider()
+        provider = voice_config.get('provider') or default_provider or 'edge_tts'
+        voice_name = voice_config.get('voice_name')
+
+        if not voice_name:
+            return JsonResponse({'success': False, 'error': '该片段尚未配置音色'}, status=400)
+
+        temp_file = tempfile.NamedTemporaryFile(suffix='.wav', delete=False)
+        temp_path = temp_file.name
+        temp_file.close()
+
+        audio_bytes = b''
+
+        try:
+            if provider == 'edge_tts':
+
+                async def _synthesize():
+                    tts = EdgeTTS(voice_name=voice_name)
+                    return await tts.synthesize_with_subtitles_v2(
+                        text=text,
+                        output_file=temp_path,
+                        subtitle_file=None
+                    )
+
+                try:
+                    result = asyncio.run(_synthesize())
+                except RuntimeError:
+                    loop = asyncio.new_event_loop()
+                    try:
+                        asyncio.set_event_loop(loop)
+                        result = loop.run_until_complete(_synthesize())
+                    finally:
+                        asyncio.set_event_loop(None)
+                        loop.close()
+
+                if not result.get('success'):
+                    raise RuntimeError('音频生成失败，请稍后重试')
+
+            elif provider == 'azure':
+                azure_key = getattr(settings, 'AZURE_KEY', None) or os.getenv('AZURE_KEY')
+                azure_region = getattr(settings, 'AZURE_REGION', None) or os.getenv('AZURE_REGION')
+
+                if not azure_key or not azure_region:
+                    raise RuntimeError('Azure 配置缺失，无法生成试听音频')
+
+                azure_text_to_speech(
+                    key=azure_key,
+                    region=azure_region,
+                    text=text,
+                    output_file=temp_path,
+                    voice_name=voice_name,
+                )
+            else:
+                raise RuntimeError('当前音色暂未支持预览')
+
+            if not os.path.exists(temp_path) or os.path.getsize(temp_path) == 0:
+                raise RuntimeError('音频生成失败，请稍后重试')
+
+            with open(temp_path, 'rb') as audio_file:
+                audio_bytes = audio_file.read()
+
+        finally:
+            if os.path.exists(temp_path):
+                try:
+                    os.remove(temp_path)
+                except OSError:
+                    pass
+
+        if not audio_bytes:
+            return JsonResponse({'success': False, 'error': '预览音频生成失败，请稍后重试'}, status=500)
+
+        response = HttpResponse(audio_bytes, content_type='audio/wav')
+        response['Content-Disposition'] = 'inline; filename="segment_preview.wav"'
+        response['Content-Length'] = str(len(audio_bytes))
+        return response
+
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'预览生成失败: {str(e)}'}, status=400)
+
 def dialogue_convert_text(request):
     """将文本转换为对话脚本的API接口（异步版本）"""
     try:
@@ -483,57 +576,3 @@ def dialogue_segment_update(request, segment_id):
         return JsonResponse({'success': False, 'error': '无效的JSON数据'})
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'更新失败: {str(e)}'})
-
-@login_required
-@csrf_exempt
-@require_POST
-def dialogue_segment_preview(request, segment_id):
-    """预览单个对话片段的音频"""
-    try:
-        segment = get_object_or_404(DialogueSegment, id=segment_id, script__user=request.user)
-        voice_config = segment.script.voice_settings.get(segment.speaker, {})
-
-        default_provider = TTSProviderConfig.get_default_provider()
-        provider = voice_config.get('provider') or default_provider or 'edge_tts'
-        voice_name = voice_config.get('voice_name')
-
-        if not voice_name:
-            return JsonResponse({
-                'success': False,
-                'error': '该片段尚未配置音色'
-            })
-        
-        # 创建异步任务生成预览音频
-        from ..tasks import generate_segment_preview_task
-        
-        task_result = generate_segment_preview_task.delay(
-            segment_id=segment.id,
-            voice_config={
-                'provider': provider,
-                'voice_name': voice_name
-            }
-        )
-        
-        # 创建用户任务记录
-        user_task = UserTask.objects.create(
-            user=request.user,
-            task_id=task_result.id,
-            task_type='segment_preview',
-            book=segment.script.book,
-            title=f'片段预览: {segment.text[:30]}...',
-            status='pending',
-            metadata={
-                'segment_id': segment.id,
-                'text': segment.text,
-                'speaker': segment.speaker
-            }
-        )
-        
-        return JsonResponse({
-            'success': True,
-            'task_id': user_task.task_id,
-            'message': '预览音频生成中...'
-        })
-        
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': f'预览生成失败: {str(e)}'})

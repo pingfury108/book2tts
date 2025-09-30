@@ -249,11 +249,17 @@
             <!-- 音频生成 -->
             <div class="bg-base-100 shadow-md rounded-lg p-6">
                 <h3 class="text-lg font-semibold mb-3">音频生成</h3>
-                <form id="audio-generation-form">
+                <form id="audio-generation-form" class="space-y-3">
                     <button type="submit" id="generate-audio-btn"
                             class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg">
                         <i class="fas fa-microphone mr-2"></i>生成音频
                     </button>
+                    <div id="dialogue-audio-status" class="hidden">
+                        <div class="alert alert-info flex items-center gap-2 text-sm m-0" id="dialogue-audio-status-alert">
+                            <span class="loading loading-spinner loading-sm"></span>
+                            <span id="dialogue-audio-status-text">准备生成对话音频...</span>
+                        </div>
+                    </div>
                 </form>
             </div>
         </div>
@@ -656,28 +662,64 @@ function deleteSegment(segmentId) {
     });
 }
 
+const segmentPreviewObjectUrls = new Map();
+
 // 预览片段音频
-function previewSegment(segmentId) {
-    showConfirm('生成预览音频', '将为这个片段生成预览音频，是否继续？', () => {
-        fetch(`/workbench/dialogue/segment/${segmentId}/preview/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
+function previewSegment(segmentId, triggerButton) {
+    if (!segmentId) {
+        return;
+    }
+
+    const btn = triggerButton || null;
+    const originalHtml = btn ? btn.innerHTML : '';
+
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="loading loading-spinner loading-xs"></span>';
+    }
+
+    fetch(`/workbench/dialogue/segment/${segmentId}/preview/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(async (response) => {
+        if (!response.ok) {
+            const contentType = response.headers.get('Content-Type') || response.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+                const data = await response.json();
+                throw new Error(data.error || '预览音频生成失败');
             }
-        })
-        .then(response => response.json())
-        .then(result => {
-            if (result.success) {
-                showToast('预览音频生成任务已开始，请在任务队列中查看进度', 'success');
-                window.open('{% url "task_queue" %}', '_blank');
-            } else {
-                showToast('任务创建失败：' + result.error, 'error');
-            }
-        })
-        .catch(error => {
-            showToast('网络错误：' + error.message, 'error');
-        });
+            throw new Error('预览音频生成失败');
+        }
+
+        const contentType = response.headers.get('Content-Type') || response.headers.get('content-type') || 'audio/wav';
+        const buffer = await response.arrayBuffer();
+        return {
+            buffer,
+            contentType
+        };
+    })
+    .then(({ buffer, contentType }) => {
+        if (!buffer || buffer.byteLength === 0) {
+            throw new Error('音频数据为空');
+        }
+
+        const blob = new Blob([buffer], { type: contentType });
+        const objectUrl = URL.createObjectURL(blob);
+        showPreviewAudio(objectUrl, segmentId, true);
+        showToast('预览音频已生成', 'success');
+    })
+    .catch((error) => {
+        showToast('预览生成失败：' + error.message, 'error');
+    })
+    .finally(() => {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
     });
 }
 
@@ -693,21 +735,55 @@ function checkTaskStatus(taskId, callback) {
 }
 
 // 显示预览音频
-function showPreviewAudio(audioUrl, segmentId) {
-    // 创建音频播放元素
+function showPreviewAudio(audioUrl, segmentId, isObjectUrl = false) {
+    if (!audioUrl || !segmentId) {
+        return;
+    }
+
+    const containerId = `segment-preview-${segmentId}`;
+    const existingContainer = document.getElementById(containerId);
+    if (existingContainer) {
+        const existingAudio = existingContainer.querySelector('audio');
+        if (existingAudio && existingAudio.dataset.previewUrl === 'true') {
+            const oldUrl = segmentPreviewObjectUrls.get(segmentId);
+            if (oldUrl && oldUrl.startsWith('blob:')) {
+                URL.revokeObjectURL(oldUrl);
+            }
+            segmentPreviewObjectUrls.delete(segmentId);
+        }
+        existingContainer.remove();
+    } else {
+        const oldUrl = segmentPreviewObjectUrls.get(segmentId);
+        if (oldUrl && oldUrl.startsWith('blob:')) {
+            URL.revokeObjectURL(oldUrl);
+        }
+        segmentPreviewObjectUrls.delete(segmentId);
+    }
+
     const audioContainer = document.createElement('div');
-    audioContainer.className = 'mt-2 p-2 bg-base-200 rounded';
-    audioContainer.innerHTML = `
-        <audio controls class="w-full">
-            <source src="${audioUrl}" type="audio/wav">
-            您的浏览器不支持音频播放。
-        </audio>
-    `;
-    
+    audioContainer.id = containerId;
+    audioContainer.className = 'mt-2 p-2 bg-base-200 rounded border border-base-200 flex items-center gap-2';
+
+    const audioElement = document.createElement('audio');
+    audioElement.controls = true;
+    audioElement.className = 'w-full';
+    audioElement.src = audioUrl;
+    audioElement.dataset.previewUrl = isObjectUrl ? 'true' : 'false';
+
+    audioContainer.appendChild(audioElement);
+
     const segmentElement = document.querySelector(`#segment-text-${segmentId}`);
-    if (segmentElement) {
+    if (segmentElement && segmentElement.parentNode) {
         segmentElement.parentNode.insertBefore(audioContainer, segmentElement.nextSibling);
     }
+
+    if (isObjectUrl) {
+        segmentPreviewObjectUrls.set(segmentId, audioUrl);
+    }
+
+    audioElement.play().catch(() => {
+        // 自动播放失败时保持静音等待用户点击
+    });
 }
 
 // 页面加载完成后初始化
@@ -736,6 +812,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const voiceConfigForm = document.getElementById('voice-config-form');
     const audioGenerationForm = document.getElementById('audio-generation-form');
     const generateAudioBtn = document.getElementById('generate-audio-btn');
+    const dialogueAudioStatusContainer = document.getElementById('dialogue-audio-status');
+    const dialogueAudioStatusAlert = document.getElementById('dialogue-audio-status-alert');
+    const dialogueAudioStatusText = document.getElementById('dialogue-audio-status-text');
+    const dialogueAudioStatusSpinner = dialogueAudioStatusAlert ? dialogueAudioStatusAlert.querySelector('.loading') : null;
+    const generateAudioBtnDefaultHtml = generateAudioBtn ? generateAudioBtn.innerHTML : '';
     const toggleSubtitlesBtn = document.getElementById('toggle-subtitles-btn');
     const subtitlesContent = document.getElementById('subtitles-content');
     const subtitlesText = document.getElementById('subtitles-text');
@@ -743,6 +824,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const defaultProvider = '{{ default_provider }}';
     const voiceSettings = JSON.parse('{{ voice_settings_json|escapejs }}') || {};
     const speakers = JSON.parse('{{ speakers_json|escapejs }}') || [];
+
+    let dialogueAudioPollingTimer = null;
 
     const voiceDropdowns = new Map();
 
@@ -767,6 +850,114 @@ document.addEventListener('DOMContentLoaded', function() {
             voiceSettings[speaker] = {};
         }
         voiceSettings[speaker].provider = defaultProvider || 'edge_tts';
+    }
+
+    function showDialogueAudioStatus(message, variant = 'info', options = {}) {
+        if (!dialogueAudioStatusContainer || !dialogueAudioStatusAlert || !dialogueAudioStatusText) {
+            return;
+        }
+
+        const { showSpinner = true } = options;
+
+        dialogueAudioStatusContainer.classList.remove('hidden');
+        dialogueAudioStatusText.textContent = message;
+
+        if (dialogueAudioStatusSpinner) {
+            dialogueAudioStatusSpinner.classList.toggle('hidden', !showSpinner);
+        }
+
+        const variants = ['alert-info', 'alert-success', 'alert-error', 'alert-warning', 'alert-primary'];
+        dialogueAudioStatusAlert.classList.add('alert');
+        dialogueAudioStatusAlert.classList.remove(...variants);
+        dialogueAudioStatusAlert.classList.add(`alert-${variant}`);
+    }
+
+    function setGenerateAudioButtonLoading(text) {
+        if (!generateAudioBtn) {
+            return;
+        }
+        const label = text || '生成中...';
+        generateAudioBtn.disabled = true;
+        generateAudioBtn.innerHTML = `<span class="loading loading-spinner loading-sm mr-2"></span>${label}`;
+    }
+
+    function resetGenerateAudioButton() {
+        if (!generateAudioBtn) {
+            return;
+        }
+        generateAudioBtn.disabled = false;
+        generateAudioBtn.innerHTML = generateAudioBtnDefaultHtml;
+    }
+
+    function stopDialogueAudioPolling() {
+        if (dialogueAudioPollingTimer) {
+            clearTimeout(dialogueAudioPollingTimer);
+            dialogueAudioPollingTimer = null;
+        }
+    }
+
+    function startDialogueAudioPolling(taskId) {
+        if (!taskId) {
+            showDialogueAudioStatus('无法获取任务编号，稍后重试。', 'error', { showSpinner: false });
+            resetGenerateAudioButton();
+            return;
+        }
+
+        const statusUrlTemplate = '{% url "task_status" "TASK_ID_PLACEHOLDER" %}';
+        const statusUrl = statusUrlTemplate.replace('TASK_ID_PLACEHOLDER', encodeURIComponent(taskId));
+
+        const poll = () => {
+            fetch(statusUrl, {
+                headers: {
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success || !data.task) {
+                    stopDialogueAudioPolling();
+                    showDialogueAudioStatus('任务状态查询失败，请稍后重试。', 'error', { showSpinner: false });
+                    resetGenerateAudioButton();
+                    return;
+                }
+
+                const task = data.task;
+                const status = (task.status || '').toLowerCase();
+                const progressMessage = task.progress_message || '';
+
+                if (status === 'success') {
+                    stopDialogueAudioPolling();
+                    showDialogueAudioStatus('对话音频生成完成，即将刷新页面。', 'success', { showSpinner: false });
+                    if (generateAudioBtn) {
+                        generateAudioBtn.innerHTML = '<i class="fas fa-check mr-2"></i>生成完成';
+                    }
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1200);
+                    return;
+                }
+
+                if (status === 'failure') {
+                    stopDialogueAudioPolling();
+                    const errorMessage = task.error_message || '对话音频生成失败，请重试。';
+                    showDialogueAudioStatus(errorMessage, 'error', { showSpinner: false });
+                    resetGenerateAudioButton();
+                    return;
+                }
+
+                const waitingMessage = progressMessage || (status === 'pending' ? '任务排队中，请稍候...' : '正在生成对话音频...');
+                showDialogueAudioStatus(waitingMessage, 'info', { showSpinner: true });
+
+                dialogueAudioPollingTimer = setTimeout(poll, 2000);
+            })
+            .catch(error => {
+                stopDialogueAudioPolling();
+                showDialogueAudioStatus('任务状态查询失败：' + error.message, 'error', { showSpinner: false });
+                resetGenerateAudioButton();
+            });
+        };
+
+        poll();
     }
 
     function getVoiceDisplayName(value) {
@@ -1102,10 +1293,19 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.preview-segment-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const segmentId = this.dataset.segmentId;
-            previewSegment(segmentId);
+            previewSegment(segmentId, this);
         });
     });
-    
+
+    window.addEventListener('beforeunload', () => {
+        segmentPreviewObjectUrls.forEach((url) => {
+            if (url && url.startsWith('blob:')) {
+                URL.revokeObjectURL(url);
+            }
+        });
+        segmentPreviewObjectUrls.clear();
+    });
+
     document.querySelectorAll('.edit-segment-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const segmentId = this.dataset.segmentId;
@@ -1193,10 +1393,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             showConfirm('生成音频确认', confirmMessage, () => {
-                // 显示加载状态
-                generateAudioBtn.disabled = true;
-                generateAudioBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>生成中...';
-                
+                stopDialogueAudioPolling();
+                setGenerateAudioButtonLoading('生成中...');
+                showDialogueAudioStatus('正在提交生成任务，请稍候...', 'info', { showSpinner: true });
+
                 fetch('{% url "dialogue_generate_audio" script.id %}', {
                     method: 'POST',
                     headers: {
@@ -1207,20 +1407,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 })
                 .then(response => response.json())
                 .then(result => {
-                    generateAudioBtn.disabled = false;
-                    generateAudioBtn.innerHTML = '<i class="fas fa-microphone mr-2"></i>生成音频';
-                    
                     if (result.success) {
-                        showToast('音频生成任务已开始，请在任务队列中查看进度', 'success');
-                        window.open('{% url "task_queue" %}', '_blank');
+                        showDialogueAudioStatus('任务已提交，正在生成对话音频...', 'info', { showSpinner: true });
+                        startDialogueAudioPolling(result.task_id);
                     } else {
-                        showToast('任务创建失败：' + result.error, 'error');
+                        const errorMessage = result.error || '音频生成任务创建失败';
+                        showDialogueAudioStatus(errorMessage, 'error', { showSpinner: false });
+                        resetGenerateAudioButton();
                     }
                 })
                 .catch(error => {
-                    generateAudioBtn.disabled = false;
-                    generateAudioBtn.innerHTML = '<i class="fas fa-microphone mr-2"></i>生成音频';
-                    showToast('网络错误：' + error.message, 'error');
+                    showDialogueAudioStatus('网络错误：' + error.message, 'error', { showSpinner: false });
+                    resetGenerateAudioButton();
                 });
             });
         });
