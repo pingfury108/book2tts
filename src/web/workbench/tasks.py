@@ -2,6 +2,8 @@ import os
 import time
 import tempfile
 import asyncio
+import json
+import hashlib
 from celery import shared_task
 from celery.utils.log import get_task_logger
 from django.conf import settings
@@ -499,6 +501,9 @@ def convert_text_to_dialogue_task(self, user_id, text, title, book_id=None, cust
         # 文本预处理 - 计算长度和分段
         total_length = len(text)
         logger.info(f"Processing text of length: {total_length}")
+
+        cache_path = None
+        cached_chunks = []
         
         # 更新任务状态
         self.update_state(state='PROCESSING', meta={'message': '正在分析文本结构...'})
@@ -515,6 +520,61 @@ def convert_text_to_dialogue_task(self, user_id, text, title, book_id=None, cust
             
             logger.info(f"Split text into {total_chunks} chunks for processing")
             all_segments = []
+
+            media_root = getattr(settings, 'MEDIA_ROOT', '') or tempfile.gettempdir()
+            cache_root = os.path.join(media_root, 'tmp', 'dialogue_chunk_cache')
+            try:
+                os.makedirs(cache_root, exist_ok=True)
+            except OSError as cache_dir_error:
+                logger.warning("Failed to create dialogue chunk cache directory %s: %s", cache_root, cache_dir_error)
+
+            cache_hasher = hashlib.md5()
+            cache_hasher.update(str(user_id).encode('utf-8'))
+            cache_hasher.update(text.encode('utf-8'))
+            cache_hasher.update(str(chunk_size).encode('utf-8'))
+            if custom_prompt:
+                cache_hasher.update(custom_prompt.encode('utf-8'))
+            if title:
+                cache_hasher.update(title.encode('utf-8'))
+            cache_filename = f"{cache_hasher.hexdigest()}.json"
+            cache_path = os.path.join(cache_root, cache_filename)
+
+            if os.path.exists(cache_path):
+                try:
+                    with open(cache_path, 'r', encoding='utf-8') as cache_file:
+                        cache_payload = json.load(cache_file)
+                    if cache_payload.get('chunk_size') == chunk_size:
+                        cached_chunks = cache_payload.get('chunks', []) or []
+                        logger.info(
+                            "Loaded %s cached dialogue chunk(s) from %s",
+                            len(cached_chunks),
+                            cache_path,
+                        )
+                    else:
+                        logger.info(
+                            "Ignoring cached dialogue chunks due to chunk_size mismatch (cache: %s, expected: %s)",
+                            cache_payload.get('chunk_size'),
+                            chunk_size,
+                        )
+                        cached_chunks = []
+                except Exception as cache_error:
+                    logger.warning("Failed to read dialogue chunk cache %s: %s", cache_path, cache_error)
+                    cached_chunks = []
+
+            def persist_chunk_cache():
+                if not cache_path:
+                    return
+                cache_payload = {
+                    'version': 1,
+                    'chunk_size': chunk_size,
+                    'total_chunks': total_chunks,
+                    'chunks': cached_chunks,
+                }
+                try:
+                    with open(cache_path, 'w', encoding='utf-8') as cache_file:
+                        json.dump(cache_payload, cache_file, ensure_ascii=False)
+                except Exception as cache_error:
+                    logger.warning("Failed to write dialogue chunk cache %s: %s", cache_path, cache_error)
             
             for i, chunk in enumerate(text_chunks):
                 progress_percent = int((i / total_chunks) * 100)
@@ -536,7 +596,18 @@ def convert_text_to_dialogue_task(self, user_id, text, title, book_id=None, cust
                     user_task.metadata['chunk'] = i + 1
                     user_task.metadata['total_chunks'] = total_chunks
                     user_task.save()
-                
+
+                if i < len(cached_chunks):
+                    cached_entry = cached_chunks[i]
+                    cached_segments = []
+                    if isinstance(cached_entry, dict):
+                        cached_segments = cached_entry.get('segments', [])
+                    elif isinstance(cached_entry, list):
+                        cached_segments = cached_entry
+                    all_segments.extend(cached_segments or [])
+                    logger.info("Using cached dialogue chunk %s/%s", i + 1, total_chunks)
+                    continue
+
                 # 转换当前段
                 result = dialogue_service.text_to_dialogue(
                     chunk, 
@@ -544,12 +615,26 @@ def convert_text_to_dialogue_task(self, user_id, text, title, book_id=None, cust
                 )
                 
                 if not result['success']:
-                    error_msg = f'第{i+1}段转换失败: {result["error"]}'
+                    raw_response = result.get('raw_response')
+                    if raw_response:
+                        raw_excerpt = raw_response[:500].replace('\n', ' ')
+                        logger.error(
+                            "LLM raw response for chunk %s/%s: %s",
+                            i + 1,
+                            total_chunks,
+                            raw_excerpt,
+                        )
+                        error_msg = f'第{i+1}段转换失败: {result["error"]} | LLM 响应片段: {raw_excerpt}'
+                    else:
+                        error_msg = f'第{i+1}段转换失败: {result["error"]}'
                     logger.error(error_msg)
                     raise Exception(error_msg)
                 
                 chunk_segments = result['dialogue_data'].get('segments', [])
                 all_segments.extend(chunk_segments)
+
+                cached_chunks.append({'segments': chunk_segments})
+                persist_chunk_cache()
             
             # 合并所有段落
             dialogue_data = {
@@ -572,6 +657,11 @@ def convert_text_to_dialogue_task(self, user_id, text, title, book_id=None, cust
             )
             
             if not result['success']:
+                raw_response = result.get('raw_response')
+                if raw_response:
+                    raw_excerpt = raw_response[:500].replace('\n', ' ')
+                    logger.error("LLM raw response: %s", raw_excerpt)
+                    raise Exception(f"文本转换失败: {result['error']} | LLM 响应片段: {raw_excerpt}")
                 logger.error(f"Text conversion failed: {result['error']}")
                 raise Exception(f"文本转换失败: {result['error']}")
             
@@ -635,7 +725,13 @@ def convert_text_to_dialogue_task(self, user_id, text, title, book_id=None, cust
                 }
                 user_task.completed_at = timezone.now()
                 user_task.save()
-        
+
+        if cache_path and os.path.exists(cache_path):
+            try:
+                os.remove(cache_path)
+            except OSError as cache_cleanup_error:
+                logger.warning("Failed to remove dialogue chunk cache %s: %s", cache_path, cache_cleanup_error)
+
         logger.info(f"Text to dialogue conversion completed for user {user_id}, script {script.id}")
         
         return {
@@ -649,6 +745,8 @@ def convert_text_to_dialogue_task(self, user_id, text, title, book_id=None, cust
     except Exception as e:
         error_msg = f"文本转换对话失败: {str(e)}"
         logger.error(error_msg)
+        if 'cache_path' in locals() and cache_path and os.path.exists(cache_path):
+            logger.info('保留对话分段缓存文件以便重试: %s', cache_path)
         
         # 更新用户任务为失败状态
         try:

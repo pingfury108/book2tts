@@ -114,21 +114,24 @@ class DialogueService:
                 user_content=text,
                 temperature=temperature
             )
+            raw_response = result.get("result")
             
             if not result.get("success"):
                 return {
                     "success": False,
-                    "error": f"LLM处理失败: {result.get('error', '未知错误')}"
+                    "error": f"LLM处理失败: {result.get('error', '未知错误')}",
+                    "raw_response": raw_response
                 }
             
             # 解析LLM返回的JSON格式结果
-            llm_response = result["result"]
+            llm_response = raw_response
             dialogue_data = self._parse_llm_response(llm_response)
             
             if dialogue_data is None:
                 return {
                     "success": False,
-                    "error": "无法解析LLM返回的JSON格式数据"
+                    "error": "无法解析LLM返回的JSON格式数据",
+                    "raw_response": llm_response
                 }
             
             return {
@@ -140,7 +143,8 @@ class DialogueService:
         except Exception as e:
             return {
                 "success": False,
-                "error": f"对话转换过程中发生错误: {str(e)}"
+                "error": f"对话转换过程中发生错误: {str(e)}",
+                "raw_response": result.get("result") if 'result' in locals() and isinstance(result, dict) else None
             }
     
     def _parse_llm_response(self, response: str) -> Optional[Dict[str, Any]]:
