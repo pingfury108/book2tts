@@ -457,32 +457,22 @@ def get_points_rules(request):
         # Get all active points configurations
         all_configs = PointsManager.get_all_active_configs()
         
-        # Define rule display information
-        rule_info = {
-            'audio_generation': {
-                'name': '音频生成',
-                'icon': '🎵',
-                'description': '将文本转换为语音'
-            },
-            'ocr_processing': {
-                'name': 'OCR处理',
-                'icon': '📄',
-                'description': '图片文字识别'
-            }
+        icon_map = {
+            'audio_generation': '🎵',
+            'ocr_processing': '📄',
+            'llm_usage': '🤖',
         }
-        
-        # Build rules list
+
         rules = []
         for operation_type, config in all_configs.items():
-            if operation_type in rule_info:
-                rules.append({
-                    'operation_type': operation_type,
-                    'name': rule_info[operation_type]['name'],
-                    'icon': rule_info[operation_type]['icon'],
-                    'description': rule_info[operation_type]['description'],
-                    'points_per_unit': config['points_per_unit'],
-                    'unit_name': config['unit_name']
-                })
+            rules.append({
+                'operation_type': operation_type,
+                'name': config.get('display_name', operation_type),
+                'icon': icon_map.get(operation_type, '⚙️'),
+                'description': config.get('description') or '暂无描述',
+                'points_per_unit': config.get('points_per_unit', 0),
+                'unit_name': config.get('unit_name', '次'),
+            })
         
         # Sort rules for consistent display
         rules.sort(key=lambda x: x['operation_type'])

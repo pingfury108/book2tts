@@ -2,7 +2,6 @@
     <div class="flex items-center justify-between">
         <!-- 积分余量显示 -->
         <div class="flex items-center space-x-2">
-            <span class="text-sm font-medium">积分余量</span>
             <span class="text-lg font-bold {{ status_class }}">{{ current_points }}</span>
             <span class="text-sm text-base-content/70">积分</span>
         </div>
@@ -15,23 +14,7 @@
                 </svg>
             </button>
         </div>
-    </div>
-    
-    <!-- 状态指示器 -->
-    <div class="mt-2">
-        <div class="flex items-center space-x-1">
-            <span class="{{ status_class }}">{{ status_icon }}</span>
-            <span class="text-xs text-base-content/70">
-                {% if current_points > 500 %}
-                    充足
-                {% elif current_points > 100 %}
-                    适中
-                {% else %}
-                    不足，请合理使用
-                {% endif %}
-            </span>
-        </div>
-    </div>
+    </div> 
 </div>
 
 <!-- 积分规则模态框 -->

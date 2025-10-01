@@ -7,10 +7,17 @@ from home.models import PointsConfig
 
 class PointsManager:
     """积分配置管理器 - 提供统一的积分配置访问接口"""
-    
+
     CACHE_KEY_PREFIX = 'points_config_'
     CACHE_TIMEOUT = 300  # 5分钟缓存
     
+    @classmethod
+    def _get_display_name(cls, operation_type: str) -> str:
+        for value, label in PointsConfig.OPERATION_TYPES:
+            if value == operation_type:
+                return label
+        return operation_type
+
     @classmethod
     def get_points_config(cls, operation_type, default_points=None):
         """
@@ -39,20 +46,22 @@ class PointsManager:
             config = {
                 'points_per_unit': points_config.points_per_unit,
                 'unit_name': points_config.unit_name,
-                'description': points_config.description
+                'description': points_config.description or '',
+                'display_name': points_config.get_operation_type_display(),
             }
         except PointsConfig.DoesNotExist:
             # 使用默认值
             defaults = {
-                'audio_generation': {'points': 2, 'unit': '秒'},
-                'ocr_processing': {'points': 7, 'unit': '页'},
-                'llm_usage': {'points': 5, 'unit': '千token'},
+                'audio_generation': {'points': 2, 'unit': '秒', 'description': '音频生成积分消耗：每秒钟2积分'},
+                'ocr_processing': {'points': 7, 'unit': '页', 'description': 'OCR处理积分消耗：每页图片7积分'},
+                'llm_usage': {'points': 5, 'unit': '千token', 'description': 'LLM 调用积分消耗：每千 token 5 积分'},
             }
 
             config = {
                 'points_per_unit': default_points or defaults.get(operation_type, {}).get('points', 0),
                 'unit_name': defaults.get(operation_type, {}).get('unit', '次'),
-                'description': '系统默认值'
+                'description': defaults.get(operation_type, {}).get('description', '系统默认值'),
+                'display_name': cls._get_display_name(operation_type),
             }
 
             # 如果配置不存在且没有提供默认值，创建默认配置
@@ -61,10 +70,10 @@ class PointsManager:
                     operation_type=operation_type,
                     points_per_unit=defaults[operation_type]['points'],
                     unit_name=defaults[operation_type]['unit'],
-                    description='系统自动创建的默认配置'
+                    description=defaults[operation_type]['description'],
                 )
                 logger.info(f"Created default PointsConfig for {operation_type}")
-        
+
         # 缓存配置
         cache.set(cache_key, config, cls.CACHE_TIMEOUT)
         return config
@@ -118,15 +127,15 @@ class PointsManager:
     @classmethod
     def get_all_active_configs(cls):
         """获取所有启用的积分配置"""
-        configs = PointsConfig.objects.filter(is_active=True)
-        return {
-            config.operation_type: {
+        result = {}
+        for config in PointsConfig.objects.filter(is_active=True):
+            result[config.operation_type] = {
                 'points_per_unit': config.points_per_unit,
                 'unit_name': config.unit_name,
-                'description': config.description
+                'description': config.description or '',
+                'display_name': config.get_operation_type_display(),
             }
-            for config in configs
-        }
+        return result
     
     @classmethod
     def initialize_default_configs(cls):
