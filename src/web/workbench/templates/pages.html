@@ -59,15 +59,16 @@
   <div class="flex-1 overflow-y-auto overflow-x-auto">
     <ul id="pages-list" class="menu menu-sm bg-base-100 rounded-box w-full flex flex-col single-column" style="column-count:1 !important; columns:1 !important; display:block !important;">
       {% for page in pages %}
-      <li class="flex items-center w-full hover:bg-base-200 transition-colors duration-200">
-        <div class="flex items-center w-full py-1.5 px-3{% if request.GET.page == page.href|stringformat:"s" %} active{% endif %}">
+      <li class="flex items-center w-full min-w-0">
+        <div class="flex items-center w-full py-1.5 px-3 transition-colors duration-200 hover:bg-base-200 rounded-lg min-w-0{% if request.GET.page == page.href|stringformat:"s" %} active{% endif %}">
           <input type="checkbox" class="page-checkbox checkbox checkbox-sm mr-2" value="{{ page.href }}" data-page="{{ page.href }}" />
-          <a class="flex-1 page-link"
+          <a class="flex-1 page-link truncate"
              data-text-url="{% url 'text_by_page' book_id=book_id %}"
              data-names="{{ page.href|stringformat:"s" }}"
              data-page-number="{{ page.href }}"
+             title="{{ page.title }}"
           >
-            <span class="truncate">{{ page.title }}</span>
+            {{ page.title }}
           </a>
         </div>
       </li>

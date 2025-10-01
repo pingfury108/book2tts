@@ -545,7 +545,7 @@ $(document).ready(function() {
     const root = document.getElementById('workbench-root');
     if (!warning || !root) return;
 
-    const isSmall = window.innerWidth < 1024 || window.innerHeight < 600;
+    const isSmall = window.innerWidth < 1024;
     if (isSmall) {
       warning.classList.remove('hidden');
       root.classList.add('hidden');
@@ -2423,9 +2423,9 @@ function displayAudioStatus(data) {
       `;
     } else {
       statusHtml += `
-        <div class="flex items-center text-xs p-2 bg-base-200 rounded border border-base-300">
-          <i class="fas fa-volume-mute text-gray-400 mr-2"></i>
-          <span class="text-gray-600">第${pageId}页 - 未生成音频</span>
+        <div class="flex items-center text-xs p-2 bg-base-200 rounded border border-base-300 w-full overflow-hidden">
+          <i class="fas fa-volume-mute text-gray-400 mr-2 flex-shrink-0"></i>
+          <span class="text-gray-600 truncate" title="第${pageId}页 - 未生成音频">第${pageId}页 - 未生成音频</span>
         </div>
       `;
     }
