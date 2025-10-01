@@ -1,0 +1,234 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}缓存详情 - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="card-title">
+                        翻译缓存详情
+                        <code class="text-muted">{{ cache.text_md5|slice:":8" }}...</code>
+                    </h3>
+                    <div class="btn-group">
+                        <a href="{% url 'translation_cache_list' %}" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-arrow-left"></i> 返回列表
+                        </a>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="deleteCache()">
+                            <i class="fas fa-trash"></i> 删除
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <div class="row">
+                        <!-- 基本信息 -->
+                        <div class="col-md-6">
+                            <h5>基本信息</h5>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td width="30%"><strong>MD5哈希</strong></td>
+                                    <td><code>{{ cache.text_md5 }}</code></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>源语言</strong></td>
+                                    <td>
+                                        {% if cache.source_language == 'auto' %}
+                                            <span class="badge bg-secondary">自动检测</span>
+                                        {% else %}
+                                            <span class="badge bg-info">{{ cache.source_language }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>目标语言</strong></td>
+                                    <td><span class="badge bg-primary">{{ cache.get_target_language_display }}</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>命中次数</strong></td>
+                                    <td><span class="badge bg-success">{{ cache.hit_count }}</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>创建时间</strong></td>
+                                    <td>{{ cache.created_at|date:"Y-m-d H:i:s" }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>最后使用</strong></td>
+                                    <td>{{ cache.last_used_at|date:"Y-m-d H:i:s" }}</td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <!-- 文本长度统计 -->
+                        <div class="col-md-6">
+                            <h5>文本统计</h5>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td width="30%"><strong>原文字符数</strong></td>
+                                    <td>{{ cache.original_text|length }} 字符</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>译文字符数</strong></td>
+                                    <td>{{ cache.translated_text|length }} 字符</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>原文行数</strong></td>
+                                    <td>{{ cache.original_text|linebreaksbr|length }} 行</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>译文行数</strong></td>
+                                    <td>{{ cache.translated_text|linebreaksbr|length }} 行</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>翻译比率</strong></td>
+                                    <td>
+                                        {% if cache.original_text|length > 0 %}
+                                            {{ cache.translated_text|length|floatformat:0 }}:{{ cache.original_text|length|floatformat:0 }}
+                                            ({{ cache.translated_text|length|div:cache.original_text|length|floatformat:2 }}x)
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- 原文内容 -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h5>
+                                原文内容
+                                <button class="btn btn-outline-secondary btn-sm" onclick="copyToClipboard('original-text')">
+                                    <i class="fas fa-copy"></i> 复制
+                                </button>
+                            </h5>
+                            <div class="card">
+                                <div class="card-body">
+                                    <pre id="original-text" class="mb-0" style="white-space: pre-wrap; word-wrap: break-word; max-height: 300px; overflow-y: auto;">{{ cache.original_text }}</pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 译文内容 -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h5>
+                                译文内容
+                                <button class="btn btn-outline-secondary btn-sm" onclick="copyToClipboard('translated-text')">
+                                    <i class="fas fa-copy"></i> 复制
+                                </button>
+                            </h5>
+                            <div class="card">
+                                <div class="card-body">
+                                    <pre id="translated-text" class="mb-0" style="white-space: pre-wrap; word-wrap: break-word; max-height: 300px; overflow-y: auto;">{{ cache.translated_text }}</pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 操作按钮 -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-info" onclick="refreshUsage()">
+                                    <i class="fas fa-sync"></i> 刷新统计
+                                </button>
+                                <button type="button" class="btn btn-warning" onclick="exportCache()">
+                                    <i class="fas fa-download"></i> 导出为JSON
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 复制到剪贴板
+function copyToClipboard(elementId) {
+    const element = document.getElementById(elementId);
+    const text = element.textContent;
+
+    navigator.clipboard.writeText(text).then(() => {
+        // 创建临时提示
+        const button = event.target.closest('button');
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-check"></i> 已复制';
+        button.classList.add('btn-success');
+        button.classList.remove('btn-outline-secondary');
+
+        setTimeout(() => {
+            button.innerHTML = originalText;
+            button.classList.remove('btn-success');
+            button.classList.add('btn-outline-secondary');
+        }, 2000);
+    }).catch(err => {
+        console.error('复制失败:', err);
+        alert('复制失败，请手动选择文本复制');
+    });
+}
+
+// 删除缓存
+function deleteCache() {
+    if (confirm('确定要删除这条缓存记录吗？')) {
+        fetch('{% url "translation_cache_delete" cache.id %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                window.location.href = '{% url "translation_cache_list" %}';
+            } else {
+                alert('删除失败：' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('删除失败，请重试');
+        });
+    }
+}
+
+// 刷新使用统计
+function refreshUsage() {
+    location.reload();
+}
+
+// 导出为JSON
+function exportCache() {
+    const cacheData = {
+        text_md5: '{{ cache.text_md5 }}',
+        source_language: '{{ cache.source_language }}',
+        target_language: '{{ cache.target_language }}',
+        original_text: `{{ cache.original_text|escapejs }}`,
+        translated_text: `{{ cache.translated_text|escapejs }}`,
+        hit_count: {{ cache.hit_count }},
+        created_at: '{{ cache.created_at|date:"c" }}',
+        last_used_at: '{{ cache.last_used_at|date:"c" }}'
+    };
+
+    const dataStr = JSON.stringify(cacheData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(dataBlob);
+    link.download = `translation_cache_{{ cache.text_md5|slice:":8" }}.json`;
+    link.click();
+
+    URL.revokeObjectURL(link.href);
+}
+</script>
+{% endblock %}

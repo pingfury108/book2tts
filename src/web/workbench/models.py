@@ -347,9 +347,127 @@ class OCRCache(models.Model):
     source_type = models.CharField(max_length=20, choices=[('page_image', '页面图片'), ('manual_upload', '手动上传')], default='page_image')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         ordering = ['-created_at']
-    
+
     def __str__(self):
         return f"OCR Cache {self.image_md5[:8]}..."
+
+
+class TranslationCache(models.Model):
+    """翻译缓存模型，基于文本MD5+目标语言存储翻译结果"""
+    # 语言选择
+    LANGUAGE_CHOICES = [
+        ('en', 'English'),
+        ('zh', '中文'),
+        ('ja', '日本語'),
+        ('ko', '한국어'),
+        ('fr', 'Français'),
+        ('de', 'Deutsch'),
+        ('es', 'Español'),
+        ('ru', 'Русский'),
+        ('it', 'Italiano'),
+        ('pt', 'Português'),
+    ]
+
+    text_md5 = models.CharField(max_length=32, db_index=True, help_text="原文本的MD5哈希值")
+    source_language = models.CharField(max_length=10, default='auto', help_text="源语言（auto表示自动检测）")
+    target_language = models.CharField(max_length=10, choices=LANGUAGE_CHOICES, help_text="目标语言")
+    original_text = models.TextField(help_text="原始文本内容")
+    translated_text = models.TextField(help_text="翻译后的文本内容")
+
+    # 使用统计
+    hit_count = models.IntegerField(default=1, help_text="缓存命中次数")
+
+    # 时间戳
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    last_used_at = models.DateTimeField(auto_now_add=True, help_text="最后使用时间")
+
+    class Meta:
+        ordering = ['-last_used_at']
+        unique_together = ['text_md5', 'target_language']  # 同一文本+目标语言的组合唯一
+        indexes = [
+            models.Index(fields=['text_md5', 'target_language']),
+            models.Index(fields=['created_at']),
+            models.Index(fields=['last_used_at']),
+        ]
+
+    def __str__(self):
+        return f"Translation Cache {self.text_md5[:8]}... -> {self.get_target_language_display()}"
+
+    @classmethod
+    def get_or_create_cache(cls, text, target_language):
+        """获取或创建翻译缓存"""
+        text_md5 = cls.calculate_text_md5(text)
+
+        # 尝试获取现有缓存
+        try:
+            cache = cls.objects.get(text_md5=text_md5, target_language=target_language)
+            # 更新使用统计
+            cache.hit_count += 1
+            cache.last_used_at = timezone.now()
+            cache.save(update_fields=['hit_count', 'last_used_at'])
+            return cache, False  # 缓存命中，返回False表示非新建
+        except cls.DoesNotExist:
+            return None, True  # 缓存未命中，返回True表示需要新建
+
+    @classmethod
+    def create_cache(cls, text, target_language, translated_text, source_language='auto'):
+        """创建新的翻译缓存"""
+        text_md5 = cls.calculate_text_md5(text)
+
+        cache, created = cls.objects.get_or_create(
+            text_md5=text_md5,
+            target_language=target_language,
+            defaults={
+                'original_text': text,
+                'translated_text': translated_text,
+                'source_language': source_language,
+                'hit_count': 1,
+                'last_used_at': timezone.now(),
+            }
+        )
+
+        if not created:
+            # 如果缓存已存在，更新翻译内容和使用统计
+            cache.translated_text = translated_text
+            cache.source_language = source_language
+            cache.hit_count += 1
+            cache.last_used_at = timezone.now()
+            cache.save()
+
+        return cache
+
+    @staticmethod
+    def calculate_text_md5(text):
+        """计算文本的MD5哈希值"""
+        return hashlib.md5(text.encode('utf-8')).hexdigest()
+
+    @classmethod
+    def cleanup_old_cache(cls, days=30):
+        """清理指定天数前的缓存"""
+        cutoff_date = timezone.now() - timezone.timedelta(days=days)
+        deleted_count = cls.objects.filter(last_used_at__lt=cutoff_date).delete()[0]
+        return deleted_count
+
+    @classmethod
+    def get_cache_stats(cls):
+        """获取缓存统计信息"""
+        from django.db.models import Count, Sum, Avg
+
+        stats = cls.objects.aggregate(
+            total_entries=Count('id'),
+            total_hits=Sum('hit_count'),
+            avg_hits=Avg('hit_count'),
+        )
+
+        # 按语言统计
+        lang_stats = cls.objects.values('target_language').annotate(
+            count=Count('id'),
+            total_hits=Sum('hit_count')
+        ).order_by('-total_hits')
+
+        stats['by_language'] = lang_stats
+        return stats

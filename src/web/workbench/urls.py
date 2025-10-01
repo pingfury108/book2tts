@@ -21,6 +21,15 @@ from .views import (
     get_epub_asset,
     toggle_publish_audio_segment,
 )
+from .views.text_views import translate
+from .views.translation_views import (
+    translation_cache_list,
+    translation_cache_detail,
+    translation_cache_delete,
+    translation_cache_cleanup,
+    translation_cache_stats_api,
+    translation_cache_bulk_delete,
+)
 from .views.audio_views import (
     task_queue,
     cancel_task,
@@ -67,6 +76,7 @@ urlpatterns = [
     path("book/<int:book_id>/toc", views.toc, name="toc"),
     path("book/<int:book_id>/page", views.pages, name="pages"),
     path("book/reformat", views.reformat, name="reformat"),
+    path("book/translate", translate, name="translate"),
     path("book/<int:book_id>/original/", get_original_content, name="get_original_content"),
     path("book/<int:book_id>/original/asset/", get_epub_asset, name="get_epub_asset"),
     path("audio/books", aggregated_audio_segments, name="aggregated_audio_segments"),
@@ -133,6 +143,14 @@ urlpatterns = [
     path("task/<str:task_id>/status/", task_status, name="task_status"),
     
     # OCR功能路由
-    path("book/<int:book_id>/ocr/page/", ocr_pdf_page, name="ocr_pdf_page"),  
+    path("book/<int:book_id>/ocr/page/", ocr_pdf_page, name="ocr_pdf_page"),
     path("book/<int:book_id>/ocr/batch/", ocr_pdf_pages_batch, name="ocr_pdf_pages_batch"),
+
+    # 翻译缓存管理路由 (工作台管理员)
+    path("translation-cache/", translation_cache_list, name="translation_cache_list"),
+    path("translation-cache/<int:cache_id>/", translation_cache_detail, name="translation_cache_detail"),
+    path("translation-cache/<int:cache_id>/delete/", translation_cache_delete, name="translation_cache_delete"),
+    path("translation-cache/cleanup/", translation_cache_cleanup, name="translation_cache_cleanup"),
+    path("translation-cache/stats/", translation_cache_stats_api, name="translation_cache_stats"),
+    path("translation-cache/bulk-delete/", translation_cache_bulk_delete, name="translation_cache_bulk_delete"),
 ]

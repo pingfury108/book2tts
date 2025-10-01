@@ -1,0 +1,403 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}翻译缓存管理 - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="card-title">翻译缓存管理</h3>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#statsModal">
+                            <i class="fas fa-chart-bar"></i> 统计信息
+                        </button>
+                        <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#cleanupModal">
+                            <i class="fas fa-broom"></i> 清理缓存
+                        </button>
+                        <button type="button" class="btn btn-danger btn-sm" id="bulkDeleteBtn" disabled>
+                            <i class="fas fa-trash"></i> 批量删除
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 搜索和过滤 -->
+                <div class="card-body">
+                    <form method="get" class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <input type="text" name="q" class="form-control" placeholder="搜索原文、译文或MD5..." value="{{ search_query }}">
+                        </div>
+                        <div class="col-md-3">
+                            <select name="lang" class="form-select">
+                                <option value="">所有语言</option>
+                                {% for code, name in language_choices %}
+                                    <option value="{{ code }}" {% if language_filter == code %}selected{% endif %}>
+                                        {{ name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="btn-group w-100">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search"></i> 搜索
+                                </button>
+                                <a href="{% url 'translation_cache_list' %}" class="btn btn-secondary">
+                                    <i class="fas fa-times"></i> 清除
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- 统计概览 -->
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body">
+                                    <h5>总缓存条数</h5>
+                                    <h3>{{ stats.total_entries|default:0 }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body">
+                                    <h5>总命中次数</h5>
+                                    <h3>{{ stats.total_hits|default:0 }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-warning text-white">
+                                <div class="card-body">
+                                    <h5>平均命中率</h5>
+                                    <h3>{{ stats.avg_hits|floatformat:1|default:0 }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body">
+                                    <h5>语言种类</h5>
+                                    <h3>{{ stats.by_language|length }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 缓存列表 -->
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        <input type="checkbox" id="selectAll" class="form-check-input">
+                                    </th>
+                                    <th>MD5</th>
+                                    <th>目标语言</th>
+                                    <th>原文预览</th>
+                                    <th>译文预览</th>
+                                    <th>命中次数</th>
+                                    <th>创建时间</th>
+                                    <th>最后使用</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cache in page_obj %}
+                                <tr>
+                                    <td>
+                                        <input type="checkbox" class="form-check-input cache-checkbox" value="{{ cache.id }}">
+                                    </td>
+                                    <td>
+                                        <code class="text-muted">{{ cache.text_md5|slice:":8" }}...</code>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ cache.get_target_language_display }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="text-truncate" style="max-width: 200px;" title="{{ cache.original_text }}">
+                                            {{ cache.original_text|truncatechars:50 }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="text-truncate" style="max-width: 200px;" title="{{ cache.translated_text }}">
+                                            {{ cache.translated_text|truncatechars:50 }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success">{{ cache.hit_count }}</span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ cache.created_at|date:"Y-m-d H:i" }}</small>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ cache.last_used_at|date:"Y-m-d H:i" }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'translation_cache_detail' cache.id %}" class="btn btn-outline-primary btn-sm">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-outline-danger btn-sm"
+                                                    onclick="deleteCache({{ cache.id }})">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="9" class="text-center text-muted py-4">
+                                        <i class="fas fa-inbox fa-2x mb-2"></i><br>
+                                        暂无缓存记录
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 分页 -->
+                    {% if page_obj.has_other_pages %}
+                    <nav>
+                        <ul class="pagination justify-content-center">
+                            {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if language_filter %}&lang={{ language_filter }}{% endif %}">上一页</a>
+                                </li>
+                            {% endif %}
+
+                            {% for num in page_obj.paginator.page_range %}
+                                {% if page_obj.number == num %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ num }}</span>
+                                    </li>
+                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ num }}{% if search_query %}&q={{ search_query }}{% endif %}{% if language_filter %}&lang={{ language_filter }}{% endif %}">{{ num }}</a>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if language_filter %}&lang={{ language_filter }}{% endif %}">下一页</a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 统计信息模态框 -->
+<div class="modal fade" id="statsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">翻译缓存统计</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>按语言统计</h6>
+                        <div class="list-group">
+                            {% for lang_stat in stats.by_language %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>{{ lang_stat.target_language }}</span>
+                                <div>
+                                    <span class="badge bg-primary rounded-pill me-2">{{ lang_stat.count }} 条</span>
+                                    <span class="badge bg-success rounded-pill">{{ lang_stat.total_hits }} 次</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>总体统计</h6>
+                        <table class="table table-sm">
+                            <tr>
+                                <td>总缓存条数</td>
+                                <td><strong>{{ stats.total_entries|default:0 }}</strong></td>
+                            </tr>
+                            <tr>
+                                <td>总命中次数</td>
+                                <td><strong>{{ stats.total_hits|default:0 }}</strong></td>
+                            </tr>
+                            <tr>
+                                <td>平均命中率</td>
+                                <td><strong>{{ stats.avg_hits|floatformat:2|default:0 }}</strong></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 清理缓存模态框 -->
+<div class="modal fade" id="cleanupModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">清理翻译缓存</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="cleanupForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="cleanupDays" class="form-label">清理多少天前的缓存</label>
+                        <input type="number" class="form-control" id="cleanupDays" name="days" value="30" min="1">
+                        <div class="form-text">将删除指定天数前未使用的缓存记录</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-broom"></i> 清理
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// 全选/取消全选
+document.getElementById('selectAll').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.cache-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+    });
+    updateBulkDeleteButton();
+});
+
+// 监听单个复选框变化
+document.querySelectorAll('.cache-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', updateBulkDeleteButton);
+});
+
+// 更新批量删除按钮状态
+function updateBulkDeleteButton() {
+    const checkedBoxes = document.querySelectorAll('.cache-checkbox:checked');
+    const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+
+    if (checkedBoxes.length > 0) {
+        bulkDeleteBtn.disabled = false;
+        bulkDeleteBtn.textContent = `批量删除 (${checkedBoxes.length})`;
+    } else {
+        bulkDeleteBtn.disabled = true;
+        bulkDeleteBtn.innerHTML = '<i class="fas fa-trash"></i> 批量删除';
+    }
+}
+
+// 批量删除
+document.getElementById('bulkDeleteBtn').addEventListener('click', function() {
+    const checkedBoxes = document.querySelectorAll('.cache-checkbox:checked');
+    const cacheIds = Array.from(checkedBoxes).map(cb => cb.value);
+
+    if (cacheIds.length === 0) {
+        alert('请选择要删除的缓存记录');
+        return;
+    }
+
+    if (confirm(`确定要删除选中的 ${cacheIds.length} 条缓存记录吗？`)) {
+        bulkDeleteCache(cacheIds);
+    }
+});
+
+// 删除单个缓存
+function deleteCache(cacheId) {
+    if (confirm('确定要删除这条缓存记录吗？')) {
+        fetch(`{% url 'translation_cache_delete' 0 %}`.replace('0', cacheId), {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                location.reload();
+            } else {
+                alert('删除失败：' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('删除失败，请重试');
+        });
+    }
+}
+
+// 批量删除缓存
+function bulkDeleteCache(cacheIds) {
+    const formData = new FormData();
+    cacheIds.forEach(id => {
+        formData.append('cache_ids', id);
+    });
+
+    fetch('{% url "translation_cache_bulk_delete" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            location.reload();
+        } else {
+            alert('删除失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('删除失败，请重试');
+    });
+}
+
+// 清理缓存表单提交
+document.getElementById('cleanupForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const days = document.getElementById('cleanupDays').value;
+
+    if (confirm(`确定要清理 ${days} 天前的缓存记录吗？`)) {
+        const formData = new FormData();
+        formData.append('days', days);
+
+        fetch('{% url "translation_cache_cleanup" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('清理失败：' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('清理失败，请重试');
+        });
+    }
+});
+</script>
+{% endblock %}

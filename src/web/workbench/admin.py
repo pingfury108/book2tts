@@ -11,6 +11,7 @@ from .models import (
     OCRCache,
     TTSVoicePreview,
     TTSProviderConfig,
+    TranslationCache,
 )
 
 
@@ -130,3 +131,21 @@ class TTSProviderConfigAdmin(admin.ModelAdmin):
         if TTSProviderConfig.objects.exists():
             return False
         return super().has_add_permission(request)
+
+
+@admin.register(TranslationCache)
+class TranslationCacheAdmin(admin.ModelAdmin):
+    list_display = ('text_md5_short', 'target_language', 'text_preview', 'hit_count', 'last_used_at', 'created_at')
+    list_filter = ('target_language', 'source_language', 'created_at', 'last_used_at')
+    search_fields = ('text_md5', 'original_text', 'translated_text')
+    readonly_fields = ('text_md5', 'hit_count', 'created_at', 'updated_at', 'last_used_at')
+    ordering = ['-last_used_at']
+
+    def text_md5_short(self, obj):
+        return f"{obj.text_md5[:12]}..."
+    text_md5_short.short_description = "文本MD5"
+
+    def text_preview(self, obj):
+        preview = obj.original_text[:30] + "..." if len(obj.original_text) > 30 else obj.original_text
+        return preview.replace('\n', ' ')
+    text_preview.short_description = "原文预览"
