@@ -518,6 +518,11 @@
                                         </li>
                                         {% endfor %}
                                     </ul>
+                                    {% with segment_id_str=segment.id|stringformat:'s' %}
+                                        {% with script_id='workbench-chapters-'|add:segment_id_str %}
+                                            {{ segment.chapters|json_script:script_id }}
+                                        {% endwith %}
+                                    {% endwith %}
                                     {% else %}
                                     <div class="text-xs sm:text-sm text-base-content/60">
                                         暂无章节信息，可点击上方按钮生成。
@@ -562,7 +567,7 @@
                                 <div class="rounded-lg p-3 sm:p-4">
                                     <div class="flex items-center justify-center">
                                         <button class="btn btn-primary w-full sm:w-auto sm:btn-md"
-                                            onclick="playInGlobalPlayer('{{ segment.file_url }}', '{{ segment.title|escapejs }}', {% if segment.subtitle_file %}{% if segment.subtitle_file.url %}'{{ segment.subtitle_file.url }}'{% else %}null{% endif %}{% else %}null{% endif %})"
+                                            onclick="playInGlobalPlayer('{{ segment.file_url }}', '{{ segment.title|escapejs }}', {% if segment.subtitle_file %}{% if segment.subtitle_file.url %}'{{ segment.subtitle_file.url }}'{% else %}null{% endif %}{% else %}null{% endif %}, {% if segment.chapters %}'workbench-chapters-{{ segment.id }}'{% else %}null{% endif %}, {% if segment.chapters_file and segment.chapters_file.url %}'{{ segment.chapters_file.url }}'{% else %}null{% endif %})"
                                             title="播放音频">
                                             <i class="fas fa-play h-3 w-3 sm:h-4 sm:w-4 mr-2"></i>
                                             播放音频{% if segment.subtitle_file %}{% if segment.subtitle_file.url %}<i class="fas fa-closed-captioning ml-2 text-yellow-300" title="含字幕"></i>{% endif %}{% endif %}
@@ -776,7 +781,7 @@
     }
 
     // 全局播放器集成函数
-    async function playInGlobalPlayer(audioUrl, title, subtitleUrl) {
+    async function playInGlobalPlayer(audioUrl, title, subtitleUrl, chaptersScriptId = null, chaptersUrl = null) {
         console.log('[集成] 调用全局播放器:', { audioUrl, title, subtitleUrl });
 
         if (!window.globalAudioPlayer) {
@@ -786,6 +791,23 @@
         }
 
         let subtitles = null;
+        let chapters = [];
+
+        if (chaptersScriptId) {
+            const scriptEl = document.getElementById(chaptersScriptId);
+            if (scriptEl) {
+                try {
+                    chapters = JSON.parse(scriptEl.textContent);
+                } catch (error) {
+                    console.warn('[集成] 章节数据解析失败:', error);
+                }
+            }
+        }
+
+        const chapterOptions = {
+            chapters,
+            chaptersUrl: chaptersUrl || null
+        };
 
         // 如果有字幕文件URL，获取并解析字幕
         if (subtitleUrl) {
@@ -817,14 +839,19 @@
 
         // 播放音频
         console.log('[集成] 开始播放，字幕数量:', subtitles ? subtitles.length : 0);
-        window.globalAudioPlayer.playAudio(audioUrl, title, subtitles);
+        window.globalAudioPlayer.playAudio(audioUrl, title, subtitles, chapterOptions);
 
         // 调试信息：显示当前播放状态
         setTimeout(() => {
+            const storeChapterCount = window.globalAudioPlayer.store && Array.isArray(window.globalAudioPlayer.store.chapters)
+                ? window.globalAudioPlayer.store.chapters.length
+                : (window.globalAudioPlayer.chapters ? window.globalAudioPlayer.chapters.length : 0);
+
             console.log('[集成] 播放器状态检查:', {
                 hasSubtitles: window.globalAudioPlayer.currentSubtitles && window.globalAudioPlayer.currentSubtitles.length > 0,
                 subtitleCount: window.globalAudioPlayer.currentSubtitles ? window.globalAudioPlayer.currentSubtitles.length : 0,
-                playerVisible: window.globalAudioPlayer.isPlayerVisible()
+                playerVisible: window.globalAudioPlayer.isPlayerVisible(),
+                chapterCount: storeChapterCount
             });
         }, 1000);
     }

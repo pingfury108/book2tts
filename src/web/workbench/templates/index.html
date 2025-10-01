@@ -294,11 +294,15 @@
    
    // 隐藏全局播放器按钮
    const globalPlayBtn = document.getElementById('global-play-from-workbench');
-   if (globalPlayBtn) {
-     globalPlayBtn.style.display = 'none';
-     globalPlayBtn.dataset.audioUrl = '';
-     globalPlayBtn.dataset.audioTitle = '';
-   }
+  if (globalPlayBtn) {
+    globalPlayBtn.style.display = 'none';
+    globalPlayBtn.dataset.audioUrl = '';
+    globalPlayBtn.dataset.audioTitle = '';
+    delete globalPlayBtn.dataset.subtitleUrl;
+    delete globalPlayBtn.dataset.chaptersUrl;
+    globalPlayBtn.cachedSubtitles = null;
+    globalPlayBtn.cachedChapters = null;
+  }
    
    // 重置相关状态和按钮
    const audioTitle = document.getElementById('audio-title');
@@ -954,6 +958,16 @@ async function previewVoice(voiceName, triggerButton) {
     } else {
       delete globalPlayBtn.dataset.subtitleUrl;
     }
+    if (data.chapters_url) {
+      globalPlayBtn.dataset.chaptersUrl = data.chapters_url;
+    } else {
+      delete globalPlayBtn.dataset.chaptersUrl;
+    }
+    if (Array.isArray(data.chapters) && data.chapters.length > 0) {
+      globalPlayBtn.cachedChapters = data.chapters;
+    } else {
+      globalPlayBtn.cachedChapters = null;
+    }
     globalPlayBtn.cachedSubtitles = null;
   }
    
@@ -1042,6 +1056,12 @@ async function playWorkbenchAudioInGlobal() {
   const audioUrl = globalPlayBtn.dataset.audioUrl;
   const audioTitle = globalPlayBtn.dataset.audioTitle;
   const subtitleUrl = globalPlayBtn.dataset.subtitleUrl;
+  const chapterUrl = globalPlayBtn.dataset.chaptersUrl;
+  const chapters = Array.isArray(globalPlayBtn.cachedChapters) ? globalPlayBtn.cachedChapters : [];
+  const chapterOptions = {
+    chapters,
+    chaptersUrl: chapterUrl || null
+  };
   
   if (audioUrl) {
     let subtitles = globalPlayBtn.cachedSubtitles || null;
@@ -1063,7 +1083,7 @@ async function playWorkbenchAudioInGlobal() {
       }
     }
 
-    window.globalAudioPlayer.playAudio(audioUrl, audioTitle, subtitles);
+    window.globalAudioPlayer.playAudio(audioUrl, audioTitle, subtitles, chapterOptions);
   }
 }
 

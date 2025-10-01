@@ -87,6 +87,8 @@
                       data-audio-url="{{ segment.file_url }}"
                       data-audio-title="{{ segment.title }}"
                       data-subtitle-url="{% if segment.subtitle_file %}{{ segment.subtitle_file.url }}{% endif %}"
+                      data-chapters-url="{% if segment.chapters_file and segment.chapters_file.url %}{{ segment.chapters_file.url }}{% endif %}"
+                      {% if segment.chapters %}data-chapters-target="home-chapters-{{ segment.id }}"{% endif %}
                     >
                       <i class="fas fa-play text-white"></i>
                     </button>
@@ -150,11 +152,20 @@
                     data-audio-url="{{ segment.file_url }}"
                     data-audio-title="{{ segment.title }}"
                     data-subtitle-url="{% if segment.subtitle_file %}{{ segment.subtitle_file.url }}{% endif %}"
+                    data-chapters-url="{% if segment.chapters_file and segment.chapters_file.url %}{{ segment.chapters_file.url }}{% endif %}"
+                    {% if segment.chapters %}data-chapters-target="home-chapters-{{ segment.id }}"{% endif %}
                   >
                     <i class="fas fa-play text-white text-2xl"></i>
                   </button>
                 </div>
               </div>
+              {% if segment.chapters %}
+                {% with segment_id_str=segment.id|stringformat:'s' %}
+                  {% with script_id='home-chapters-'|add:segment_id_str %}
+                    {{ segment.chapters|json_script:script_id }}
+                  {% endwith %}
+                {% endwith %}
+              {% endif %}
           {% endfor %}
         </div>
       {% else %}
@@ -191,6 +202,8 @@
                     data-audio-url="{{ segment.file_url }}"
                     data-audio-title="{{ segment.title }}"
                     data-subtitle-url="{% if segment.subtitle_file %}{{ segment.subtitle_file.url }}{% endif %}"
+                    data-chapters-url="{% if segment.chapters_file and segment.chapters_file.url %}{{ segment.chapters_file.url }}{% endif %}"
+                    {% if segment.chapters %}data-chapters-target="home-chapters-{{ segment.id }}"{% endif %}
                   >
                     <i class="fas fa-play"></i>
                   </button>
@@ -222,6 +235,13 @@
                   </div>
                 </div>
               </div>
+              {% if segment.chapters %}
+                {% with segment_id_str=segment.id|stringformat:'s' %}
+                  {% with script_id='home-chapters-'|add:segment_id_str %}
+                    {{ segment.chapters|json_script:script_id }}
+                  {% endwith %}
+                {% endwith %}
+              {% endif %}
             </div>
           {% endfor %}
         </div>
@@ -366,6 +386,25 @@
         const audioUrl = this.getAttribute('data-audio-url');
         const title = this.getAttribute('data-audio-title');
         const subtitleUrl = this.getAttribute('data-subtitle-url');
+        const chapterTargetId = this.getAttribute('data-chapters-target');
+        const chapterUrl = this.getAttribute('data-chapters-url');
+        let chapters = [];
+
+        if (chapterTargetId) {
+          const scriptEl = document.getElementById(chapterTargetId);
+          if (scriptEl) {
+            try {
+              chapters = JSON.parse(scriptEl.textContent);
+            } catch (error) {
+              console.warn('[主页] 章节数据解析失败:', error);
+            }
+          }
+        }
+
+        const chapterOptions = {
+          chapters,
+          chaptersUrl: chapterUrl || null
+        };
         
         if (window.globalAudioPlayer) {
           // 如果有字幕文件，加载字幕
@@ -374,15 +413,15 @@
               .then(response => response.text())
               .then(srtContent => {
                 const subtitles = window.globalAudioPlayer.parseSRTSubtitles(srtContent);
-                window.globalAudioPlayer.playAudio(audioUrl, title, subtitles);
+                window.globalAudioPlayer.playAudio(audioUrl, title, subtitles, chapterOptions);
               })
               .catch(() => {
                 // 如果字幕加载失败，仍然播放音频
-                window.globalAudioPlayer.playAudio(audioUrl, title);
+                window.globalAudioPlayer.playAudio(audioUrl, title, null, chapterOptions);
               });
           } else {
             // 无字幕文件，直接播放
-            window.globalAudioPlayer.playAudio(audioUrl, title);
+            window.globalAudioPlayer.playAudio(audioUrl, title, null, chapterOptions);
           }
         } else {
           console.error('全局播放器未初始化');

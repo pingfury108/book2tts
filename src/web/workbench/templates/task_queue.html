@@ -155,9 +155,18 @@
                                         class="btn btn-sm btn-primary play-audio-btn" 
                                         data-audio-url="{{ task.result_data.audio_url }}"
                                         data-audio-title="{{ task.title|default:task.book.name }}"
+                                        data-chapters-url="{% if task.result_data.chapters_url %}{{ task.result_data.chapters_url }}{% endif %}"
+                                        {% if task.result_data.chapters %}data-chapters-target="task-queue-chapters-{{ task.id }}"{% endif %}
                                     >
                                         🎵 播放音频
                                     </button>
+                                    {% if task.result_data.chapters %}
+                                        {% with task_id_str=task.id|stringformat:'s' %}
+                                            {% with script_id='task-queue-chapters-'|add:task_id_str %}
+                                                {{ task.result_data.chapters|json_script:script_id }}
+                                            {% endwith %}
+                                        {% endwith %}
+                                    {% endif %}
                                 {% endif %}
                                 {% if task.result_data.audio_duration %}
                                     <span class="ml-4">时长: {{ task.result_data.audio_duration }} 秒</span>
@@ -362,9 +371,28 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             const audioUrl = e.target.getAttribute('data-audio-url');
             const title = e.target.getAttribute('data-audio-title') || '未知音频';
+            const chapterTargetId = e.target.getAttribute('data-chapters-target');
+            const chapterUrl = e.target.getAttribute('data-chapters-url');
+            let chapters = [];
+
+            if (chapterTargetId) {
+                const scriptEl = document.getElementById(chapterTargetId);
+                if (scriptEl) {
+                    try {
+                        chapters = JSON.parse(scriptEl.textContent);
+                    } catch (error) {
+                        console.warn('[任务队列] 章节数据解析失败:', error);
+                    }
+                }
+            }
+
+            const chapterOptions = {
+                chapters,
+                chaptersUrl: chapterUrl || null
+            };
             
             if (window.globalAudioPlayer) {
-                window.globalAudioPlayer.playAudio(audioUrl, title);
+                window.globalAudioPlayer.playAudio(audioUrl, title, null, chapterOptions);
             } else {
                 console.error('全局播放器未初始化');
             }

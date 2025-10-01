@@ -203,7 +203,7 @@
                 
                 {% if script.audio_file %}
                 <div class="mt-4">
-                    <button class="btn btn-primary w-full" onclick="playFinishedAudio('{{ script.audio_file.url }}', '{{ script.title|escapejs }}', {% if script.subtitle_file and script.subtitle_file.name %}'{{ script.subtitle_file.url }}'{% else %}null{% endif %})">
+                    <button class="btn btn-primary w-full" onclick="playFinishedAudio('{{ script.audio_file.url }}', '{{ script.title|escapejs }}', {% if script.subtitle_file and script.subtitle_file.name %}'{{ script.subtitle_file.url }}'{% else %}null{% endif %}, {% if script.chapters %}'dialogue-chapters-{{ script.id }}'{% else %}null{% endif %}, {% if script.chapters_file and script.chapters_file.url %}'{{ script.chapters_file.url }}'{% else %}null{% endif %})">
                         <i class="fas fa-play mr-2"></i>播放成品音频
                     </button>
                 </div>
@@ -238,6 +238,8 @@
                             data-audio-url="{{ script.audio_file.url }}"
                             data-subtitle-url="{{ script.subtitle_file.url }}"
                             data-audio-title="{{ script.title|escapejs }}"
+                            data-chapters-target="dialogue-chapters-{{ script.id }}"
+                            data-chapters-url="{% if script.chapters_file and script.chapters_file.url %}{{ script.chapters_file.url }}{% endif %}"
                         >
                             <div class="flex items-center justify-between gap-3">
                                 <span class="badge badge-outline badge-primary text-xs">{{ chapter.start_seconds|format_seconds }}</span>
@@ -250,6 +252,11 @@
                         </button>
                         {% endfor %}
                     </div>
+                    {% with script_id_str=script.id|stringformat:'s' %}
+                        {% with script_id='dialogue-chapters-'|add:script_id_str %}
+                            {{ script.chapters|json_script:script_id }}
+                        {% endwith %}
+                    {% endwith %}
                     {% else %}
                     <div class="text-sm text-base-content/60">
                         暂无章节信息，可点击右上方按钮生成。
@@ -1041,6 +1048,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const audioUrl = button.dataset.audioUrl;
         const subtitleUrl = button.dataset.subtitleUrl || null;
         const audioTitle = button.dataset.audioTitle || '';
+        const chapterTargetId = button.dataset.chaptersTarget || null;
+        const chapterUrl = button.dataset.chaptersUrl || null;
 
         if (Number.isNaN(start) || !audioUrl) {
             return;
@@ -1061,7 +1070,7 @@ document.addEventListener('DOMContentLoaded', function() {
             player.player.addEventListener('loadedmetadata', () => {
                 seek();
             }, { once: true });
-            playFinishedAudio(audioUrl, audioTitle, subtitleUrl);
+            playFinishedAudio(audioUrl, audioTitle, subtitleUrl, chapterTargetId, chapterUrl);
         } else if (player.player.readyState >= 1) {
             seek();
         } else {
@@ -1704,14 +1713,31 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // 成品音频全局播放功能
-function playFinishedAudio(audioUrl, title, subtitleUrl) {
+function playFinishedAudio(audioUrl, title, subtitleUrl, chaptersScriptId = null, chaptersUrl = null) {
     if (!window.globalAudioPlayer) {
         showToast('全局播放器未初始化，请刷新页面重试', 'error');
         return;
     }
     
     let subtitles = null;
-    
+    let chapters = [];
+
+    if (chaptersScriptId) {
+        const scriptEl = document.getElementById(chaptersScriptId);
+        if (scriptEl) {
+            try {
+                chapters = JSON.parse(scriptEl.textContent);
+            } catch (error) {
+                console.warn('[对话详情] 章节数据解析失败:', error);
+            }
+        }
+    }
+
+    const chapterOptions = {
+        chapters,
+        chaptersUrl: chaptersUrl || null
+    };
+
     // 如果有字幕文件，获取并解析字幕
     if (subtitleUrl) {
         fetch(subtitleUrl)
@@ -1720,16 +1746,16 @@ function playFinishedAudio(audioUrl, title, subtitleUrl) {
                 if (subtitleContent.trim()) {
                     subtitles = window.globalAudioPlayer.parseSRTSubtitles(subtitleContent);
                 }
-                window.globalAudioPlayer.playAudio(audioUrl, title, subtitles);
+                window.globalAudioPlayer.playAudio(audioUrl, title, subtitles, chapterOptions);
             })
             .catch(error => {
                 console.warn('字幕加载失败:', error);
                 // 即使没有字幕也继续播放音频
-                window.globalAudioPlayer.playAudio(audioUrl, title, null);
+                window.globalAudioPlayer.playAudio(audioUrl, title, null, chapterOptions);
             });
     } else {
         // 无字幕直接播放
-        window.globalAudioPlayer.playAudio(audioUrl, title, null);
+        window.globalAudioPlayer.playAudio(audioUrl, title, null, chapterOptions);
     }
 }
 </script>

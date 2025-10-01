@@ -146,7 +146,7 @@
             <i class="fas fa-times text-xs opacity-60 hover:opacity-100"></i>
         </button>
 
-        <div class="container mx-auto px-2 sm:px-4 py-3 pr-10">
+        <div class="container mx-auto px-2 sm:px-4 py-3 pr-10 relative">
             <!-- 字幕显示区域 -->
             <div id="subtitle-container" class="mb-3 h-12 flex items-center justify-center">
                 <div id="subtitle-text"
@@ -161,6 +161,32 @@
                 <button id="global-play-btn" class="btn btn-circle btn-sm sm:btn-md btn-primary flex-shrink-0">
                     <i class="fas fa-play text-sm"></i>
                 </button>
+
+                <!-- 章节按钮 -->
+                <div class="relative flex-shrink-0">
+                    <button id="global-chapter-btn"
+                        class="btn btn-circle btn-sm sm:btn-md btn-ghost text-base-content/70 hover:text-base-content hidden relative"
+                        title="章节列表">
+                        <i class="fas fa-list-ul text-sm"></i>
+                        <span id="global-chapter-availability"
+                            class="hidden absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-primary shadow-md"></span>
+                    </button>
+
+                    <!-- 章节列表面板 -->
+                    <div id="global-chapter-panel"
+                        class="hidden absolute bottom-full mb-3 left-1/2 -translate-x-1/2 w-56 sm:w-72 max-h-72 sm:max-h-80 overflow-hidden border border-base-300 bg-base-200 rounded-xl shadow-xl">
+                        <div class="px-3 py-2 border-b border-base-300">
+                            <div class="text-[11px] uppercase tracking-wide font-semibold text-base-content/60">章节导航</div>
+                            <div class="flex items-center gap-3 mt-1 text-xs text-base-content/70">
+                                <span id="global-chapter-active-title" class="flex-1 font-medium text-base-content truncate">未选择章节</span>
+                                <span id="global-chapter-active-time" class="font-mono text-[11px] text-base-content/60">0:00</span>
+                            </div>
+                        </div>
+                        <ul id="global-chapter-list" class="max-h-60 sm:max-h-64 overflow-y-auto divide-y divide-base-300">
+                            <li class="px-3 py-2 text-sm text-base-content/60">暂无章节</li>
+                        </ul>
+                    </div>
+                </div>
 
                 <!-- 音频信息 - 紧凑布局 -->
                 <div class="flex-shrink-0 min-w-0 max-w-xs">
@@ -302,10 +328,24 @@
                 this.closeBtn = document.getElementById('close-player-btn');
                 this.subtitleContainer = document.getElementById('subtitle-container');
                 this.subtitleText = document.getElementById('subtitle-text');
+                this.chapterBtn = document.getElementById('global-chapter-btn');
+                this.chapterPanel = document.getElementById('global-chapter-panel');
+                this.chapterList = document.getElementById('global-chapter-list');
+                this.chapterActiveTitle = document.getElementById('global-chapter-active-title');
+                this.chapterActiveTime = document.getElementById('global-chapter-active-time');
+                this.chapterAvailability = document.getElementById('global-chapter-availability');
 
                 this.currentSubtitles = [];
                 this.isUpdatingProgress = false;
                 this.currentAudio = null;
+                this.chapterSourceUrl = null;
+                this.lastChapterUpdateTs = 0;
+                this.chapterUpdateThrottleMs = 250;
+                this.store = {
+                    chapters: [],
+                    activeChapterIndex: -1,
+                    isChapterPanelOpen: false
+                };
 
                 this.initializeEventListeners();
                 this.loadSavedState();
@@ -326,6 +366,22 @@
                 // 关闭播放器
                 this.closeBtn.addEventListener('click', () => this.closePlayer());
 
+                // 章节按钮和列表
+                if (this.chapterBtn) {
+                    this.chapterBtn.addEventListener('click', (event) => {
+                        event.stopPropagation();
+                        this.toggleChapterPanel();
+                    });
+                }
+
+                if (this.chapterPanel) {
+                    this.chapterPanel.addEventListener('click', (event) => event.stopPropagation());
+                }
+
+                if (this.chapterList) {
+                    this.chapterList.addEventListener('click', (event) => this.handleChapterListClick(event));
+                }
+
                 // 音频事件监听
                 this.player.addEventListener('loadedmetadata', () => this.onLoadedMetadata());
                 this.player.addEventListener('timeupdate', () => this.onTimeUpdate());
@@ -336,16 +392,32 @@
 
                 // 键盘控制
                 document.addEventListener('keydown', (e) => this.handleKeyboard(e));
+                document.addEventListener('click', (e) => this.handleGlobalClick(e));
             }
 
             // 播放音频
-            playAudio(audioUrl, title, subtitles = null) {
+            playAudio(audioUrl, title, subtitles = null, options = {}) {
                 if (!audioUrl) return;
 
-                console.log('[播放器] 播放音频:', { audioUrl, title, subtitles: subtitles ? subtitles.length + '条字幕' : '无字幕' });
+                console.log('[播放器] 播放音频:', {
+                    audioUrl,
+                    title,
+                    subtitles: subtitles ? subtitles.length + '条字幕' : '无字幕',
+                    options
+                });
 
-                this.currentAudio = { url: audioUrl, title, subtitles };
+                const { chapters = null, chaptersUrl = null } = options || {};
+
                 this.currentSubtitles = subtitles || [];
+                this.currentAudio = {
+                    url: audioUrl,
+                    title,
+                    subtitles: this.currentSubtitles,
+                    chapters: [],
+                    chaptersUrl: null
+                };
+
+                this.prepareChapters(chapters, chaptersUrl);
 
                 this.player.src = audioUrl;
                 this.titleElement.textContent = title || '未知音频';
@@ -375,6 +447,8 @@
             onProgressChange() {
                 const time = (this.progressSlider.value / 100) * this.player.duration;
                 this.player.currentTime = time;
+                this.lastChapterUpdateTs = 0;
+                this.updateChapterHighlight({ force: true });
             }
 
             onVolumeChange() {
@@ -395,6 +469,16 @@
 
                 this.currentTimeElement.textContent = this.formatTime(this.player.currentTime);
                 this.updateSubtitleDisplay();
+
+                const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+                if (
+                    this.store.chapters &&
+                    this.store.chapters.length > 0 &&
+                    (now - this.lastChapterUpdateTs >= this.chapterUpdateThrottleMs)
+                ) {
+                    this.lastChapterUpdateTs = now;
+                    this.updateChapterHighlight();
+                }
             }
 
             onPlay() {
@@ -459,6 +543,370 @@
                     subtitleSpan.className = 'italic text-base-content/60';
                     this.subtitleText.style.opacity = '0.6';
                 }
+            }
+
+            // 章节相关逻辑
+            prepareChapters(chapters, chaptersUrl) {
+                this.closeChapterPanel();
+                this.store.chapters = [];
+                this.store.activeChapterIndex = -1;
+                this.store.isChapterPanelOpen = false;
+                this.lastChapterUpdateTs = 0;
+                this.chapterSourceUrl = chaptersUrl || null;
+                this.updateChapterPanelHeader(-1);
+
+                if (this.currentAudio) {
+                    this.currentAudio.chapters = [];
+                    this.currentAudio.chaptersUrl = this.chapterSourceUrl;
+                }
+
+                if (Array.isArray(chapters) && chapters.length > 0) {
+                    this.setChapters(chapters);
+                } else {
+                    this.updateChapterButtonVisibility();
+                    this.renderChapterList();
+                    this.saveState();
+                    if (this.chapterSourceUrl) {
+                        this.fetchChapters(this.chapterSourceUrl);
+                    }
+                }
+            }
+
+            setChapters(items) {
+                const normalized = this.normalizeChapters(items);
+                this.store.chapters = normalized;
+                this.store.activeChapterIndex = -1;
+                this.lastChapterUpdateTs = 0;
+                this.updateChapterPanelHeader(-1);
+                this.updateChapterButtonVisibility();
+                this.renderChapterList();
+                this.updateChapterHighlight({ force: true });
+                if (this.currentAudio) {
+                    this.currentAudio.chapters = this.store.chapters;
+                    this.currentAudio.chaptersUrl = this.chapterSourceUrl;
+                }
+                this.saveState();
+            }
+
+            async fetchChapters(chaptersUrl) {
+                try {
+                    const response = await fetch(chaptersUrl);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    const list = Array.isArray(data) ? data : (data && Array.isArray(data.chapters) ? data.chapters : []);
+
+                    if (list && list.length > 0) {
+                        this.setChapters(list);
+                    } else {
+                        this.store.chapters = [];
+                        this.store.activeChapterIndex = -1;
+                        this.updateChapterPanelHeader(-1);
+                        this.updateChapterButtonVisibility();
+                        this.renderChapterList();
+                        this.saveState();
+                    }
+                } catch (error) {
+                    console.warn('[播放器] 章节加载失败:', error);
+                    this.store.chapters = [];
+                    this.store.activeChapterIndex = -1;
+                    this.updateChapterPanelHeader(-1);
+                    this.updateChapterButtonVisibility();
+                    this.renderChapterList();
+                    this.saveState();
+                }
+            }
+
+            normalizeChapters(items) {
+                if (!Array.isArray(items)) {
+                    return [];
+                }
+
+                const normalized = items
+                    .map((item, index) => this.normalizeChapterItem(item, index, items))
+                    .filter(Boolean)
+                    .sort((a, b) => a.start - b.start);
+
+                return normalized;
+            }
+
+            normalizeChapterItem(item, index, allItems) {
+                if (!item) return null;
+
+                const start = this.parseChapterTime(
+                    item.startTime ?? item.start_seconds ?? item.startSeconds ?? item.start ?? item.start_srt ?? item.startSrt
+                );
+
+                if (!isFinite(start)) {
+                    return null;
+                }
+
+                const endValue = this.parseChapterTime(
+                    item.endTime ?? item.end_seconds ?? item.endSeconds ?? item.end ?? item.end_srt ?? item.endSrt
+                );
+
+                const title = (item.title || `章节 ${index + 1}`).trim();
+                const description = (item.summary || item.description || '').trim();
+
+                return {
+                    start: Math.max(0, start),
+                    end: isFinite(endValue) ? Math.max(start, endValue) : null,
+                    title,
+                    description,
+                    index
+                };
+            }
+
+            parseChapterTime(value) {
+                if (value === null || value === undefined) {
+                    return NaN;
+                }
+
+                if (typeof value === 'number') {
+                    return value;
+                }
+
+                const text = String(value).trim();
+                if (!text) {
+                    return NaN;
+                }
+
+                if (/^-?\d+(\.\d+)?$/.test(text)) {
+                    return parseFloat(text);
+                }
+
+                const normalized = text.replace(',', '.');
+                const parts = normalized.split(':');
+                if (parts.length === 0) {
+                    return NaN;
+                }
+
+                let seconds = 0;
+                try {
+                    if (parts.length === 3) {
+                        const hours = parseInt(parts[0], 10);
+                        const minutes = parseInt(parts[1], 10);
+                        const secs = parseFloat(parts[2]);
+                        seconds = hours * 3600 + minutes * 60 + secs;
+                    } else if (parts.length === 2) {
+                        const minutes = parseInt(parts[0], 10);
+                        const secs = parseFloat(parts[1]);
+                        seconds = minutes * 60 + secs;
+                    } else {
+                        seconds = parseFloat(parts[0]);
+                    }
+                } catch (err) {
+                    return NaN;
+                }
+
+                return seconds;
+            }
+
+            renderChapterList() {
+                if (!this.chapterList) return;
+
+                this.chapterList.innerHTML = '';
+
+                const chapters = this.store.chapters || [];
+
+                if (chapters.length === 0) {
+                    const emptyItem = document.createElement('li');
+                    emptyItem.className = 'px-3 py-2 text-sm text-base-content/60';
+                    emptyItem.textContent = '暂无章节';
+                    this.chapterList.appendChild(emptyItem);
+                    return;
+                }
+
+                chapters.forEach((chapter, index) => {
+                    const item = document.createElement('li');
+                    item.className = 'px-3 py-2 text-sm text-base-content/80 hover:bg-base-300/40 cursor-pointer transition-colors';
+                    item.dataset.index = String(index);
+                    item.dataset.start = String(chapter.start);
+
+                    const timeLabel = document.createElement('div');
+                    timeLabel.className = 'flex items-center justify-between text-xs text-base-content/60';
+                    timeLabel.innerHTML = `<span class="font-mono">${this.formatTime(chapter.start)}</span>`;
+
+                    const title = document.createElement('div');
+                    title.className = 'mt-1 font-medium text-base-content';
+                    title.textContent = chapter.title;
+
+                    item.appendChild(timeLabel);
+                    item.appendChild(title);
+
+                    if (chapter.description) {
+                        const desc = document.createElement('div');
+                        desc.className = 'mt-1 text-xs text-base-content/50 line-clamp-2';
+                        desc.textContent = chapter.description;
+                        item.appendChild(desc);
+                    }
+
+                    this.chapterList.appendChild(item);
+                });
+            }
+
+            toggleChapterPanel() {
+                if (!this.chapterPanel) return;
+                if (this.store.isChapterPanelOpen) {
+                    this.closeChapterPanel();
+                } else {
+                    if (!this.store.chapters || this.store.chapters.length === 0) {
+                        return;
+                    }
+                    this.openChapterPanel();
+                }
+            }
+
+            openChapterPanel() {
+                if (!this.chapterPanel) return;
+                this.chapterPanel.classList.remove('hidden');
+                this.store.isChapterPanelOpen = true;
+                this.updateChapterHighlight({ scrollIntoView: true, force: true });
+            }
+
+            closeChapterPanel() {
+                if (!this.chapterPanel) return;
+                this.chapterPanel.classList.add('hidden');
+                this.store.isChapterPanelOpen = false;
+            }
+
+            handleChapterListClick(event) {
+                const target = event.target.closest('li[data-start]');
+                if (!target) return;
+
+                const start = parseFloat(target.dataset.start || '0');
+                if (isFinite(start)) {
+                    const seekToChapter = () => {
+                        this.player.currentTime = Math.max(0, start);
+                        this.lastChapterUpdateTs = 0;
+                        this.updateChapterHighlight({ scrollIntoView: true, force: true });
+                        this.saveState();
+                        if (this.player.paused) {
+                            this.player.play().catch((err) => this.handlePlayError(err));
+                        }
+                    };
+
+                    if (this.player.readyState < 1 || !isFinite(this.player.duration)) {
+                        const onMetadata = () => {
+                            seekToChapter();
+                        };
+                        this.player.addEventListener('loadedmetadata', onMetadata, { once: true });
+                        if (this.player.readyState === 0) {
+                            this.player.load();
+                        }
+                    } else {
+                        seekToChapter();
+                    }
+                }
+            }
+
+            handleGlobalClick(event) {
+                if (!this.store.isChapterPanelOpen) return;
+                if (!this.chapterPanel || !this.chapterBtn) return;
+                const target = event.target;
+                if (this.chapterPanel.contains(target) || this.chapterBtn.contains(target)) {
+                    return;
+                }
+                this.closeChapterPanel();
+            }
+
+            updateChapterPanelHeader(index) {
+                if (!this.chapterActiveTitle || !this.chapterActiveTime) return;
+                const chapters = this.store.chapters || [];
+                const chapter = (typeof index === 'number' && index >= 0) ? chapters[index] : null;
+
+                if (chapter) {
+                    this.chapterActiveTitle.textContent = chapter.title || `章节 ${index + 1}`;
+                    this.chapterActiveTime.textContent = this.formatTime(chapter.start);
+                } else {
+                    this.chapterActiveTitle.textContent = '未选择章节';
+                    this.chapterActiveTime.textContent = '0:00';
+                }
+            }
+
+            updateChapterButtonVisibility() {
+                if (!this.chapterBtn) return;
+                const hasChapters = this.store.chapters && this.store.chapters.length > 0;
+                if (hasChapters || this.chapterSourceUrl) {
+                    this.chapterBtn.classList.remove('hidden');
+                } else {
+                    this.chapterBtn.classList.add('hidden');
+                    this.closeChapterPanel();
+                }
+
+                if (this.chapterAvailability) {
+                    if (hasChapters) {
+                        this.chapterAvailability.classList.remove('hidden');
+                    } else {
+                        this.chapterAvailability.classList.add('hidden');
+                    }
+                }
+
+                this.chapterBtn.classList.toggle('text-primary', hasChapters);
+                this.chapterBtn.classList.toggle('hover:text-primary', hasChapters);
+                this.chapterBtn.classList.toggle('hover:text-base-content', !hasChapters);
+            }
+
+            updateChapterHighlight(options = {}) {
+                const opts = typeof options === 'boolean'
+                    ? { scrollIntoView: options, force: false }
+                    : { scrollIntoView: false, force: false, ...options };
+
+                const chapters = this.store.chapters || [];
+
+                if (chapters.length === 0 || !this.chapterList) {
+                    this.store.activeChapterIndex = -1;
+                    this.updateChapterPanelHeader(-1);
+                    return;
+                }
+
+                const currentTime = this.player.currentTime;
+                let matchedIndex = chapters.length - 1;
+
+                for (let i = 0; i < chapters.length; i += 1) {
+                    const chapter = chapters[i];
+                    const end = this.getChapterEnd(i);
+                    if (currentTime >= chapter.start && currentTime < end) {
+                        matchedIndex = i;
+                        break;
+                    }
+                }
+
+                const items = Array.from(this.chapterList.querySelectorAll('li[data-start]'));
+
+                items.forEach((item, index) => {
+                    if (index === matchedIndex) {
+                        item.classList.add('bg-primary/10', 'text-primary');
+                        item.classList.remove('text-base-content/80');
+                        if ((opts.scrollIntoView || this.store.isChapterPanelOpen) && (index !== this.store.activeChapterIndex || opts.force)) {
+                            item.scrollIntoView({ block: 'center' });
+                        }
+                    } else {
+                        item.classList.remove('bg-primary/10', 'text-primary');
+                        item.classList.add('text-base-content/80');
+                    }
+                });
+
+                this.store.activeChapterIndex = matchedIndex;
+                this.updateChapterPanelHeader(matchedIndex);
+            }
+
+            getChapterEnd(index) {
+                const chapters = this.store.chapters || [];
+                const chapter = chapters[index];
+                if (!chapter) return Number.POSITIVE_INFINITY;
+
+                if (chapter.end !== null && chapter.end !== undefined) {
+                    return chapter.end;
+                }
+
+                if (index + 1 < chapters.length) {
+                    return chapters[index + 1].start;
+                }
+
+                return this.player.duration || Number.POSITIVE_INFINITY;
             }
 
             // 解析SRT格式字幕
@@ -571,6 +1019,14 @@
             setTimeout(() => {
                 this.playerContainer.style.display = 'none';
             }, 300);
+            this.closeChapterPanel();
+            this.store.chapters = [];
+            this.store.activeChapterIndex = -1;
+            this.chapterSourceUrl = null;
+            this.currentAudio = null;
+            this.updateChapterPanelHeader(-1);
+            this.updateChapterButtonVisibility();
+            this.renderChapterList();
             this.clearState();
         }
 
@@ -582,11 +1038,17 @@
         // 状态持久化
         saveState() {
             if (this.currentAudio) {
+                this.currentAudio.chapters = this.store.chapters;
+                this.currentAudio.chaptersUrl = this.chapterSourceUrl;
                 const state = {
                     audio: this.currentAudio,
                     currentTime: this.player.currentTime,
                     volume: this.volumeSlider.value,
-                    isVisible: this.isPlayerVisible()
+                    isVisible: this.isPlayerVisible(),
+                    chapterState: {
+                        activeIndex: this.store.activeChapterIndex,
+                        isPanelOpen: this.store.isChapterPanelOpen
+                    }
                 };
                 localStorage.setItem('globalAudioPlayerState', JSON.stringify(state));
             }
@@ -602,10 +1064,26 @@
                         this.onVolumeChange();
 
                         // 恢复播放状态（但不自动播放）
-                        this.playAudio(state.audio.url, state.audio.title, state.audio.subtitles);
+                        this.playAudio(state.audio.url, state.audio.title, state.audio.subtitles, {
+                            chapters: state.audio.chapters,
+                            chaptersUrl: state.audio.chaptersUrl
+                        });
+
+                        if (state.chapterState) {
+                            const { activeIndex, isPanelOpen } = state.chapterState;
+                            if (typeof activeIndex === 'number') {
+                                this.store.activeChapterIndex = activeIndex;
+                                this.updateChapterPanelHeader(activeIndex);
+                            }
+                            if (isPanelOpen) {
+                                setTimeout(() => this.openChapterPanel(), 0);
+                            }
+                        }
+
                         if (state.currentTime) {
                             this.player.addEventListener('loadedmetadata', () => {
                                 this.player.currentTime = state.currentTime;
+                                this.updateChapterHighlight({ force: true });
                             }, { once: true });
                         }
                     }

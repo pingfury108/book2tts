@@ -42,6 +42,7 @@
         data-audio-url="{{ segment.file.url }}"
         data-audio-title="{{ segment.title }}"
         data-subtitle-url="{% if segment.subtitle_file and segment.subtitle_file.name %}{{ segment.subtitle_file.url }}{% endif %}"
+        data-chapters-url="{% if segment.chapters_file and segment.chapters_file.name %}{{ segment.chapters_file.url }}{% endif %}"
       >
         <i class="fas fa-play text-white text-2xl"></i>
       </button>
@@ -134,6 +135,9 @@
 {% endblock %}
 
 {% block script %}
+{% if segment.chapters %}
+{{ segment.chapters|json_script:"segment-chapters-data" }}
+{% endif %}
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     const playerContainer = document.getElementById('audio-player-container');
@@ -150,6 +154,9 @@
     const chapterButtons = document.querySelectorAll('.chapter-jump-btn');
     const primaryPlayBtn = document.querySelector('.play-audio-btn');
     const defaultAudioUrl = primaryPlayBtn ? primaryPlayBtn.dataset.audioUrl : null;
+    const chaptersDataElement = document.getElementById('segment-chapters-data');
+    const defaultChapters = chaptersDataElement ? JSON.parse(chaptersDataElement.textContent) : [];
+    const defaultChaptersUrl = primaryPlayBtn ? (primaryPlayBtn.dataset.chaptersUrl || '') : '';
     
     // 字幕功能
     let subtitlesLoaded = false;
@@ -243,21 +250,26 @@
       }
 
       const player = window.globalAudioPlayer;
-      const seek = () => {
-        player.player.currentTime = startSeconds;
-        player.player.play().catch(() => {});
+      const seekToChapter = () => {
+        player.player.currentTime = Math.max(0, startSeconds);
+        player.lastChapterUpdateTs = 0;
+        player.updateChapterHighlight({ scrollIntoView: true, force: true });
+        player.saveState();
+        if (player.player.paused) {
+          player.player.play().catch((err) => player.handlePlayError(err));
+        }
       };
 
       if (!player.currentAudio || player.currentAudio.url !== defaultAudioUrl) {
         player.player.addEventListener('loadedmetadata', () => {
-          seek();
+          seekToChapter();
         }, { once: true });
         primaryPlayBtn.click();
       } else if (player.player.readyState >= 1) {
-        seek();
+        seekToChapter();
       } else {
         player.player.addEventListener('loadedmetadata', () => {
-          seek();
+          seekToChapter();
         }, { once: true });
       }
     }
@@ -279,6 +291,11 @@
         const audioUrl = this.getAttribute('data-audio-url');
         const title = this.getAttribute('data-audio-title');
         const subtitleUrl = this.getAttribute('data-subtitle-url');
+        const chapterUrl = this.getAttribute('data-chapters-url') || defaultChaptersUrl;
+        const chapterOptions = {
+          chapters: defaultChapters,
+          chaptersUrl: chapterUrl || null
+        };
         
         if (window.globalAudioPlayer) {
           // 如果有字幕文件，加载字幕
@@ -287,15 +304,15 @@
               .then(response => response.text())
               .then(srtContent => {
                 const subtitles = window.globalAudioPlayer.parseSRTSubtitles(srtContent);
-                window.globalAudioPlayer.playAudio(audioUrl, title, subtitles);
+                window.globalAudioPlayer.playAudio(audioUrl, title, subtitles, chapterOptions);
               })
               .catch(() => {
                 // 如果字幕加载失败，仍然播放音频
-                window.globalAudioPlayer.playAudio(audioUrl, title);
+                window.globalAudioPlayer.playAudio(audioUrl, title, null, chapterOptions);
               });
           } else {
             // 无字幕文件，直接播放
-            window.globalAudioPlayer.playAudio(audioUrl, title);
+            window.globalAudioPlayer.playAudio(audioUrl, title, null, chapterOptions);
           }
         } else {
           console.error('全局播放器未初始化');
