@@ -1,7 +1,22 @@
+import logging
 import os
+from typing import Any, Dict, Optional
+
 import litellm
 from litellm import completion
-from typing import Dict, List, Any, Optional
+
+
+logger = logging.getLogger("book2tts.llm")
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter(
+        "[%(asctime)s] %(levelname)s %(name)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+logger.setLevel(logging.INFO)
+logger.propagate = False
 
 
 # Try to load environment variables from .env file
@@ -73,6 +88,60 @@ class LLMService:
         else:
             return f"{self.text_provider}/{self.text_model_name}"
 
+    def _collect_usage_info(self, response: Any) -> Optional[Dict[str, Any]]:
+        usage = None
+        if hasattr(response, "usage"):
+            usage = response.usage
+        elif isinstance(response, dict):
+            usage = response.get("usage")
+
+        if usage is None:
+            return None
+
+        if isinstance(usage, dict):
+            prompt_tokens = usage.get("prompt_tokens")
+            completion_tokens = usage.get("completion_tokens")
+            total_tokens = usage.get("total_tokens")
+        else:
+            prompt_tokens = getattr(usage, "prompt_tokens", None)
+            completion_tokens = getattr(usage, "completion_tokens", None)
+            total_tokens = getattr(usage, "total_tokens", None)
+
+        if all(token is None for token in (prompt_tokens, completion_tokens, total_tokens)):
+            return None
+
+        return {
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "total_tokens": total_tokens,
+        }
+
+    def _log_token_usage(self, response: Any, context: str, fallback_model: str) -> None:
+        """记录每次 LLM 调用的 token 使用情况。"""
+        try:
+            usage_info = self._collect_usage_info(response)
+
+            model_name = None
+            if hasattr(response, "model"):
+                model_name = response.model
+            elif isinstance(response, dict):
+                model_name = response.get("model")
+
+            prompt_tokens = usage_info.get("prompt_tokens") if usage_info else None
+            completion_tokens = usage_info.get("completion_tokens") if usage_info else None
+            total_tokens = usage_info.get("total_tokens") if usage_info else None
+
+            logger.info(
+                "LLM %s call tokens prompt=%s completion=%s total=%s model=%s",
+                context,
+                prompt_tokens,
+                completion_tokens,
+                total_tokens,
+                model_name or fallback_model,
+            )
+        except Exception:
+            logger.debug("Failed to log LLM token usage", exc_info=True)
+
     def perform_ocr(self, image_data: str, temperature: float = 0.2) -> Dict[str, Any]:
         """
         Perform OCR on an image using the configured LLM.
@@ -85,8 +154,9 @@ class LLMService:
             Dictionary containing the OCR result or error
         """
         try:
+            model_name = self.get_model_name(for_ocr=True)
             response = completion(
-                model=self.get_model_name(for_ocr=True),
+                model=model_name,
                 messages=[
                     {"role": "system", "content": ""},
                     {
@@ -102,12 +172,26 @@ class LLMService:
                 temperature=temperature,
             )
 
+            self._log_token_usage(
+                response=response,
+                context="OCR",
+                fallback_model=model_name,
+            )
+
+            usage_info = self._collect_usage_info(response)
+
             if response and response.choices and len(response.choices) > 0:
-                return {"success": True, "result": response.choices[0].message.content}
+                return {
+                    "success": True,
+                    "result": response.choices[0].message.content,
+                    "usage": usage_info,
+                    "model": getattr(response, "model", model_name),
+                }
             else:
                 return {"success": False, "error": "Failed to get OCR result from LLM"}
 
         except Exception as e:
+            logger.error("LLM OCR call failed: %s", e, exc_info=True)
             return {"success": False, "error": str(e)}
 
     def process_text(
@@ -125,8 +209,9 @@ class LLMService:
             Dictionary containing the LLM response or error
         """
         try:
+            model_name = self.get_model_name(for_ocr=False)
             response = completion(
-                model=self.get_model_name(for_ocr=False),
+                model=model_name,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_content},
@@ -134,8 +219,21 @@ class LLMService:
                 temperature=temperature,
             )
 
+            self._log_token_usage(
+                response=response,
+                context="TEXT",
+                fallback_model=model_name,
+            )
+
+            usage_info = self._collect_usage_info(response)
+
             if response and response.choices and len(response.choices) > 0:
-                return {"success": True, "result": response.choices[0].message.content}
+                return {
+                    "success": True,
+                    "result": response.choices[0].message.content,
+                    "usage": usage_info,
+                    "model": getattr(response, "model", model_name),
+                }
             else:
                 return {
                     "success": False,
@@ -143,4 +241,5 @@ class LLMService:
                 }
 
         except Exception as e:
+            logger.error("LLM TEXT call failed: %s", e, exc_info=True)
             return {"success": False, "error": str(e)}

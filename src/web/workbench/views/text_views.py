@@ -4,6 +4,18 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 from django.http import StreamingHttpResponse, HttpResponse
 
+from home.models import OperationRecord
+
+
+def _get_client_meta(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip_address = x_forwarded_for.split(',')[0].strip()
+    else:
+        ip_address = request.META.get('REMOTE_ADDR')
+    user_agent = request.META.get('HTTP_USER_AGENT')
+    return ip_address, user_agent
+
 
 @login_required
 @require_http_methods(["GET", "POST"])
@@ -16,8 +28,9 @@ def reformat(request):
             return HttpResponse("No text content provided", status=400)
         
         # Create a response with SSE headers
+        ip_address, user_agent = _get_client_meta(request)
         response = StreamingHttpResponse(
-            streaming_content=format_text_stream(texts),
+            streaming_content=format_text_stream(request.user, texts, ip_address, user_agent),
             content_type='text/event-stream'
         )
         response['Cache-Control'] = 'no-cache'
@@ -38,7 +51,7 @@ def reformat(request):
     return response
 
 
-def format_text_stream(texts):
+def format_text_stream(user, texts, ip_address=None, user_agent=None):
     """Stream formatted text using SSE with proper event handling"""
     try:
         # Initialize LLM service
@@ -66,22 +79,34 @@ def format_text_stream(texts):
 - 纯文本格式，不适用 markdown 格式
 """
         
+        total_chars = len(texts)
+        chunk_size = 1000
+        chunk_count = 0
+        total_prompt_tokens = 0
+        total_completion_tokens = 0
+        total_tokens = 0
+        success = False
+        error_message = None
+
         # Send start event
         yield "event: start\ndata: Starting text formatting...\n\n"
-        
-        # Process text in chunks
-        chunk_size = 1000  # Process 1000 characters at a time
-        for i in range(0, len(texts), chunk_size):
+
+        for i in range(0, total_chars, chunk_size):
             chunk = texts[i:i + chunk_size]
+            chunk_count += 1
             result = llm_service.process_text(
                 system_prompt=system_prompt,
                 user_content=chunk,
                 temperature=0.7
             )
-            
+
             # 直接提取result字段的文本内容
             if isinstance(result, dict) and result.get('success') and result.get('result'):
                 formatted_text = result['result']
+                usage = result.get('usage') or {}
+                total_prompt_tokens += usage.get('prompt_tokens') or 0
+                total_completion_tokens += usage.get('completion_tokens') or 0
+                total_tokens += usage.get('total_tokens') or 0
                 # 修复SSE消息格式，处理多行文本
                 # 在SSE协议中，data字段中的每个换行符前都需要加上"data: "前缀
                 # 将文本中的换行符替换为换行+data前缀
@@ -90,23 +115,49 @@ def format_text_stream(texts):
                 yield f"event: message\ndata: {sse_formatted_text}\n\n"
             else:
                 # 处理错误情况
-                error_message = "处理文本失败"
+                error_message = result.get('error') if isinstance(result, dict) else '处理文本失败'
                 if isinstance(result, dict) and result.get('error'):
                     error_message = result['error']
                 yield f"event: error\ndata: {error_message}\n\n"
                 break
-            
+
             # Add a small delay to prevent overwhelming the client
             time.sleep(0.1)
-            
-        # Send completion event
-        yield "event: complete\ndata: [DONE]\n\n"
-        
+        else:
+            success = True
+
+        if success:
+            yield "event: complete\ndata: [DONE]\n\n"
+
     except Exception as e:
         # Send error event with proper event type
-        error_msg = str(e)
-        print(f"Error in format_text_stream: {error_msg}")  # Log the error
-        yield f"event: error\ndata: [ERROR] {error_msg}\n\n"
+        error_message = str(e)
+        print(f"Error in format_text_stream: {error_message}")  # Log the error
+        yield f"event: error\ndata: [ERROR] {error_message}\n\n"
+
+    finally:
+        try:
+            metadata = {
+                'total_chars': len(texts),
+                'chunk_size': 1000,
+                'chunks_processed': chunk_count,
+                'prompt_tokens': total_prompt_tokens,
+                'completion_tokens': total_completion_tokens,
+                'total_tokens': total_tokens,
+            }
+            detail = '自动排版完成' if success else f"自动排版失败：{error_message or '未知错误'}"
+            OperationRecord.objects.create(
+                user=user,
+                operation_type='system_operation',
+                operation_object='自动排版',
+                operation_detail=detail,
+                status='success' if success else 'failed',
+                metadata=metadata,
+                ip_address=ip_address,
+                user_agent=user_agent,
+            )
+        except Exception:
+            pass
 
 
 @login_required
@@ -123,8 +174,9 @@ def translate(request):
             return HttpResponse("No target language provided", status=400)
 
         # Create a response with SSE headers
+        ip_address, user_agent = _get_client_meta(request)
         response = StreamingHttpResponse(
-            streaming_content=translate_text_stream(texts, target_language),
+            streaming_content=translate_text_stream(request.user, texts, target_language, ip_address, user_agent),
             content_type='text/event-stream'
         )
         response['Cache-Control'] = 'no-cache'
@@ -144,7 +196,7 @@ def translate(request):
     return response
 
 
-def translate_text_stream(texts, target_language):
+def translate_text_stream(user, texts, target_language, ip_address=None, user_agent=None):
     """Stream translated text using SSE with proper event handling and caching"""
     try:
         # Initialize LLM service
@@ -189,16 +241,22 @@ def translate_text_stream(texts, target_language):
 - 纯文本格式，不使用 markdown 格式
 """
 
+        total_chars = len(texts)
+        chunk_size = 1000
+        total_chunks = (total_chars + chunk_size - 1) // chunk_size
+        cached_chunks = 0
+        new_chunks = 0
+        chunk_index = 0
+        total_prompt_tokens = 0
+        total_completion_tokens = 0
+        total_tokens = 0
+        success = False
+        error_message = None
+
         # Send start event
         yield "event: start\ndata: Starting text translation...\n\n"
 
-        # Process text in chunks
-        chunk_size = 1000  # Process 1000 characters at a time
-        total_chunks = (len(texts) + chunk_size - 1) // chunk_size
-        cached_chunks = 0
-        new_chunks = 0
-
-        for i in range(0, len(texts), chunk_size):
+        for i in range(0, total_chars, chunk_size):
             chunk = texts[i:i + chunk_size]
             chunk_index = i // chunk_size + 1
 
@@ -235,6 +293,10 @@ def translate_text_stream(texts, target_language):
                 # Extract result text content
                 if isinstance(result, dict) and result.get('success') and result.get('result'):
                     translated_text = result['result']
+                    usage = result.get('usage') or {}
+                    total_prompt_tokens += usage.get('prompt_tokens') or 0
+                    total_completion_tokens += usage.get('completion_tokens') or 0
+                    total_tokens += usage.get('total_tokens') or 0
 
                     # Save to cache
                     try:
@@ -248,21 +310,49 @@ def translate_text_stream(texts, target_language):
                     yield f"event: message\ndata: {sse_formatted_text}\n\n"
                 else:
                     # Handle error cases
-                    error_message = "翻译文本失败"
-                    if isinstance(result, dict) and result.get('error'):
-                        error_message = result['error']
+                    error_message = result.get('error') if isinstance(result, dict) else '翻译文本失败'
                     yield f"event: error\ndata: {error_message}\n\n"
                     break
 
             # Add a small delay to prevent overwhelming the client
             time.sleep(0.1)
 
-        # Send completion event with statistics
-        stats_msg = f"翻译完成！共处理 {total_chunks} 个片段，其中 {cached_chunks} 个来自缓存，{new_chunks} 个新生成。"
-        yield f"event: complete\ndata: {stats_msg}\n\n"
+        else:
+            success = True
+
+        if success:
+            stats_msg = f"翻译完成！共处理 {total_chunks} 个片段，其中 {cached_chunks} 个来自缓存，{new_chunks} 个新生成。"
+            yield f"event: complete\ndata: {stats_msg}\n\n"
 
     except Exception as e:
         # Send error event with proper event type
-        error_msg = str(e)
-        print(f"Error in translate_text_stream: {error_msg}")  # Log the error
-        yield f"event: error\ndata: [ERROR] {error_msg}\n\n"
+        error_message = str(e)
+        print(f"Error in translate_text_stream: {error_message}")  # Log the error
+        yield f"event: error\ndata: [ERROR] {error_message}\n\n"
+    finally:
+        try:
+            metadata = {
+                'total_chars': len(texts),
+                'chunk_size': 1000,
+                'total_chunks': total_chunks,
+                'cached_chunks': cached_chunks,
+                'new_chunks': new_chunks,
+                'prompt_tokens': total_prompt_tokens,
+                'completion_tokens': total_completion_tokens,
+                'total_tokens': total_tokens,
+                'target_language': target_language,
+            }
+            detail = '文本翻译完成' if success else f"文本翻译失败：{error_message or '未知错误'}"
+            OperationRecord.objects.create(
+                user=user,
+                operation_type='system_operation',
+                operation_object=f'文本翻译 -> {target_lang_name}',
+                operation_detail=detail,
+                status='success' if success else 'failed',
+                metadata=metadata,
+                ip_address=ip_address,
+                user_agent=user_agent,
+            )
+        except Exception:
+            pass
+
