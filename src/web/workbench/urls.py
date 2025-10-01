@@ -27,6 +27,7 @@ from .views.audio_views import (
     delete_task_record,
     download_audio,
     download_subtitle,
+    generate_audio_chapters,
 )
 from .views.dialogue_views import (
     dialogue_list,
@@ -35,6 +36,7 @@ from .views.dialogue_views import (
     dialogue_detail,
     dialogue_configure_voices,
     dialogue_generate_audio,
+    dialogue_generate_chapters,
     dialogue_publish,
     dialogue_delete,
     dialogue_update_title,
@@ -76,6 +78,7 @@ urlpatterns = [
     path("quota/", get_user_quota, name="get_user_quota"),
     path("points/rules/", get_points_rules, name="get_points_rules"),
     path("synthesize-audio/", synthesize_audio, name="synthesize_audio"),
+    path("audio/<int:segment_id>/generate-chapters/", generate_audio_chapters, name="generate_audio_chapters"),
     path("task-status/<str:task_id>/", check_task_status, name="check_task_status"),
     path(
         "audio/delete/<int:segment_id>/",
@@ -115,6 +118,7 @@ urlpatterns = [
     path("dialogue/<int:script_id>/", dialogue_detail, name="dialogue_detail"),
     path("dialogue/<int:script_id>/configure-voices/", dialogue_configure_voices, name="dialogue_configure_voices"),
     path("dialogue/<int:script_id>/generate-audio/", dialogue_generate_audio, name="dialogue_generate_audio"),
+    path("dialogue/<int:script_id>/generate-chapters/", dialogue_generate_chapters, name="dialogue_generate_chapters"),
     path("dialogue/<int:script_id>/publish/", dialogue_publish, name="dialogue_publish"),
     path("dialogue/<int:script_id>/delete/", dialogue_delete, name="dialogue_delete"),
     path("dialogue/<int:script_id>/update-title/", dialogue_update_title, name="dialogue_update_title"),

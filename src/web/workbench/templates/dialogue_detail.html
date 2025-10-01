@@ -210,6 +210,59 @@
                 {% endif %}
             </div>
 
+            {% if script.audio_file %}
+            <div class="bg-base-100 shadow-md rounded-lg p-6">
+                <div class="flex items-center justify-between mb-3" data-chapter-wrapper>
+                    <h3 class="text-lg font-semibold flex items-center">
+                        <i class="fas fa-list mr-2"></i>
+                        章节导航
+                    </h3>
+                    {% if script.subtitle_file and script.subtitle_file.name %}
+                    <button id="generate-dialogue-chapters-btn"
+                        class="btn btn-sm btn-outline w-32 sm:w-36 justify-center"
+                        data-target-url="{% url 'dialogue_generate_chapters' script.id %}"
+                        data-force="{% if script.chapters %}true{% else %}false{% endif %}">
+                        <i class="fas fa-magic mr-1"></i>
+                        {% if script.chapters %}重新生成章节{% else %}生成章节{% endif %}
+                    </button>
+                    {% endif %}
+                </div>
+                {% if script.subtitle_file and script.subtitle_file.name %}
+                    {% if script.chapters %}
+                    <div class="space-y-3">
+                        {% for chapter in script.chapters %}
+                        <button
+                            type="button"
+                            class="w-full text-left p-3 rounded-lg border border-base-200 hover:border-primary hover:bg-primary/10 transition dialogue-chapter-btn"
+                            data-chapter-start="{{ chapter.start_seconds }}"
+                            data-audio-url="{{ script.audio_file.url }}"
+                            data-subtitle-url="{{ script.subtitle_file.url }}"
+                            data-audio-title="{{ script.title|escapejs }}"
+                        >
+                            <div class="flex items-center justify-between gap-3">
+                                <span class="badge badge-outline badge-primary text-xs">{{ chapter.start_seconds|format_seconds }}</span>
+                                <span class="font-semibold text-base-content flex-1">{{ chapter.title }}</span>
+                                <i class="fas fa-play text-primary"></i>
+                            </div>
+                            {% if chapter.summary %}
+                            <p class="mt-2 text-sm text-base-content/70 leading-relaxed">{{ chapter.summary }}</p>
+                            {% endif %}
+                        </button>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-sm text-base-content/60">
+                        暂无章节信息，可点击右上方按钮生成。
+                    </div>
+                    {% endif %}
+                {% else %}
+                <div class="text-sm text-base-content/60">
+                    暂无字幕文件，无法生成章节。
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
             <!-- 音色配置 -->
             <div class="bg-base-100 shadow-md rounded-lg p-6">
                 <h3 class="text-lg font-semibold mb-3">音色配置</h3>
@@ -824,6 +877,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const defaultProvider = '{{ default_provider }}';
     const voiceSettings = JSON.parse('{{ voice_settings_json|escapejs }}') || {};
     const speakers = JSON.parse('{{ speakers_json|escapejs }}') || [];
+    const chapterButtons = document.querySelectorAll('.dialogue-chapter-btn');
+    const generateChaptersBtn = document.getElementById('generate-dialogue-chapters-btn');
 
     let dialogueAudioPollingTimer = null;
 
@@ -843,6 +898,177 @@ document.addEventListener('DOMContentLoaded', function() {
                 hiddenInput: container.querySelector('[data-role="voice-input"]'),
             });
         });
+    }
+
+    const dialogueTaskStatusUrlTemplate = '{% url "task_status" "TASK_ID_PLACEHOLDER" %}';
+
+    async function requestChapterGeneration(button) {
+        if (!button || button.disabled) {
+            return;
+        }
+
+        const requestUrl = button.dataset.targetUrl;
+        const force = button.dataset.force === 'true';
+
+        if (!requestUrl) {
+            showToast('未找到章节生成接口', 'error');
+            return;
+        }
+
+        const originalHtml = button.innerHTML;
+        const originalWidth = button.offsetWidth;
+        button.style.width = `${originalWidth}px`;
+        button.disabled = true;
+        button.innerHTML = '<span class="loading loading-spinner loading-xs mr-1"></span>处理中...';
+
+        try {
+            const response = await fetch(requestUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ force })
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                if (data.task_id) {
+                    const statusUrl = dialogueTaskStatusUrlTemplate.replace('TASK_ID_PLACEHOLDER', encodeURIComponent(data.task_id));
+                    startDialogueChapterPolling(button, statusUrl, originalHtml, originalWidth, true);
+                } else {
+                    button.dataset.force = 'true';
+                    button.innerHTML = '<i class="fas fa-check mr-1"></i>已完成';
+                    setTimeout(() => {
+                        button.disabled = false;
+                        button.dataset.force = 'true';
+                        button.innerHTML = '<i class="fas fa-redo mr-1"></i>重新生成章节';
+                        button.style.width = '';
+                    }, 1200);
+                }
+            } else {
+                const errorMsg = data.error || data.message || '章节生成失败';
+                showToast(errorMsg, 'error');
+                button.disabled = false;
+                button.innerHTML = originalHtml;
+                button.style.width = '';
+            }
+        } catch (error) {
+            showToast('章节生成请求失败：' + error.message, 'error');
+            button.disabled = false;
+            button.innerHTML = originalHtml;
+            button.style.width = '';
+        }
+    }
+
+    function startDialogueChapterPolling(button, statusUrl, originalHtml, originalWidth, shouldReload) {
+        const originalForce = button.dataset.force;
+
+        const updateButton = (content, disabled = true) => {
+            button.innerHTML = content;
+            button.disabled = disabled;
+        };
+
+        let stopped = false;
+
+        const poll = async () => {
+            if (stopped) {
+                return;
+            }
+
+            try {
+                const response = await fetch(statusUrl, { headers: { 'Accept': 'application/json' } });
+                const payload = await response.json();
+
+                if (!response.ok || !payload.success || !payload.task) {
+                    throw new Error(payload.error || payload.message || '状态查询失败');
+                }
+
+                const task = payload.task;
+                const status = (task.status || '').toLowerCase();
+
+                if (status === 'success') {
+                    stopped = true;
+                    clearInterval(pollingTimer);
+                    updateButton('<i class="fas fa-check mr-1"></i>已完成');
+                    button.dataset.force = 'true';
+                    if (shouldReload) {
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    } else {
+                        setTimeout(() => {
+                            button.disabled = false;
+                            button.dataset.force = 'true';
+                            button.innerHTML = '<i class="fas fa-redo mr-1"></i>重新生成章节';
+                            button.style.width = '';
+                        }, 1200);
+                    }
+                } else if (status === 'failure') {
+                    stopped = true;
+                    clearInterval(pollingTimer);
+                    const errorMsg = task.error_message || '章节生成失败，请重试';
+                    showToast(errorMsg, 'error');
+                    button.disabled = false;
+                    button.dataset.force = originalForce;
+                    button.innerHTML = originalHtml;
+                    button.style.width = '';
+                } else {
+                    updateButton('<span class="loading loading-spinner loading-xs mr-1"></span>处理中...');
+                }
+            } catch (error) {
+                stopped = true;
+                clearInterval(pollingTimer);
+                showToast(error.message || '状态查询失败', 'error');
+                button.disabled = false;
+                button.dataset.force = originalForce;
+                button.innerHTML = originalHtml;
+                button.style.width = '';
+            }
+        };
+
+        const pollingTimer = setInterval(poll, 2000);
+        poll();
+    }
+
+    function jumpToDialogueChapter(button) {
+        if (!button) {
+            return;
+        }
+
+        const start = parseFloat(button.dataset.chapterStart || '0');
+        const audioUrl = button.dataset.audioUrl;
+        const subtitleUrl = button.dataset.subtitleUrl || null;
+        const audioTitle = button.dataset.audioTitle || '';
+
+        if (Number.isNaN(start) || !audioUrl) {
+            return;
+        }
+
+        if (!window.globalAudioPlayer) {
+            showToast('全局播放器未初始化，请刷新页面重试', 'error');
+            return;
+        }
+
+        const player = window.globalAudioPlayer;
+        const seek = () => {
+            player.player.currentTime = start;
+            player.player.play().catch(() => {});
+        };
+
+        if (!player.currentAudio || player.currentAudio.url !== audioUrl) {
+            player.player.addEventListener('loadedmetadata', () => {
+                seek();
+            }, { once: true });
+            playFinishedAudio(audioUrl, audioTitle, subtitleUrl);
+        } else if (player.player.readyState >= 1) {
+            seek();
+        } else {
+            player.player.addEventListener('loadedmetadata', () => {
+                seek();
+            }, { once: true });
+        }
     }
 
     function ensureVoiceDefaults(speaker) {
@@ -1252,6 +1478,20 @@ document.addEventListener('DOMContentLoaded', function() {
       return text;
     }
     
+    if (chapterButtons.length) {
+        chapterButtons.forEach((btn) => {
+            btn.addEventListener('click', () => {
+                jumpToDialogueChapter(btn);
+            });
+        });
+    }
+
+    if (generateChaptersBtn) {
+        generateChaptersBtn.addEventListener('click', () => {
+            requestChapterGeneration(generateChaptersBtn);
+        });
+    }
+
     // 绑定按钮事件
     const editScriptBtn = document.getElementById('edit-script-btn');
     const deleteScriptBtn = document.getElementById('delete-script-btn');

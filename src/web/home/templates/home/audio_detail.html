@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static custom_filters %}
 
 {% block title %}{{ segment.title }} - 音频详情 - Book2TTS{% endblock %}
 
@@ -68,6 +68,32 @@
     </div>
   </div>
 
+  {% if segment.chapters %}
+  <div class="bg-base-100 p-4 sm:p-6 rounded-lg shadow-md mb-6 sm:mb-8">
+    <h2 class="text-lg sm:text-xl font-bold mb-4 flex items-center">
+      <i class="fas fa-list mr-2"></i>
+      章节导航
+    </h2>
+    <div class="space-y-3">
+      {% for chapter in segment.chapters %}
+      <button
+        class="w-full text-left p-3 rounded-lg border border-base-200 hover:border-primary hover:bg-primary/10 transition chapter-jump-btn"
+        data-chapter-start="{{ chapter.start_seconds }}"
+      >
+        <div class="flex items-center justify-between gap-3">
+          <span class="badge badge-primary badge-outline text-xs sm:text-sm">{{ chapter.start_seconds|format_seconds }}</span>
+          <span class="font-semibold text-base-content flex-1">{{ chapter.title }}</span>
+          <i class="fas fa-play text-primary"></i>
+        </div>
+        {% if chapter.summary %}
+        <p class="mt-2 text-sm text-base-content/70 leading-relaxed">{{ chapter.summary }}</p>
+        {% endif %}
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
   <!-- 字幕显示区域 -->
   {% if segment.subtitle_file and segment.subtitle_file.name %}
   <div id="subtitles-container" class="bg-base-100 p-4 sm:p-6 rounded-lg shadow-md mb-6 sm:mb-8 hidden">
@@ -121,6 +147,9 @@
     const toggleSubtitlesBtn = document.getElementById('toggle-subtitles-btn');
     const subtitlesContainer = document.getElementById('subtitles-container');
     const subtitlesContent = document.getElementById('subtitles-content');
+    const chapterButtons = document.querySelectorAll('.chapter-jump-btn');
+    const primaryPlayBtn = document.querySelector('.play-audio-btn');
+    const defaultAudioUrl = primaryPlayBtn ? primaryPlayBtn.dataset.audioUrl : null;
     
     // 字幕功能
     let subtitlesLoaded = false;
@@ -206,6 +235,42 @@
       text = text.replace(/\s+/g, '');
       
       return text;
+    }
+
+    function jumpToChapter(startSeconds) {
+      if (!window.globalAudioPlayer || !primaryPlayBtn || !defaultAudioUrl) {
+        return;
+      }
+
+      const player = window.globalAudioPlayer;
+      const seek = () => {
+        player.player.currentTime = startSeconds;
+        player.player.play().catch(() => {});
+      };
+
+      if (!player.currentAudio || player.currentAudio.url !== defaultAudioUrl) {
+        player.player.addEventListener('loadedmetadata', () => {
+          seek();
+        }, { once: true });
+        primaryPlayBtn.click();
+      } else if (player.player.readyState >= 1) {
+        seek();
+      } else {
+        player.player.addEventListener('loadedmetadata', () => {
+          seek();
+        }, { once: true });
+      }
+    }
+
+    if (chapterButtons.length) {
+      chapterButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const start = parseFloat(btn.dataset.chapterStart || '0');
+          if (!isNaN(start)) {
+            jumpToChapter(start);
+          }
+        });
+      });
     }
     
     // 使用全局播放器播放音频

@@ -338,6 +338,47 @@ def dialogue_generate_audio(request, script_id):
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'任务创建失败: {str(e)}'})
 
+
+@login_required
+@require_POST
+def dialogue_generate_chapters(request, script_id):
+    """触发对话脚本章节生成任务"""
+    script = get_object_or_404(DialogueScript, id=script_id, user=request.user)
+
+    try:
+        payload = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        payload = {}
+
+    force = bool(payload.get('force', False))
+
+    if not script.subtitle_file or not script.subtitle_file.name:
+        return JsonResponse({'success': False, 'error': '该脚本尚无字幕文件，无法生成章节'}, status=400)
+
+    from ..tasks import generate_chapters_task
+
+    task_result = generate_chapters_task.delay('dialogue', script.id, force)
+
+    UserTask.objects.create(
+        user=request.user,
+        task_id=task_result.id,
+        task_type='chapter_generation',
+        book=script.book,
+        title=f'章节生成：{script.title}',
+        status='pending',
+        metadata={
+            'segment_type': 'dialogue',
+            'segment_id': script.id,
+            'force': force,
+        }
+    )
+
+    return JsonResponse({
+        'success': True,
+        'task_id': task_result.id,
+        'message': '章节生成任务已提交'
+    })
+
 @login_required
 def task_status(request, task_id):
     """查询任务状态的API接口"""

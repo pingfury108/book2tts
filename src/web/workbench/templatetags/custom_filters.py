@@ -20,3 +20,20 @@ def dict_get(value, key):
     if isinstance(value, dict):
         return value.get(key, {})
     return {}
+
+
+@register.filter
+def format_seconds(value):
+    """将秒数格式化为H:MM:SS或M:SS形式。"""
+    try:
+        seconds = float(value)
+    except (TypeError, ValueError):
+        return "0:00"
+
+    seconds = max(0, int(seconds))
+    hours, remainder = divmod(seconds, 3600)
+    minutes, secs = divmod(remainder, 60)
+
+    if hours:
+        return f"{hours}:{minutes:02d}:{secs:02d}"
+    return f"{minutes}:{secs:02d}"

@@ -3,6 +3,7 @@ import time
 import tempfile
 import asyncio
 import re
+import json
 from collections import defaultdict
 
 from django.shortcuts import render, get_object_or_404, redirect
@@ -28,7 +29,7 @@ from ..models import (
     TTSProviderConfig,
     TTS_PROVIDER_CHOICES,
 )
-from ..tasks import synthesize_audio_task, start_audio_synthesis_on_commit
+from ..tasks import synthesize_audio_task, start_audio_synthesis_on_commit, generate_chapters_task
 from book2tts.tts import edge_tts_volices, azure_text_to_speech
 from book2tts.edgetts import EdgeTTS
 from book2tts.audio_utils import get_audio_duration, estimate_audio_duration_from_text
@@ -155,6 +156,7 @@ def get_unified_audio_content(user=None, book=None, published_only=True):
             # 为了兼容性添加的字段
             'file': segment.file,
             'subtitle_file': segment.subtitle_file,  # 添加字幕文件支持
+            'chapters': segment.chapters or [],
         })
     
     # 获取对话脚本
@@ -199,6 +201,7 @@ def get_unified_audio_content(user=None, book=None, published_only=True):
             # 为了兼容性添加的字段
             'file': script.audio_file,
             'subtitle_file': script.subtitle_file,  # 添加字幕文件支持
+            'chapters': script.chapters or [],
         })
     
     # 按创建时间倒序排列
@@ -711,6 +714,48 @@ def check_task_status(request, task_id):
             'status': 'error',
             'message': f'检查任务状态失败：{str(e)}'
         }, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+def generate_audio_chapters(request, segment_id):
+    """为传统音频片段触发章节生成任务"""
+    segment = get_object_or_404(AudioSegment, pk=segment_id)
+
+    if segment.user != request.user:
+        return JsonResponse({'success': False, 'error': '您没有权限操作该音频片段'}, status=403)
+
+    try:
+        payload = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        payload = {}
+
+    force = bool(payload.get('force', False))
+
+    if not segment.subtitle_file or not segment.subtitle_file.name:
+        return JsonResponse({'success': False, 'error': '该音频暂无字幕文件，无法生成章节'}, status=400)
+
+    task_result = generate_chapters_task.delay('audio', segment.id, force)
+
+    UserTask.objects.create(
+        user=request.user,
+        task_id=task_result.id,
+        task_type='chapter_generation',
+        book=segment.book,
+        title=f'章节生成：{segment.title}',
+        status='pending',
+        metadata={
+            'segment_type': 'audio',
+            'segment_id': segment.id,
+            'force': force,
+        }
+    )
+
+    return JsonResponse({
+        'success': True,
+        'task_id': task_result.id,
+        'message': '章节生成任务已提交'
+    })
 
 
 @login_required

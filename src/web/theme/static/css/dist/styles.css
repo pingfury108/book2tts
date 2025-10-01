@@ -6563,6 +6563,10 @@ details.collapse summary::-webkit-details-marker {
   max-height: 92vh;
 }
 
+.max-h-48 {
+  max-height: 12rem;
+}
+
 .min-h-0 {
   min-height: 0px;
 }
@@ -7634,6 +7638,10 @@ details.collapse summary::-webkit-details-marker {
   padding-left: 0.5rem;
 }
 
+.pr-1 {
+  padding-right: 0.25rem;
+}
+
 .text-left {
   text-align: left;
 }
@@ -8219,6 +8227,11 @@ details.collapse summary::-webkit-details-marker {
   border-color: rgb(107 33 168 / var(--tw-border-opacity));
 }
 
+.hover\:border-primary:hover {
+  --tw-border-opacity: 1;
+  border-color: var(--fallback-p,oklch(var(--p)/var(--tw-border-opacity)));
+}
+
 .hover\:bg-base-200:hover {
   --tw-bg-opacity: 1;
   background-color: var(--fallback-b2,oklch(var(--b2)/var(--tw-bg-opacity)));
@@ -8310,6 +8323,10 @@ details.collapse summary::-webkit-details-marker {
 
 .hover\:bg-base-200\/60:hover {
   background-color: var(--fallback-b2,oklch(var(--b2)/0.6));
+}
+
+.hover\:bg-primary\/10:hover {
+  background-color: var(--fallback-p,oklch(var(--p)/0.1));
 }
 
 .hover\:bg-opacity-20:hover {
@@ -8588,6 +8605,10 @@ details.collapse summary::-webkit-details-marker {
 
   .sm\:w-auto {
     width: auto;
+  }
+
+  .sm\:w-36 {
+    width: 9rem;
   }
 
   .sm\:max-w-\[20rem\] {

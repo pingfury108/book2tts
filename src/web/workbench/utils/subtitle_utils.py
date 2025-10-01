@@ -3,6 +3,27 @@ import time
 from django.core.files.base import ContentFile
 from django.conf import settings
 
+def parse_srt_time(time_str):
+    """解析SRT时间格式为秒数 (HH:MM:SS,mmm)"""
+    time_str = time_str.strip()
+    if ',' in time_str:
+        time_parts, milli_part = time_str.rsplit(',', 1)
+        milli = int(milli_part.ljust(3, '0')[:3])
+    else:
+        time_parts = time_str
+        milli = 0
+
+    time_components = time_parts.split(':')
+    if len(time_components) == 3:
+        hours, minutes, seconds = map(int, time_components)
+    elif len(time_components) == 2:
+        hours = 0
+        minutes, seconds = map(int, time_components)
+    else:
+        return milli / 1000.0
+
+    return hours * 3600 + minutes * 60 + seconds + milli / 1000.0
+
 def convert_vtt_to_srt(vtt_content):
     """将VTT字幕转换为SRT格式"""
     if not vtt_content:
@@ -98,6 +119,58 @@ def format_srt_time(seconds):
     secs = int(seconds % 60)
     millisecs = int((seconds % 1) * 1000)
     return f"{hours:02d}:{minutes:02d}:{secs:02d},{millisecs:03d}"
+
+def parse_srt_subtitles(srt_content):
+    """解析SRT字幕内容，返回字幕条目列表"""
+    if not srt_content:
+        return []
+
+    lines = srt_content.strip().split('\n')
+    subtitles = []
+    i = 0
+
+    while i < len(lines):
+        line = lines[i].strip()
+
+        # 可选索引行
+        if line.isdigit():
+            i += 1
+            if i >= len(lines):
+                break
+            line = lines[i].strip()
+
+        if '-->' in line:
+            timestamp_line = line
+            try:
+                start_str, end_str = [part.strip() for part in timestamp_line.split('-->')]
+            except ValueError:
+                i += 1
+                continue
+
+            start_time = parse_srt_time(start_str)
+            end_time = parse_srt_time(end_str)
+
+            # 收集文本
+            i += 1
+            subtitle_text = []
+            while i < len(lines) and lines[i].strip() != '':
+                subtitle_text.append(lines[i].strip())
+                i += 1
+
+            if subtitle_text:
+                subtitles.append({
+                    'start_time': start_time,
+                    'end_time': end_time,
+                    'text': '\n'.join(subtitle_text)
+                })
+        else:
+            i += 1
+
+        # 跳过空行
+        while i < len(lines) and lines[i].strip() == '':
+            i += 1
+
+    return subtitles
 
 def adjust_subtitle_timestamps(subtitles, time_offset):
     """调整字幕时间戳，添加时间偏移"""

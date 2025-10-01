@@ -62,6 +62,7 @@ def book_details_htmx(request, book_id):
             'created_at': item['created_at'],
             'updated_at': item['updated_at'],
             'subtitle_file': item.get('subtitle_file'),  # 添加字幕文件
+            'chapters': item.get('chapters', []),
         }
         # 添加对话脚本特有的字段
         if item['type'] == 'dialogue_script':
@@ -85,4 +86,4 @@ def book_details_htmx(request, book_id):
         "page_size": page_size,
         "page_size_options": [5, 10, 20, 30, 50],
     }
-    return render(request, "book_details_htmx.html", context) 
+    return render(request, "book_details_htmx.html", context)

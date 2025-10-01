@@ -19,6 +19,7 @@ from home.models import UserQuota, OperationRecord
 from home.utils.utils import PointsManager
 from book2tts.multi_voice_tts import MultiVoiceTTS
 from .utils.subtitle_utils import convert_vtt_to_srt, save_srt_subtitle
+from book2tts.chapter_service import ChapterGenerator
 
 # Import dialogue services - use lazy import to avoid circular imports
 def get_dialogue_service():
@@ -81,6 +82,30 @@ def _format_srt_time(seconds: float) -> str:
     secs = int(seconds % 60)
     millis = int((seconds % 1) * 1000)
     return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
+
+
+def _read_subtitle_file(file_field) -> str:
+    """安全读取字幕文件内容"""
+    if not file_field or not getattr(file_field, "name", None):
+        return ""
+
+    try:
+        file_field.open("rb")
+        try:
+            data = file_field.read()
+        finally:
+            file_field.close()
+    except Exception as exc:  # pylint: disable=broad-except
+        logger.warning("字幕文件读取失败: %s", exc)
+        return ""
+
+    for encoding in ("utf-8", "utf-8-sig"):
+        try:
+            return data.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+
+    return data.decode("utf-8", errors="replace")
 
 
 def get_client_ip_from_task(task_kwargs):
@@ -316,6 +341,7 @@ def synthesize_audio_task(self, user_id, text, voice_name, book_id, title="", bo
             
             # 使用自定义音频标题或默认标题
             segment_title = audio_title if audio_title else (page_display_name if page_display_name else title)
+            chapters_data = []
             
             # 使用事务确保数据一致性
             with transaction.atomic():
@@ -326,6 +352,7 @@ def synthesize_audio_task(self, user_id, text, voice_name, book_id, title="", bo
                     title=segment_title,
                     text=text,
                     book_page=book_page,
+                    chapters=[],
                     published=False
                 )
                 
@@ -352,8 +379,20 @@ def synthesize_audio_task(self, user_id, text, voice_name, book_id, title="", bo
                     if simple_srt:
                         save_srt_subtitle(audio_segment, simple_srt, 'subtitle_file')
                         logger.info("Saved emergency fallback subtitle")
-                
+                        srt_content = simple_srt
+
                 # 保存 AudioSegment
+                try:
+                    if srt_content:
+                        generator = ChapterGenerator()
+                        chapters_data = generator.generate_chapters(
+                            srt_content,
+                            title_hint=segment_title or title or book.name,
+                        )
+                        audio_segment.chapters = chapters_data
+                except Exception as exc:  # pylint: disable=broad-except
+                    logger.warning("章节生成失败: %s", exc)
+
                 audio_segment.save()
                 
                 # 刷新用户配额以获取最新数据
@@ -898,7 +937,7 @@ def generate_dialogue_audio_task(self, script_id, voice_mapping):
                             logger.warning(f"Raw subtitle file content (bytes): {raw_content[:200] if raw_content else 'None'}")
             except Exception as e:
                 logger.error(f"Error reading or saving subtitle file: {e}", exc_info=True)
-            
+
             # 获取音频时长
             try:
                 audio_duration = get_audio_duration(temp_output_path, "")
@@ -906,7 +945,20 @@ def generate_dialogue_audio_task(self, script_id, voice_mapping):
             except Exception as e:
                 logger.warning(f"Failed to get audio duration: {e}")
                 script.audio_duration = multi_voice_tts.estimate_audio_duration(script.script_data)
-            
+
+            chapters_data = []
+            if srt_content and srt_content.strip():
+                try:
+                    generator = ChapterGenerator()
+                    chapters_data = generator.generate_chapters(
+                        srt_content,
+                        title_hint=script.title,
+                    )
+                except Exception as exc:  # pylint: disable=broad-except
+                    logger.warning("章节生成失败: %s", exc)
+
+            script.chapters = chapters_data
+
             script.save()
             
             # 扣除用户积分
@@ -1000,3 +1052,160 @@ def generate_dialogue_audio_task(self, script_id, voice_mapping):
             meta={'error': error_msg}
         )
         raise 
+
+
+@shared_task(bind=True)
+def generate_chapters_task(self, segment_type: str, segment_id: int, force: bool = False):
+    """为指定音频或对话脚本生成章节信息。"""
+    self.update_state(state='PROCESSING', meta={'message': '章节生成任务已启动...'})
+
+    user_task = None
+    try:
+        user_task = UserTask.objects.get(task_id=self.request.id)
+        user_task.status = 'processing'
+        user_task.progress_message = '正在准备章节生成...'
+        user_task.save(update_fields=['status', 'progress_message', 'updated_at'])
+    except UserTask.DoesNotExist:
+        user_task = None
+
+    try:
+        generator = ChapterGenerator()
+
+        if segment_type == 'audio':
+            segment = AudioSegment.objects.get(pk=segment_id)
+            owner = segment.user
+            title_hint = segment.title or (segment.book.name if segment.book else '')
+            existing_chapters = segment.chapters or []
+            subtitle_field = segment.subtitle_file
+            op_object = f"音频片段 - {segment.title}"
+            extra_metadata = {
+                'book_id': segment.book.id if segment.book else None,
+                'book_name': segment.book.name if segment.book else None,
+            }
+        elif segment_type == 'dialogue':
+            segment = DialogueScript.objects.get(pk=segment_id)
+            owner = segment.user
+            title_hint = segment.title
+            existing_chapters = segment.chapters or []
+            subtitle_field = segment.subtitle_file
+            op_object = f"对话脚本 - {segment.title}"
+            extra_metadata = {
+                'script_id': segment.id,
+            }
+        else:
+            raise ValueError('未知的segment_type参数')
+
+        if existing_chapters and not force:
+            message = '已存在章节，未执行生成。'
+            result = {
+                'success': True,
+                'status': 'skipped',
+                'chapters_count': len(existing_chapters),
+                'message': message,
+            }
+
+            if user_task:
+                user_task.status = 'success'
+                user_task.progress_message = message
+                user_task.result_data = result
+                user_task.completed_at = timezone.now()
+                user_task.save()
+
+            self.update_state(state='SUCCESS', meta=result)
+            return result
+
+        subtitle_content = _read_subtitle_file(subtitle_field)
+        if not subtitle_content.strip():
+            raise ValueError('字幕文件不存在或内容为空，无法生成章节')
+
+        self.update_state(state='PROCESSING', meta={'message': '正在解析字幕生成章节...'})
+
+        chapters = generator.generate_chapters(subtitle_content, title_hint=title_hint)
+        chapters_count = len(chapters)
+
+        segment.chapters = chapters
+        if hasattr(segment, 'save'):
+            segment.save(update_fields=['chapters', 'updated_at'])
+
+        message = '章节生成完成' if chapters_count else '生成完成，但未提取到章节'
+        status_flag = 'completed' if chapters_count else 'empty'
+
+        metadata = {
+            'segment_type': segment_type,
+            'segment_id': segment_id,
+            'chapters_count': chapters_count,
+            'force': force,
+        }
+        metadata.update(extra_metadata)
+
+        if owner:
+            OperationRecord.objects.create(
+                user=owner,
+                operation_type='system_operation',
+                operation_object=op_object,
+                operation_detail=message,
+                status='success',
+                metadata=metadata,
+            )
+
+        result = {
+            'success': True,
+            'status': status_flag,
+            'chapters_count': chapters_count,
+            'message': message,
+        }
+
+        if user_task:
+            user_task.status = 'success'
+            user_task.progress_message = message
+            user_task.result_data = result
+            user_task.completed_at = timezone.now()
+            user_task.save()
+
+        self.update_state(state='SUCCESS', meta=result)
+        return result
+
+    except Exception as exc:  # pylint: disable=broad-except
+        error_message = str(exc)
+        logger.error('章节生成任务失败: %s', error_message, exc_info=True)
+
+        if user_task:
+            user_task.status = 'failure'
+            user_task.error_message = error_message
+            user_task.progress_message = '章节生成失败'
+            user_task.completed_at = timezone.now()
+            user_task.save()
+
+        # 记录失败操作
+        try:
+            if segment_type == 'audio':
+                segment = AudioSegment.objects.get(pk=segment_id)
+                owner = segment.user
+                op_object = f"音频片段 - {segment.title}"
+            elif segment_type == 'dialogue':
+                segment = DialogueScript.objects.get(pk=segment_id)
+                owner = segment.user
+                op_object = f"对话脚本 - {segment.title}"
+            else:
+                owner = None
+                op_object = f"未知类型 - {segment_id}"
+
+            if owner:
+                OperationRecord.objects.create(
+                    user=owner,
+                    operation_type='system_operation',
+                    operation_object=op_object,
+                    operation_detail=f'章节生成失败：{error_message}',
+                    status='failed',
+                    metadata={
+                        'segment_type': segment_type,
+                        'segment_id': segment_id,
+                        'force': force,
+                        'error': error_message,
+                    },
+                )
+        except Exception:  # pylint: disable=broad-except
+            logger.warning('章节生成失败记录OperationRecord时出错', exc_info=True)
+
+        self.update_state(state='FAILURE', meta={'error': error_message})
+        raise

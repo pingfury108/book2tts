@@ -487,6 +487,46 @@
                                 </div>
                             </div>
 
+                            {% if segment.subtitle_file %}
+                            <div class="w-full">
+                                <div class="rounded-lg p-3 sm:p-4 lg:p-5 border border-base-200 bg-base-100">
+                                    <div class="flex items-center justify-between gap-2 mb-3" data-chapter-wrapper>
+                                        <div class="flex items-center gap-2">
+                                            <i class="fas fa-list text-primary"></i>
+                                            <span class="font-semibold text-sm sm:text-base">章节导航</span>
+                                        </div>
+                                        <button class="btn btn-xs sm:btn-sm btn-outline w-32 sm:w-36 justify-center"
+                                            data-generate-url="{% if segment.type == 'dialogue_script' %}{% url 'dialogue_generate_chapters' segment.id %}{% else %}{% url 'generate_audio_chapters' segment.id %}{% endif %}"
+                                            data-force="{% if segment.chapters %}true{% else %}false{% endif %}"
+                                            onclick="triggerChapterGeneration(this)"
+                                            {% if not segment.subtitle_file.url %}disabled{% endif %}>
+                                            <i class="fas fa-magic mr-1"></i>
+                                            {% if segment.chapters %}重新生成章节{% else %}生成章节{% endif %}
+                                        </button>
+                                    </div>
+                                    {% if segment.chapters %}
+                                    <ul class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                                        {% for chapter in segment.chapters %}
+                                        <li class="p-2 rounded-lg border border-base-200">
+                                            <div class="flex items-center justify-between text-xs sm:text-sm font-medium">
+                                                <span class="badge badge-outline badge-primary">{{ chapter.start_seconds|format_seconds }}</span>
+                                                <span class="flex-1 ml-2 truncate">{{ chapter.title }}</span>
+                                            </div>
+                                            {% if chapter.summary %}
+                                            <p class="mt-1 text-xs sm:text-sm text-base-content/70 leading-relaxed">{{ chapter.summary }}</p>
+                                            {% endif %}
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                    {% else %}
+                                    <div class="text-xs sm:text-sm text-base-content/60">
+                                        暂无章节信息，可点击上方按钮生成。
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endif %}
+
                             <!-- 文本内容区域 -->
                             <div class="w-full">
                                 <div class="rounded-lg">
@@ -603,6 +643,138 @@
 </div>
 
 <script>
+    const chapterStatusUrlTemplate = '{% url "task_status" "TASK_ID_PLACEHOLDER" %}';
+
+    async function triggerChapterGeneration(button) {
+        if (!button || button.disabled) {
+            return;
+        }
+
+        const requestUrl = button.dataset.generateUrl;
+        const force = button.dataset.force === 'true';
+
+        if (!requestUrl) {
+            showToast('未找到章节生成接口', 'error');
+            return;
+        }
+
+        const originalContent = button.innerHTML;
+        const originalWidth = button.offsetWidth;
+        button.style.width = `${originalWidth}px`;
+        button.disabled = true;
+        button.innerHTML = '<span class="loading loading-spinner loading-xs mr-1"></span>处理中...';
+
+        try {
+            const response = await fetch(requestUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                },
+                body: JSON.stringify({ force }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                if (data.task_id) {
+                    const statusUrl = chapterStatusUrlTemplate.replace('TASK_ID_PLACEHOLDER', encodeURIComponent(data.task_id));
+                    startChapterTaskPolling(button, statusUrl, originalContent, originalWidth, true);
+                } else {
+                    button.dataset.force = 'true';
+                    button.innerHTML = '<i class="fas fa-check mr-1"></i>已完成';
+                    setTimeout(() => {
+                        button.disabled = false;
+                        button.dataset.force = 'true';
+                        button.innerHTML = '<i class="fas fa-redo mr-1"></i>重新生成章节';
+                        button.style.width = '';
+                    }, 1200);
+                }
+            } else {
+                const errorMsg = data.error || data.message || '章节生成失败';
+                showToast(errorMsg, 'error');
+                button.disabled = false;
+                button.innerHTML = originalContent;
+                button.style.width = '';
+            }
+        } catch (error) {
+            showToast('章节生成请求失败：' + error.message, 'error');
+            button.disabled = false;
+            button.innerHTML = originalContent;
+            button.style.width = '';
+        }
+    }
+
+    function startChapterTaskPolling(button, statusUrl, originalContent, originalWidth, shouldReload) {
+        const originalForce = button.dataset.force;
+
+        const updateButton = (content, disabled = true) => {
+            button.innerHTML = content;
+            button.disabled = disabled;
+        };
+
+        let stopped = false;
+
+        const poll = async () => {
+            if (stopped) {
+                return;
+            }
+
+            try {
+                const response = await fetch(statusUrl, { headers: { 'Accept': 'application/json' } });
+                const payload = await response.json();
+
+                if (!response.ok || !payload.success || !payload.task) {
+                    throw new Error(payload.error || payload.message || '状态查询失败');
+                }
+
+                const task = payload.task;
+                const status = (task.status || '').toLowerCase();
+
+                if (status === 'success') {
+                    stopped = true;
+                    clearInterval(pollingTimer);
+                    updateButton('<i class="fas fa-check mr-1"></i>已完成');
+                    button.dataset.force = 'true';
+                    if (shouldReload) {
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    } else {
+                        setTimeout(() => {
+                            button.disabled = false;
+                            button.dataset.force = 'true';
+                            button.innerHTML = '<i class="fas fa-redo mr-1"></i>重新生成章节';
+                            button.style.width = '';
+                        }, 1200);
+                    }
+                } else if (status === 'failure') {
+                    stopped = true;
+                    clearInterval(pollingTimer);
+                    const errorMsg = task.error_message || '章节生成失败，请重试';
+                    showToast(errorMsg, 'error');
+                    button.disabled = false;
+                    button.dataset.force = originalForce;
+                    button.innerHTML = originalContent;
+                    button.style.width = '';
+                } else {
+                    updateButton('<span class="loading loading-spinner loading-xs mr-1"></span>处理中...');
+                }
+            } catch (error) {
+                stopped = true;
+                clearInterval(pollingTimer);
+                showToast(error.message || '状态查询失败', 'error');
+                button.disabled = false;
+                button.dataset.force = originalForce;
+                button.innerHTML = originalContent;
+                button.style.width = '';
+            }
+        };
+
+        const pollingTimer = setInterval(poll, 2000);
+        poll();
+    }
+
     // 全局播放器集成函数
     async function playInGlobalPlayer(audioUrl, title, subtitleUrl) {
         console.log('[集成] 调用全局播放器:', { audioUrl, title, subtitleUrl });
