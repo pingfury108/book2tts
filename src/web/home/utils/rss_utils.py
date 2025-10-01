@@ -116,7 +116,7 @@ def clean_xml_output(xml_string):
     xml_string = re.sub(r'(\w+)=([^\s"][^\s>]*)', r'\1="\2"', xml_string)
     
     # 修复XML标签内不允许的字符
-    xml_string = re.sub(r'<([^>]*)>', lambda m: '<' + re.sub(r'[^\w\s:=".\-/]', '', m.group(1)) + '>', xml_string)
+    xml_string = re.sub(r'<([^>]*)>', lambda m: '<' + re.sub(r'[^\w\s:=".\-/+]', '', m.group(1)) + '>', xml_string)
     
     # 确保RSS根标签正确
     if '<rss ' in xml_string and ' version=' not in xml_string[:xml_string.find('>')]:
@@ -196,10 +196,10 @@ def create_podcast_feed(title, link, description, language, author_name, image_u
     return fg
 
 
-def add_podcast_entry(feed, title, audio_url, audio_size, link, description, pubdate, 
-                     author, duration_formatted, duration_seconds, image_url=None, 
+def add_podcast_entry(feed, title, audio_url, audio_size, link, description, pubdate,
+                     author, duration_formatted, duration_seconds, image_url=None,
                      episode_number=None, season_number=None, unique_id=None,
-                     subtitle_url=None):
+                     subtitle_url=None, chapters_url=None, chapters_html=None):
     """
     向podcast feed添加一个条目（支持字幕）
     """
@@ -230,18 +230,43 @@ def add_podcast_entry(feed, title, audio_url, audio_size, link, description, pub
     # 在生成XML时，我们会处理Podcast Index命名空间元素
     # 这里存储这些值，以便稍后手动添加
     fe.podcast._custom_tags = {}
-    
+
     if episode_number:
         fe.podcast._custom_tags['episode'] = str(episode_number)
     if season_number:
         fe.podcast._custom_tags['season'] = str(season_number)
     fe.podcast._custom_tags['duration'] = str(duration_seconds)
-    
+
+    if chapters_url:
+        if not hasattr(feed, '_chapters_map'):
+            feed._chapters_map = {}
+        key = unique_id if unique_id else link
+        feed._chapters_map[key] = chapters_url
+
+    if chapters_html:
+        if not hasattr(feed, '_chapters_html_map'):
+            feed._chapters_html_map = {}
+        key = unique_id if unique_id else link
+        feed._chapters_html_map[key] = chapters_html
+
+    content_html_fragments = []
+    if description:
+        safe_description = html.escape(description).replace('\n', '<br/>')
+        content_html_fragments.append(f'<p>{safe_description}</p>')
+    if chapters_html:
+        content_html_fragments.append('<h3>章节</h3>')
+        content_html_fragments.append(chapters_html)
+
+    if content_html_fragments:
+        combined_html = '\n'.join(content_html_fragments)
+        fe.content(combined_html, type='CDATA')
+
     return fe
 
 
-def postprocess_rss(xml_string):
+def postprocess_rss(xml_string, chapters_map=None):
     """在生成的RSS XML中添加缺失的Podcast Index命名空间标签"""
+    chapters_map = chapters_map or {}
     
     # 使用完整的命名空间声明替换RSS标签
     rss_pattern = r'<rss[^>]*>'
@@ -285,5 +310,34 @@ def postprocess_rss(xml_string):
                     if tag_value:
                         insert_point = pos
                         xml_string = xml_string[:insert_point] + f'  <podcast:{tag_name}>{tag_value.group(1)}</podcast:{tag_name}>\n' + xml_string[insert_point:]
-    
+
+    if chapters_map:
+        def _replace_item(match):
+            item_xml = match.group(0)
+            if '<podcast:chapters' in item_xml:
+                return item_xml
+            guid_match = re.search(r'<guid[^>]*>(.*?)</guid>', item_xml)
+            link_match = re.search(r'<link>(.*?)</link>', item_xml)
+            key_candidates = []
+            if guid_match:
+                key_candidates.append(guid_match.group(1).strip())
+            if link_match:
+                key_candidates.append(link_match.group(1).strip())
+
+            chapters_url = None
+            for candidate in key_candidates:
+                if candidate in chapters_map:
+                    chapters_url = chapters_map[candidate]
+                    break
+
+            if not chapters_url:
+                return item_xml
+
+            insertion = f'  <podcast:chapters url="{chapters_url}" type="application/json+chapters" />\n'
+            if '</item>' in item_xml:
+                return item_xml.replace('</item>', insertion + '</item>')
+            return item_xml + insertion
+
+        xml_string = re.sub(r'<item>.*?</item>', _replace_item, xml_string, flags=re.DOTALL)
+
     return xml_string 

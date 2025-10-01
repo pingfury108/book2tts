@@ -1,7 +1,10 @@
 import os
 import tempfile
 import ffmpeg
-from typing import Dict, List, Any, Optional
+import unicodedata
+import uuid
+import wave
+from typing import Dict, List, Any, Optional, Tuple
 from pathlib import Path
 import asyncio
 import edge_tts
@@ -329,15 +332,32 @@ class MultiVoiceTTS:
         
         for i, segment_data in enumerate(segments):
             speaker = segment_data.get("speaker", "未知")
-            text = segment_data.get("utterance", "")
-            
+            raw_text = segment_data.get("utterance", "") or ""
+            text = raw_text.strip()
+
             # 获取说话者对应的音色
             voice_config = voice_mapping.get(speaker)
             if not voice_config:
                 continue
-                
+
+            if not self._is_speakable_text(text):
+                pause_duration = self._estimate_pause_duration(text)
+                silence_path, actual_duration = self._create_silence_segment(pause_duration)
+                if silence_path:
+                    segment_files.append({
+                        'audio_path': silence_path,
+                        'duration': actual_duration
+                    })
+                    all_subtitles.append({
+                        'start_time': current_time_offset,
+                        'end_time': current_time_offset + actual_duration,
+                        'text': text
+                    })
+                    current_time_offset += actual_duration
+                continue
+
             voice_name = voice_config.get("voice_name")
-            
+
             # 使用改进的方法为当前片段生成音频和字幕
             result = await self.generate_segment_with_subtitles_v2(text, voice_name)
             
@@ -389,15 +409,32 @@ class MultiVoiceTTS:
         
         for i, segment_data in enumerate(segments):
             speaker = segment_data.get("speaker", "未知")
-            text = segment_data.get("utterance", "")
-            
+            raw_text = segment_data.get("utterance", "") or ""
+            text = raw_text.strip()
+
             # 获取说话者对应的音色
             voice_config = voice_mapping.get(speaker)
             if not voice_config:
                 continue
-                
+
+            if not self._is_speakable_text(text):
+                pause_duration = self._estimate_pause_duration(text)
+                silence_path, actual_duration = self._create_silence_segment(pause_duration)
+                if silence_path:
+                    segment_files.append({
+                        'audio_path': silence_path,
+                        'duration': actual_duration
+                    })
+                    all_subtitles.append({
+                        'start_time': current_time_offset,
+                        'end_time': current_time_offset + actual_duration,
+                        'text': text
+                    })
+                    current_time_offset += actual_duration
+                continue
+
             voice_name = voice_config.get("voice_name")
-            
+
             # 为当前片段生成音频和字幕
             result = await self.generate_segment_with_subtitles(text, voice_name)
             
@@ -655,6 +692,47 @@ class MultiVoiceTTS:
         except Exception as e:
             return {"success": False, "error": f"片段合成错误: {str(e)}"}
     
+    def _is_speakable_text(self, text: str) -> bool:
+        if not text or not text.strip():
+            return False
+
+        for ch in text.strip():
+            if ch.isalnum():
+                return True
+            category = unicodedata.category(ch)
+            if category.startswith(('L', 'N')):
+                return True
+        return False
+
+    def _estimate_pause_duration(self, text: str) -> float:
+        length = len(text.strip()) if text else 0
+        # 以字符数量估算停顿时长，保持在 [0.3, 1.5] 区间
+        return max(0.3, min(1.5, 0.18 * max(length, 1)))
+
+    def _create_silence_segment(self, duration: float) -> Tuple[Optional[str], float]:
+        duration = max(duration, 0.2)
+        sample_rate = 22050
+        frame_count = max(int(duration * sample_rate), 1)
+
+        if not self.temp_dir or not os.path.exists(self.temp_dir):
+            self.temp_dir = tempfile.mkdtemp(prefix="dialogue_tts_")
+
+        silence_path = os.path.join(self.temp_dir, f"silence_{uuid.uuid4().hex}.wav")
+
+        try:
+            with wave.open(silence_path, 'w') as wav_file:
+                wav_file.setnchannels(1)
+                wav_file.setsampwidth(2)  # 16-bit PCM
+                wav_file.setframerate(sample_rate)
+                wav_file.writeframes(b"\x00\x00" * frame_count)
+        except Exception:
+            if os.path.exists(silence_path):
+                os.remove(silence_path)
+            return None, 0.0
+
+        actual_duration = frame_count / sample_rate
+        return silence_path, actual_duration
+
     def _merge_audio_files(self, input_files: List[str], output_file: str) -> Dict[str, Any]:
         """
         合并多个音频文件

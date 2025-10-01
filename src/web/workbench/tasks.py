@@ -18,7 +18,7 @@ from book2tts.audio_utils import get_audio_duration, estimate_audio_duration_fro
 from home.models import UserQuota, OperationRecord
 from home.utils.utils import PointsManager
 from book2tts.multi_voice_tts import MultiVoiceTTS
-from .utils.subtitle_utils import convert_vtt_to_srt, save_srt_subtitle
+from .utils.subtitle_utils import convert_vtt_to_srt, save_srt_subtitle, save_chapters_assets
 from book2tts.chapter_service import ChapterGenerator
 
 # Import dialogue services - use lazy import to avoid circular imports
@@ -389,11 +389,13 @@ def synthesize_audio_task(self, user_id, text, voice_name, book_id, title="", bo
                             srt_content,
                             title_hint=segment_title or title or book.name,
                         )
-                        audio_segment.chapters = chapters_data
                 except Exception as exc:  # pylint: disable=broad-except
                     logger.warning("章节生成失败: %s", exc)
+                    chapters_data = []
 
+                audio_segment.chapters = chapters_data
                 audio_segment.save()
+                save_chapters_assets(audio_segment, chapters_data, total_duration=actual_duration_seconds)
                 
                 # 刷新用户配额以获取最新数据
                 user_quota.refresh_from_db()
@@ -960,6 +962,7 @@ def generate_dialogue_audio_task(self, script_id, voice_mapping):
             script.chapters = chapters_data
 
             script.save()
+            save_chapters_assets(script, chapters_data, total_duration=script.audio_duration)
             
             # 扣除用户积分
             try:
@@ -1126,6 +1129,8 @@ def generate_chapters_task(self, segment_type: str, segment_id: int, force: bool
         segment.chapters = chapters
         if hasattr(segment, 'save'):
             segment.save(update_fields=['chapters', 'updated_at'])
+        total_duration = getattr(segment, 'audio_duration', None)
+        save_chapters_assets(segment, chapters, total_duration=total_duration)
 
         message = '章节生成完成' if chapters_count else '生成完成，但未提取到章节'
         status_flag = 'completed' if chapters_count else 'empty'

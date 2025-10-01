@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 from typing import Any, Dict, List, Optional
 
 from .llm_service import LLMService
@@ -57,7 +58,7 @@ class ChapterGenerator:
         return self._generate_fallback(entries)
 
     def _build_prompt(self, entries: List[Dict[str, Any]], title_hint: str) -> tuple[str, str]:
-        limited_entries = entries[: 200]  # 控制提示词长度
+        limited_entries = self._sample_entries(entries, 200)
         timeline_lines = []
         for item in limited_entries:
             timeline_lines.append(
@@ -78,6 +79,29 @@ class ChapterGenerator:
         )
 
         return system_prompt, user_prompt
+
+    def _sample_entries(self, entries: List[Dict[str, Any]], max_count: int) -> List[Dict[str, Any]]:
+        if len(entries) <= max_count:
+            return entries
+
+        step = len(entries) / float(max_count)
+        sampled = []
+        seen_indexes = set()
+
+        for i in range(max_count):
+            idx = min(int(math.floor(i * step)), len(entries) - 1)
+            # 避免索引重复造成信息集中
+            while idx in seen_indexes and idx < len(entries) - 1:
+                idx += 1
+            if idx in seen_indexes:
+                continue
+            sampled.append(entries[idx])
+            seen_indexes.add(idx)
+
+        if sampled and sampled[-1] is not entries[-1]:
+            sampled[-1] = entries[-1]
+
+        return sampled
 
     def _parse_llm_response(self, raw_response: str) -> List[Dict[str, Any]]:
         if not raw_response:

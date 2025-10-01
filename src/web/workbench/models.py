@@ -106,6 +106,8 @@ class AudioSegment(models.Model):
     file = models.FileField(upload_to='audio_segments/%Y/%m/%d/')
     subtitle_file = models.FileField(upload_to='subtitles/audio_segments/%Y/%m/%d/', null=True, blank=True, verbose_name='字幕文件')
     chapters = models.JSONField(default=list, blank=True, help_text="音频章节时间线")
+    chapters_file = models.FileField(upload_to='chapters/audio_segments/%Y/%m/%d/', null=True, blank=True, verbose_name='章节JSON文件')
+    chapters_html = models.TextField(blank=True, default='', help_text="章节HTML片段")
     published = models.BooleanField(default=False)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(default=timezone.now)
@@ -249,6 +251,8 @@ class DialogueScript(models.Model):
     subtitle_file = models.FileField(upload_to='subtitles/dialogue_scripts/%Y/%m/%d/', null=True, blank=True, verbose_name='字幕文件')
     audio_duration = models.FloatField(null=True, blank=True, help_text="音频时长（秒）")
     chapters = models.JSONField(default=list, blank=True, help_text="音频章节时间线")
+    chapters_file = models.FileField(upload_to='chapters/dialogue_scripts/%Y/%m/%d/', null=True, blank=True, verbose_name='章节JSON文件')
+    chapters_html = models.TextField(blank=True, default='', help_text="章节HTML片段")
     published = models.BooleanField(default=False, help_text="是否发布到成品")
 
     created_at = models.DateTimeField(auto_now_add=True)

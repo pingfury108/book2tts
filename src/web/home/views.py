@@ -1,25 +1,56 @@
-from django.shortcuts import render, get_object_or_404
-from django.http import HttpResponse
-from workbench.models import AudioSegment, Books, UserProfile
-from django.urls import reverse
-import uuid
-from feedgen.feed import FeedGenerator
-from home.utils.rss_utils import (
-    estimate_audio_duration, 
-    ensure_rss_token, 
-    clean_xml_output, 
-    create_podcast_feed, 
-    add_podcast_entry, 
-    postprocess_rss
-)
-from django.contrib.auth.decorators import login_required
+from urllib.parse import urlparse, urlunparse
+
+from django.core.cache import cache
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
+from django.shortcuts import render, get_object_or_404
+from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
-from django.core.cache import cache
-from django.utils import timezone
+
+from home.utils.rss_utils import (
+    estimate_audio_duration,
+    ensure_rss_token,
+    clean_xml_output,
+    create_podcast_feed,
+    add_podcast_entry,
+    postprocess_rss,
+)
+from workbench.models import AudioSegment, Books, UserProfile
 from workbench.views.audio_views import get_unified_audio_content
+
 from .models import OperationRecord
+
+import uuid
+from feedgen.feed import FeedGenerator
+
+
+def _absolute_for_request(request, url: str | None) -> str | None:
+    """统一使用请求入口域名构造绝对URL"""
+    if not url:
+        return None
+
+    parsed = urlparse(url)
+    if parsed.scheme and parsed.netloc:
+        return urlunparse((
+            request.scheme,
+            request.get_host(),
+            parsed.path,
+            parsed.params,
+            parsed.query,
+            parsed.fragment,
+        ))
+
+    return request.build_absolute_uri(url)
+
+
+def _cache_key_for_host(base_key: str, request) -> str:
+    host = (request.get_host() or 'unknown_host').lower()
+    scheme = request.scheme.lower() if request.scheme else 'http'
+    return f"{base_key}::{scheme}://{host}"
+
 
 # Create your views here.
 
@@ -150,9 +181,10 @@ def audio_rss_feed(request, user_id=None):
     """Generate an RSS feed for all published audio segments.
     If user_id is provided, only show that user's audio segments."""
     
-    # 生成缓存键
-    cache_key = f'rss_feed_user_{user_id}' if user_id else 'rss_feed_all'
-    
+    # 生成缓存键（按 host 区分）
+    base_cache_key = f'rss_feed_user_{user_id}' if user_id else 'rss_feed_all'
+    cache_key = _cache_key_for_host(base_cache_key, request)
+
     # 检查缓存
     cached_response = cache.get(cache_key)
     if cached_response:
@@ -179,9 +211,9 @@ def audio_rss_feed(request, user_id=None):
         # 获取所有已发布的音频内容
         audio_items = get_unified_audio_content(published_only=True)
 
-    link = request.build_absolute_uri(reverse('home'))  # Link to the homepage
+    link = _absolute_for_request(request, reverse('home'))  # Link to the homepage
     # 站点图标URL
-    image_url = request.build_absolute_uri('/static/images/logo.png')
+    feed_image_url = _absolute_for_request(request, '/static/images/logo.png')
 
     # 获取站点语言
     language = "zh"  # 简化语言代码
@@ -193,15 +225,15 @@ def audio_rss_feed(request, user_id=None):
         description=description,
         language=language,
         author_name=author_name,
-        image_url=image_url,
+        image_url=feed_image_url,
         author_email=author_email
     )
 
     for item in audio_items:
         # 使用音频文件直接URL而不是网页URL
-        audio_url = request.build_absolute_uri(item['file_url']) if item['file_url'] else None
+        audio_url = _absolute_for_request(request, item['file_url'])
         # 备用页面链接，如果没有音频文件
-        item_link = audio_url or request.build_absolute_uri(reverse('audio_detail', args=[item['id']]))
+        item_link = audio_url or _absolute_for_request(request, reverse('audio_detail', args=[item['id']]))
         
         # 处理音频时长
         if item['type'] == 'dialogue_script' and item.get('audio_duration'):
@@ -213,17 +245,23 @@ def audio_rss_feed(request, user_id=None):
             duration_seconds, formatted_duration = estimate_audio_duration(item.get('file') if item.get('file') else None)
         
         # 尝试获取图片（如果有）或使用书籍的封面图
-        image_url = None
+        item_image_url = None
         if item['book'] and hasattr(item['book'], 'cover_image') and item['book'].cover_image:
-            image_url = request.build_absolute_uri(item['book'].cover_image.url)
+            item_image_url = _absolute_for_request(request, item['book'].cover_image.url)
         else:
-            image_url = request.build_absolute_uri('/static/images/default_cover.png')
+            item_image_url = _absolute_for_request(request, '/static/images/default_cover.png')
         
         # 准备简短文本描述
         description = item['text'] or ''
         # 截取文本，保留前300个字符
         short_description = description[:300] + ('...' if len(description) > 300 else '')
-        
+
+        chapters_url = None
+        chapters_file = item.get('chapters_file')
+        if chapters_file and getattr(chapters_file, 'url', None):
+            chapters_url = _absolute_for_request(request, chapters_file.url)
+        chapters_html = item.get('chapters_html') or ''
+
         # 添加条目
         add_podcast_entry(
             feed=feed,
@@ -236,18 +274,21 @@ def audio_rss_feed(request, user_id=None):
             author=item['user'].username if item['user'] else "未知作者",
             duration_formatted=formatted_duration,
             duration_seconds=duration_seconds,
-            image_url=image_url,
+            image_url=item_image_url,
             episode_number=item['id'],
             season_number=item['book'].id if item['book'] else None,
             unique_id=f"{item['type']}_{item['id']}",
-            subtitle_url=request.build_absolute_uri(item['subtitle_file'].url) if item.get('subtitle_file') else None
+            subtitle_url=_absolute_for_request(request, item['subtitle_file'].url) if item.get('subtitle_file') else None,
+            chapters_url=chapters_url,
+            chapters_html=chapters_html
         )
 
     # 生成XML
     xml_string = feed.rss_str(pretty=True).decode('utf-8')
     
     # 后处理添加自定义标签
-    xml_string = postprocess_rss(xml_string)
+    chapters_map = getattr(feed, '_chapters_map', {})
+    xml_string = postprocess_rss(xml_string, chapters_map)
     
     # 应用清理
     cleaned_xml = clean_xml_output(xml_string)
@@ -266,9 +307,10 @@ def audio_rss_feed_by_username(request, username):
     """Generate an RSS feed for a specific user's published audio segments by username."""
     from django.contrib.auth.models import User
     
-    # 生成缓存键
-    cache_key = f'rss_username_{username}'
-    
+    # 生成缓存键（按 host 区分）
+    base_cache_key = f'rss_username_{username}'
+    cache_key = _cache_key_for_host(base_cache_key, request)
+
     # 检查缓存
     cached_response = cache.get(cache_key)
     if cached_response:
@@ -292,8 +334,9 @@ def audio_rss_feed_by_book(request, token, book_id):
     from workbench.models import UserProfile, Books
     
     # 生成缓存键
-    cache_key = f'rss_book_{token}_{book_id}'
-    
+    base_cache_key = f'rss_book_{token}_{book_id}'
+    cache_key = _cache_key_for_host(base_cache_key, request)
+
     # 检查缓存
     cached_response = cache.get(cache_key)
     if cached_response:
@@ -321,14 +364,14 @@ def audio_rss_feed_by_book(request, token, book_id):
         from django.http import Http404
         raise Http404("找不到该RSS订阅源")
 
-    link = request.build_absolute_uri(reverse('home'))  # Link to homepage
+    link = _absolute_for_request(request, reverse('home'))  # Link to homepage
     
     # 尝试获取书籍的封面图片
-    image_url = None
+    feed_image_url = None
     if hasattr(book, 'cover_image') and book.cover_image:
-        image_url = request.build_absolute_uri(book.cover_image.url)
+        feed_image_url = _absolute_for_request(request, book.cover_image.url)
     else:
-        image_url = request.build_absolute_uri('/static/images/default_cover.png')
+        feed_image_url = _absolute_for_request(request, '/static/images/default_cover.png')
 
     # 获取站点语言
     language = "zh"  # 简化语言代码
@@ -340,15 +383,15 @@ def audio_rss_feed_by_book(request, token, book_id):
         description=description,
         language=language,
         author_name=author_name,
-        image_url=image_url,
+        image_url=feed_image_url,
         author_email=author_email
     )
 
     for item in audio_items:
         # 使用音频文件直接URL而不是网页URL
-        audio_url = request.build_absolute_uri(item['file_url']) if item['file_url'] else None
+        audio_url = _absolute_for_request(request, item['file_url'])
         # 备用页面链接，如果没有音频文件
-        item_link = audio_url or request.build_absolute_uri(reverse('audio_detail', args=[item['id']]))
+        item_link = audio_url or _absolute_for_request(request, reverse('audio_detail', args=[item['id']]))
         
         # 处理音频时长
         if item['type'] == 'dialogue_script' and item.get('audio_duration'):
@@ -363,7 +406,13 @@ def audio_rss_feed_by_book(request, token, book_id):
         description = item['text'] or ''
         # 截取文本，保留前300个字符
         short_description = description[:300] + ('...' if len(description) > 300 else '')
-        
+
+        chapters_url = None
+        chapters_file = item.get('chapters_file')
+        if chapters_file and getattr(chapters_file, 'url', None):
+            chapters_url = _absolute_for_request(request, chapters_file.url)
+        chapters_html = item.get('chapters_html') or ''
+
         # 添加条目
         add_podcast_entry(
             feed=feed,
@@ -376,18 +425,21 @@ def audio_rss_feed_by_book(request, token, book_id):
             author=author_name,
             duration_formatted=formatted_duration,
             duration_seconds=duration_seconds,
-            image_url=image_url,
+            image_url=feed_image_url,
             episode_number=item['id'],
             season_number=book.id,
             unique_id=f"{item['type']}_{item['id']}",
-            subtitle_url=request.build_absolute_uri(item['subtitle_file'].url) if item.get('subtitle_file') else None
+            subtitle_url=_absolute_for_request(request, item['subtitle_file'].url) if item.get('subtitle_file') else None,
+            chapters_url=chapters_url,
+            chapters_html=chapters_html
         )
 
     # 生成XML
     xml_string = feed.rss_str(pretty=True).decode('utf-8')
     
     # 后处理添加自定义标签
-    xml_string = postprocess_rss(xml_string)
+    chapters_map = getattr(feed, '_chapters_map', {})
+    xml_string = postprocess_rss(xml_string, chapters_map)
     
     # 应用清理
     cleaned_xml = clean_xml_output(xml_string)
@@ -408,8 +460,9 @@ def audio_rss_feed_by_token(request, token, book_id=None):
     from django.contrib.auth.models import User
     
     # 生成缓存键
-    cache_key = f'rss_token_{token}_{book_id}' if book_id else f'rss_token_{token}_all'
-    
+    base_cache_key = f'rss_token_{token}_{book_id}' if book_id else f'rss_token_{token}_all'
+    cache_key = _cache_key_for_host(base_cache_key, request)
+
     # 检查缓存
     cached_response = cache.get(cache_key)
     if cached_response:
@@ -421,22 +474,24 @@ def audio_rss_feed_by_token(request, token, book_id=None):
         user = profile.user
         
         # 设置feed标题和描述
+        feed_image_url = None
+
         if book_id:
             book = get_object_or_404(Books, id=book_id, user=user)
             title = f"{user.username} - 《{book.name}》有声书"
             description = f"{book.name}的有声书内容，由{user.username}朗读制作。"
             # 尝试获取书籍的封面图片
             if hasattr(book, 'cover_image') and book.cover_image:
-                image_url = request.build_absolute_uri(book.cover_image.url)
+                feed_image_url = _absolute_for_request(request, book.cover_image.url)
             else:
-                image_url = request.build_absolute_uri('/static/images/default_cover.png')
+                feed_image_url = _absolute_for_request(request, '/static/images/default_cover.png')
             
             # 使用统一函数获取该用户特定书籍的音频内容
             audio_items = get_unified_audio_content(user=user, book=book, published_only=True)
         else:
             title = f"{user.username}的有声书合集"
             description = f"{user.username}的有声书作品集"
-            image_url = request.build_absolute_uri('/static/images/logo.png')
+            feed_image_url = _absolute_for_request(request, '/static/images/logo.png')
             # 使用统一函数获取该用户的所有音频内容
             audio_items = get_unified_audio_content(user=user, published_only=True)
         
@@ -447,7 +502,7 @@ def audio_rss_feed_by_token(request, token, book_id=None):
         from django.http import Http404
         raise Http404("找不到该RSS订阅源")
 
-    link = request.build_absolute_uri(reverse('home'))  # 链接到首页
+    link = _absolute_for_request(request, reverse('home'))  # 链接到首页
 
     # 获取站点语言
     language = "zh"  # 简化语言代码
@@ -459,15 +514,15 @@ def audio_rss_feed_by_token(request, token, book_id=None):
         description=description,
         language=language,
         author_name=user.username,
-        image_url=image_url,
+        image_url=feed_image_url,
         author_email=user.email if user.email else ""
     )
 
     for item in audio_items:
         # 使用音频文件直接URL而不是网页URL
-        audio_url = request.build_absolute_uri(item['file_url']) if item['file_url'] else None
+        audio_url = _absolute_for_request(request, item['file_url'])
         # 备用页面链接，如果没有音频文件
-        item_link = audio_url or request.build_absolute_uri(reverse('audio_detail', args=[item['id']]))
+        item_link = audio_url or _absolute_for_request(request, reverse('audio_detail', args=[item['id']]))
 
         # 处理音频时长
         if item['type'] == 'dialogue_script' and item.get('audio_duration'):
@@ -482,13 +537,19 @@ def audio_rss_feed_by_token(request, token, book_id=None):
         description = item['text'] or ''
         # 截取文本，保留前300个字符
         short_description = description[:300] + ('...' if len(description) > 300 else '')
-        
+
+        chapters_url = None
+        chapters_file = item.get('chapters_file')
+        if chapters_file and getattr(chapters_file, 'url', None):
+            chapters_url = _absolute_for_request(request, chapters_file.url)
+        chapters_html = item.get('chapters_html') or ''
+
         # 尝试获取图片或使用书籍的封面图
         item_image_url = None
         if item['book'] and hasattr(item['book'], 'cover_image') and item['book'].cover_image:
-            item_image_url = request.build_absolute_uri(item['book'].cover_image.url)
+            item_image_url = _absolute_for_request(request, item['book'].cover_image.url)
         else:
-            item_image_url = image_url
+            item_image_url = feed_image_url
 
         # 添加条目
         add_podcast_entry(
@@ -506,14 +567,17 @@ def audio_rss_feed_by_token(request, token, book_id=None):
             episode_number=item['id'],
             season_number=item['book'].id if item['book'] else None,
             unique_id=f"{item['type']}_{item['id']}",
-            subtitle_url=request.build_absolute_uri(item['subtitle_file'].url) if item.get('subtitle_file') else None
+            subtitle_url=_absolute_for_request(request, item['subtitle_file'].url) if item.get('subtitle_file') else None,
+            chapters_url=chapters_url,
+            chapters_html=chapters_html
         )
 
     # 生成XML
     xml_string = feed.rss_str(pretty=True).decode('utf-8')
     
     # 后处理添加自定义标签
-    xml_string = postprocess_rss(xml_string)
+    chapters_map = getattr(feed, '_chapters_map', {})
+    xml_string = postprocess_rss(xml_string, chapters_map)
     
     # 应用清理
     cleaned_xml = clean_xml_output(xml_string)

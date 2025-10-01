@@ -1,5 +1,6 @@
 import os
 import time
+import json
 from django.core.files.base import ContentFile
 from django.conf import settings
 
@@ -209,6 +210,88 @@ def save_srt_subtitle(model_instance, srt_content, subtitle_field_name='subtitle
     file_field = getattr(model_instance, subtitle_field_name)
     file_field.save(filename, ContentFile(srt_content.encode('utf-8')))
     model_instance.save(update_fields=[subtitle_field_name])
+
+
+def save_chapters_assets(model_instance, chapters, total_duration=None,
+                         chapters_field_name='chapters_file',
+                         html_attr_name='chapters_html'):
+    """保存PodcastIndex章节JSON，并生成HTML片段"""
+    file_field = getattr(model_instance, chapters_field_name)
+
+    if not chapters:
+        if file_field:
+            file_field.delete(save=False)
+        if hasattr(model_instance, html_attr_name):
+            setattr(model_instance, html_attr_name, '')
+            model_instance.save(update_fields=[chapters_field_name, html_attr_name])
+        else:
+            model_instance.save(update_fields=[chapters_field_name])
+        return
+
+    def _coerce_time(value):
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return 0.0
+
+    items = []
+    html_items = []
+    count = len(chapters)
+    for index, chapter in enumerate(chapters):
+        start_time = _coerce_time(chapter.get('start_seconds'))
+        next_start = _coerce_time(chapters[index + 1].get('start_seconds')) if index + 1 < count else None
+        end_time = None
+        if next_start is not None and next_start > start_time:
+            end_time = next_start
+        elif total_duration is not None:
+            total = _coerce_time(total_duration)
+            if total > start_time:
+                end_time = total
+
+        title = chapter.get('title', '').strip() or f'Chapter {index + 1}'
+
+        item = {
+            'startTime': start_time,
+            'title': title
+        }
+
+        description = (chapter.get('summary') or '').strip()
+        if description:
+            item['description'] = description
+        if end_time is not None:
+            item['endTime'] = end_time
+
+        items.append(item)
+
+        hours = int(start_time // 3600)
+        minutes = int((start_time % 3600) // 60)
+        seconds = int(start_time % 60)
+        timestamp = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+        html_line = f'<li><strong>{timestamp}</strong> {title}'
+        if description:
+            html_line += f' – {description}'
+        html_line += '</li>'
+        html_items.append(html_line)
+
+    payload = {
+        'version': '1.2.0',
+        'chapters': items
+    }
+
+    content = json.dumps(payload, ensure_ascii=False)
+
+    if file_field:
+        file_field.delete(save=False)
+
+    filename = f"chapters_{model_instance.id}_{int(time.time())}.json"
+    file_field.save(filename, ContentFile(content.encode('utf-8')))
+
+    if hasattr(model_instance, html_attr_name):
+        html_content = '<ul class="podcast-chapters">' + '\n'.join(html_items) + '</ul>'
+        setattr(model_instance, html_attr_name, html_content)
+        model_instance.save(update_fields=[chapters_field_name, html_attr_name])
+    else:
+        model_instance.save(update_fields=[chapters_field_name])
 
 def parse_vtt_subtitles(vtt_content):
     """解析VTT字幕内容，返回字幕条目列表"""

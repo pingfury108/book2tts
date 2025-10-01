@@ -157,6 +157,8 @@ def get_unified_audio_content(user=None, book=None, published_only=True):
             'file': segment.file,
             'subtitle_file': segment.subtitle_file,  # 添加字幕文件支持
             'chapters': segment.chapters or [],
+            'chapters_file': segment.chapters_file,
+            'chapters_html': segment.chapters_html,
         })
     
     # 获取对话脚本
@@ -202,6 +204,8 @@ def get_unified_audio_content(user=None, book=None, published_only=True):
             'file': script.audio_file,
             'subtitle_file': script.subtitle_file,  # 添加字幕文件支持
             'chapters': script.chapters or [],
+            'chapters_file': script.chapters_file,
+            'chapters_html': script.chapters_html,
         })
     
     # 按创建时间倒序排列
