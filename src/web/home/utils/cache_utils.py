@@ -7,6 +7,32 @@ from django.dispatch import receiver
 from workbench.models import AudioSegment
 
 
+HOSTS_SUFFIX = "::hosts"
+
+
+def _hosts_key(base_key: str) -> str:
+    return f"{base_key}{HOSTS_SUFFIX}"
+
+
+def register_rss_cache_key(base_key: str, full_key: str) -> None:
+    """记录同一逻辑缓存下实际写入的 host 版本缓存键。"""
+    hosts_key = _hosts_key(base_key)
+    hosts = cache.get(hosts_key) or []
+    if full_key not in hosts:
+        hosts.append(full_key)
+        cache.set(hosts_key, hosts, None)
+
+
+def clear_cache_variants(base_key: str) -> None:
+    """删除 base_key 及其 host 变体缓存。"""
+    hosts_key = _hosts_key(base_key)
+    hosts = cache.get(hosts_key) or []
+    for key in hosts:
+        cache.delete(key)
+    cache.delete(base_key)
+    cache.delete(hosts_key)
+
+
 def clear_rss_cache_for_user(user_id):
     """清除特定用户的所有RSS缓存"""
     cache_keys = [
@@ -16,7 +42,7 @@ def clear_rss_cache_for_user(user_id):
     
     # 清除基本缓存键
     for key in cache_keys:
-        cache.delete(key)
+        clear_cache_variants(key)
     
     # 清除用户相关的token和用户名缓存
     try:
@@ -27,7 +53,7 @@ def clear_rss_cache_for_user(user_id):
         user = User.objects.filter(id=user_id).first()
         if user:
             # 清除用户名缓存
-            cache.delete(f'rss_username_{user.username}')
+            clear_cache_variants(f'rss_username_{user.username}')
             
         profile = UserProfile.objects.filter(user_id=user_id).first()
         if profile:
@@ -36,7 +62,7 @@ def clear_rss_cache_for_user(user_id):
                 f'rss_token_{profile.rss_token}_all',
             ]
             for key in token_cache_keys:
-                cache.delete(key)
+                clear_cache_variants(key)
     except Exception:
         pass
 
@@ -58,7 +84,7 @@ def clear_rss_cache_for_book(book_id, user_id=None):
                     f'rss_token_{profile.rss_token}_{book_id}',
                 ]
                 for key in book_cache_keys:
-                    cache.delete(key)
+                    clear_cache_variants(key)
     except Exception:
         pass
 

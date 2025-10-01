@@ -4,6 +4,9 @@ Utility functions for generating and managing RSS feeds.
 import re
 import html
 import uuid
+from typing import List
+
+from bs4 import BeautifulSoup
 from feedgen.feed import FeedGenerator
 from workbench.models import UserProfile
 
@@ -249,17 +252,19 @@ def add_podcast_entry(feed, title, audio_url, audio_size, link, description, pub
         key = unique_id if unique_id else link
         feed._chapters_html_map[key] = chapters_html
 
-    content_html_fragments = []
+    content_fragments: List[str] = []
     if description:
-        safe_description = html.escape(description).replace('\n', '<br/>')
-        content_html_fragments.append(f'<p>{safe_description}</p>')
-    if chapters_html:
-        content_html_fragments.append('<h3>章节</h3>')
-        content_html_fragments.append(chapters_html)
+        if chapters_html:
+            chapter_text = BeautifulSoup(chapters_html, "html.parser").get_text('\n', strip=True)
+            if chapter_text:
+                content_fragments.append(f"章节:\n{chapter_text}")
+        description_text = html.unescape(description).strip()
+        if description_text:
+            content_fragments.append(description_text)
 
-    if content_html_fragments:
-        combined_html = '\n'.join(content_html_fragments)
-        fe.content(combined_html, type='CDATA')
+    if content_fragments:
+        combined_text = '\n\n'.join(content_fragments)
+        fe.content(combined_text)
 
     return fe
 

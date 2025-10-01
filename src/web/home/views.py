@@ -10,6 +10,7 @@ from django.utils import timezone
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
 
+from home.utils.cache_utils import register_rss_cache_key
 from home.utils.rss_utils import (
     estimate_audio_duration,
     ensure_rss_token,
@@ -295,6 +296,7 @@ def audio_rss_feed(request, user_id=None):
     
     # 缓存响应内容（15分钟）
     cache.set(cache_key, cleaned_xml, 60 * 15)
+    register_rss_cache_key(base_cache_key, cache_key)
     
     response = HttpResponse(cleaned_xml, content_type='application/xml')
     # 添加缓存控制头
@@ -325,6 +327,7 @@ def audio_rss_feed_by_username(request, username):
     # 缓存用户名相关的RSS
     if hasattr(response, 'content'):
         cache.set(cache_key, response.content.decode('utf-8'), 60 * 15)
+        register_rss_cache_key(base_cache_key, cache_key)
     
     return response
 
@@ -446,6 +449,7 @@ def audio_rss_feed_by_book(request, token, book_id):
     
     # 缓存响应内容（15分钟）
     cache.set(cache_key, cleaned_xml, 60 * 15)
+    register_rss_cache_key(base_cache_key, cache_key)
     
     response = HttpResponse(cleaned_xml, content_type='application/xml')
     # 添加缓存控制头
@@ -584,6 +588,7 @@ def audio_rss_feed_by_token(request, token, book_id=None):
     
     # 缓存响应内容（30分钟）
     cache.set(cache_key, cleaned_xml, 60 * 30)
+    register_rss_cache_key(base_cache_key, cache_key)
     
     response = HttpResponse(cleaned_xml, content_type='application/xml')
     # 添加缓存控制头
