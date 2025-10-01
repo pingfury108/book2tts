@@ -32,45 +32,45 @@
 </style>
 <div class="container mx-auto px-4 py-8">
     <div class="mb-6">
-        <div class="flex justify-between items-center text-base-content">
-            <div>
-                <div class="flex items-center">
-                    <h1 class="text-3xl font-bold mr-3" id="script-title-display">{{ script.title }}</h1>
-                    <button type="button" 
+        <div class="text-base-content flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:gap-6 lg:items-start">
+            <div class="min-w-0">
+                <div class="flex items-start gap-2 flex-wrap">
+                    <h1 class="text-3xl font-bold break-words leading-snug" id="script-title-display">{{ script.title }}</h1>
+                    <button type="button"
                             id="edit-script-btn"
                             class="btn btn-ghost btn-sm text-blue-600 hover:text-blue-800">
                         <i class="fas fa-edit"></i> 编辑
                     </button>
                 </div>
-                <div class="mt-2">
+                <div class="mt-2 text-sm lg:text-base">
                     <span class="text-base-content/70">关联书籍：</span>
                     <span id="script-book-display" class="text-base-content/70">
                         {% if script.book %}{{ script.book.name }}{% else %}无关联书籍{% endif %}
                     </span>
-                    <span class="text-base-content/70 ml-4">| 创建时间：{{ script.created_at|date:"Y-m-d H:i" }}</span>
+                    <span class="text-base-content/70 ml-3 lg:ml-4">| 创建时间：{{ script.created_at|date:"Y-m-d H:i" }}</span>
                 </div>
             </div>
-            <div class="flex space-x-3">
-                <a href="{% url 'dialogue_list' %}" 
-                   class="btn btn-outline">
+            <div class="flex flex-wrap items-center justify-end gap-3 flex-shrink-0">
+                <a href="{% url 'dialogue_list' %}"
+                   class="btn btn-outline flex-shrink-0">
                     <i class="fas fa-arrow-left mr-2"></i>返回列表
                 </a>
                 {% if script.audio_file and not script.published %}
-                <form style="display: inline;" 
-                      method="post" 
+                <form method="post"
                       action="{% url 'dialogue_publish' script.id %}"
-                      id="publish-form">
+                      id="publish-form"
+                      class="flex-shrink-0">
                     {% csrf_token %}
-                    <button type="button" 
+                    <button type="button"
                             id="publish-btn"
                             class="btn btn-success">
                         <i class="fas fa-upload mr-2"></i>发布音频
                     </button>
                 </form>
                 {% endif %}
-                <button type="button" 
+                <button type="button"
                         id="delete-script-btn"
-                        class="btn btn-error">
+                        class="btn btn-error flex-shrink-0">
                     <i class="fas fa-trash mr-2"></i>删除脚本
                 </button>
             </div>
