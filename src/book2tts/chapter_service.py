@@ -21,6 +21,9 @@ class ChapterGenerator:
     """根据字幕时间轴生成章节信息。"""
 
     def __init__(self, llm_service: Optional[LLMService] = None, max_chapters: int = 10):
+        self.last_usage: Optional[Dict[str, Any]] = None
+        self.last_model: Optional[str] = None
+
         if llm_service is not None:
             self.llm_service = llm_service
         else:
@@ -37,6 +40,9 @@ class ChapterGenerator:
         if not entries:
             return []
 
+        self.last_usage = None
+        self.last_model = None
+
         if self.llm_service is not None:
             try:
                 system_prompt, user_prompt = self._build_prompt(entries, title_hint)
@@ -47,6 +53,9 @@ class ChapterGenerator:
                 )
 
                 if llm_result.get("success"):
+                    usage_info = llm_result.get("usage") or {}
+                    self.last_usage = usage_info
+                    self.last_model = llm_result.get("model")
                     chapters = self._parse_llm_response(llm_result.get("result", ""))
                     if chapters:
                         return chapters[: self.max_chapters]

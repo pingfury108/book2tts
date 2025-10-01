@@ -210,6 +210,7 @@ class PointsConfig(models.Model):
     OPERATION_TYPES = [
         ('audio_generation', '音频生成'),
         ('ocr_processing', 'OCR处理'),
+        ('llm_usage', 'LLM调用'),
     ]
     
     operation_type = models.CharField(

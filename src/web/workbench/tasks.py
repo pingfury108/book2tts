@@ -4,6 +4,7 @@ import tempfile
 import asyncio
 import json
 import hashlib
+from typing import Any, Dict, Optional
 from celery import shared_task
 from celery.utils.log import get_task_logger
 from django.conf import settings
@@ -20,6 +21,7 @@ from home.utils.utils import PointsManager
 from book2tts.multi_voice_tts import MultiVoiceTTS
 from .utils.subtitle_utils import convert_vtt_to_srt, save_srt_subtitle, save_chapters_assets
 from book2tts.chapter_service import ChapterGenerator
+from web.workbench.utils.points_utils import deduct_llm_points
 
 # Import dialogue services - use lazy import to avoid circular imports
 def get_dialogue_service():
@@ -33,6 +35,20 @@ def get_dialogue_service():
 
 # Get a logger instance for the tasks
 logger = get_task_logger(__name__)
+
+
+def _summarize_llm_usage(usage: Optional[Dict[str, Any]]) -> Dict[str, int]:
+    usage = usage or {}
+    prompt = usage.get('prompt_tokens') or 0
+    completion = usage.get('completion_tokens') or 0
+    total = usage.get('total_tokens')
+    if total is None:
+        total = prompt + completion
+    return {
+        'prompt': prompt,
+        'completion': completion,
+        'total': total,
+    }
 
 
 def _generate_simple_subtitle(text: str, duration: float) -> str:
@@ -545,6 +561,11 @@ def convert_text_to_dialogue_task(self, user_id, text, title, book_id=None, cust
 
         cache_path = None
         cached_chunks = []
+        total_llm_tokens = 0
+        total_prompt_tokens = 0
+        total_completion_tokens = 0
+        llm_models = set()
+        total_chunks = 1
         
         # 更新任务状态
         self.update_state(state='PROCESSING', meta={'message': '正在分析文本结构...'})
@@ -654,7 +675,7 @@ def convert_text_to_dialogue_task(self, user_id, text, title, book_id=None, cust
                     chunk, 
                     custom_prompt if custom_prompt else None
                 )
-                
+
                 if not result['success']:
                     raw_response = result.get('raw_response')
                     if raw_response:
@@ -671,6 +692,16 @@ def convert_text_to_dialogue_task(self, user_id, text, title, book_id=None, cust
                     logger.error(error_msg)
                     raise Exception(error_msg)
                 
+                usage = result.get('usage') or {}
+                prompt_tokens = usage.get('prompt_tokens') or 0
+                completion_tokens = usage.get('completion_tokens') or 0
+                total_prompt_tokens += prompt_tokens
+                total_completion_tokens += completion_tokens
+                total_llm_tokens += usage.get('total_tokens') or (prompt_tokens + completion_tokens)
+                model_name = result.get('model')
+                if model_name:
+                    llm_models.add(model_name)
+
                 chunk_segments = result['dialogue_data'].get('segments', [])
                 all_segments.extend(chunk_segments)
 
@@ -696,7 +727,7 @@ def convert_text_to_dialogue_task(self, user_id, text, title, book_id=None, cust
                 text, 
                 custom_prompt if custom_prompt else None
             )
-            
+
             if not result['success']:
                 raw_response = result.get('raw_response')
                 if raw_response:
@@ -706,6 +737,16 @@ def convert_text_to_dialogue_task(self, user_id, text, title, book_id=None, cust
                 logger.error(f"Text conversion failed: {result['error']}")
                 raise Exception(f"文本转换失败: {result['error']}")
             
+            usage = result.get('usage') or {}
+            prompt_tokens = usage.get('prompt_tokens') or 0
+            completion_tokens = usage.get('completion_tokens') or 0
+            total_prompt_tokens += prompt_tokens
+            total_completion_tokens += completion_tokens
+            total_llm_tokens += usage.get('total_tokens') or (prompt_tokens + completion_tokens)
+            model_name = result.get('model')
+            if model_name:
+                llm_models.add(model_name)
+
             dialogue_data = result['dialogue_data']
             dialogue_data['original_length'] = total_length
         
@@ -775,6 +816,24 @@ def convert_text_to_dialogue_task(self, user_id, text, title, book_id=None, cust
 
         logger.info(f"Text to dialogue conversion completed for user {user_id}, script {script.id}")
         
+        llm_models_list = sorted(llm_models)
+        llm_metadata = {
+            'prompt_tokens': total_prompt_tokens,
+            'completion_tokens': total_completion_tokens,
+            'total_tokens': total_llm_tokens,
+            'llm_models': llm_models_list,
+            'chunks': total_chunks,
+            'text_length': total_length,
+        }
+        deduct_llm_points(
+            user=user,
+            total_tokens=total_llm_tokens,
+            operation_object='对话脚本生成 LLM',
+            metadata=llm_metadata,
+            ip_address=None,
+            user_agent=None,
+        )
+
         return {
             'success': True,
             'script_id': script.id,
@@ -782,10 +841,29 @@ def convert_text_to_dialogue_task(self, user_id, text, title, book_id=None, cust
             'segments_count': len(segments),
             'speakers': speakers
         }
-        
+
     except Exception as e:
         error_msg = f"文本转换对话失败: {str(e)}"
         logger.error(error_msg)
+        if 'user' in locals():
+            try:
+                llm_metadata = {
+                    'prompt_tokens': total_prompt_tokens if 'total_prompt_tokens' in locals() else 0,
+                    'completion_tokens': total_completion_tokens if 'total_completion_tokens' in locals() else 0,
+                    'total_tokens': total_llm_tokens if 'total_llm_tokens' in locals() else 0,
+                    'llm_models': sorted(llm_models) if 'llm_models' in locals() else [],
+                    'status': 'failed',
+                }
+                deduct_llm_points(
+                    user=user,
+                    total_tokens=total_llm_tokens if 'total_llm_tokens' in locals() else 0,
+                    operation_object='对话脚本生成 LLM',
+                    metadata=llm_metadata,
+                    ip_address=None,
+                    user_agent=None,
+                )
+            except Exception:  # pylint: disable=broad-except
+                logger.warning('Failed to record LLM deduction for failed dialogue conversion', exc_info=True)
         if 'cache_path' in locals() and cache_path and os.path.exists(cache_path):
             logger.info('保留对话分段缓存文件以便重试: %s', cache_path)
         
@@ -1073,6 +1151,8 @@ def generate_chapters_task(self, segment_type: str, segment_id: int, force: bool
 
     try:
         generator = ChapterGenerator()
+        llm_usage_info = {'prompt': 0, 'completion': 0, 'total': 0}
+        llm_models = []
 
         if segment_type == 'audio':
             segment = AudioSegment.objects.get(pk=segment_id)
@@ -1124,6 +1204,9 @@ def generate_chapters_task(self, segment_type: str, segment_id: int, force: bool
         self.update_state(state='PROCESSING', meta={'message': '正在解析字幕生成章节...'})
 
         chapters = generator.generate_chapters(subtitle_content, title_hint=title_hint)
+        llm_usage_info = _summarize_llm_usage(getattr(generator, 'last_usage', None))
+        if getattr(generator, 'last_model', None):
+            llm_models.append(generator.last_model)
         chapters_count = len(chapters)
 
         segment.chapters = chapters
@@ -1135,11 +1218,17 @@ def generate_chapters_task(self, segment_type: str, segment_id: int, force: bool
         message = '章节生成完成' if chapters_count else '生成完成，但未提取到章节'
         status_flag = 'completed' if chapters_count else 'empty'
 
+        llm_models_list = sorted(set(llm_models)) if llm_models else []
+
         metadata = {
             'segment_type': segment_type,
             'segment_id': segment_id,
             'chapters_count': chapters_count,
             'force': force,
+            'llm_prompt_tokens': llm_usage_info['prompt'],
+            'llm_completion_tokens': llm_usage_info['completion'],
+            'llm_total_tokens': llm_usage_info['total'],
+            'llm_models': llm_models_list,
         }
         metadata.update(extra_metadata)
 
@@ -1151,6 +1240,25 @@ def generate_chapters_task(self, segment_type: str, segment_id: int, force: bool
                 operation_detail=message,
                 status='success',
                 metadata=metadata,
+            )
+
+        deduction_metadata = {
+            'segment_type': segment_type,
+            'segment_id': segment_id,
+            'force': force,
+            'llm_prompt_tokens': llm_usage_info['prompt'],
+            'llm_completion_tokens': llm_usage_info['completion'],
+            'llm_total_tokens': llm_usage_info['total'],
+            'llm_models': llm_models_list,
+        }
+        if owner and llm_usage_info['total'] > 0:
+            deduct_llm_points(
+                user=owner,
+                total_tokens=llm_usage_info['total'],
+                operation_object=f'{op_object} LLM章节生成',
+                metadata=deduction_metadata,
+                ip_address=None,
+                user_agent=None,
             )
 
         result = {
@@ -1196,19 +1304,34 @@ def generate_chapters_task(self, segment_type: str, segment_id: int, force: bool
                 op_object = f"未知类型 - {segment_id}"
 
             if owner:
+                llm_models_list = sorted(set(llm_models)) if llm_models else []
+                failure_metadata = {
+                    'segment_type': segment_type,
+                    'segment_id': segment_id,
+                    'force': force,
+                    'error': error_message,
+                    'llm_prompt_tokens': llm_usage_info['prompt'],
+                    'llm_completion_tokens': llm_usage_info['completion'],
+                    'llm_total_tokens': llm_usage_info['total'],
+                    'llm_models': llm_models_list,
+                }
                 OperationRecord.objects.create(
                     user=owner,
                     operation_type='system_operation',
                     operation_object=op_object,
                     operation_detail=f'章节生成失败：{error_message}',
                     status='failed',
-                    metadata={
-                        'segment_type': segment_type,
-                        'segment_id': segment_id,
-                        'force': force,
-                        'error': error_message,
-                    },
+                    metadata=failure_metadata,
                 )
+                if llm_usage_info['total'] > 0:
+                    deduct_llm_points(
+                        user=owner,
+                        total_tokens=llm_usage_info['total'],
+                        operation_object=f'{op_object} LLM章节生成',
+                        metadata=failure_metadata,
+                        ip_address=None,
+                        user_agent=None,
+                    )
         except Exception:  # pylint: disable=broad-except
             logger.warning('章节生成失败记录OperationRecord时出错', exc_info=True)
 

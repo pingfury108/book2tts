@@ -1,3 +1,4 @@
+import logging
 import time
 
 from django.contrib.auth.decorators import login_required
@@ -5,6 +6,7 @@ from django.views.decorators.http import require_http_methods
 from django.http import StreamingHttpResponse, HttpResponse
 
 from home.models import OperationRecord
+from web.workbench.utils.points_utils import deduct_llm_points
 
 
 def _get_client_meta(request):
@@ -87,6 +89,7 @@ def format_text_stream(user, texts, ip_address=None, user_agent=None):
         total_tokens = 0
         success = False
         error_message = None
+        models_used = set()
 
         # Send start event
         yield "event: start\ndata: Starting text formatting...\n\n"
@@ -104,9 +107,14 @@ def format_text_stream(user, texts, ip_address=None, user_agent=None):
             if isinstance(result, dict) and result.get('success') and result.get('result'):
                 formatted_text = result['result']
                 usage = result.get('usage') or {}
-                total_prompt_tokens += usage.get('prompt_tokens') or 0
-                total_completion_tokens += usage.get('completion_tokens') or 0
-                total_tokens += usage.get('total_tokens') or 0
+                prompt_tokens = usage.get('prompt_tokens') or 0
+                completion_tokens = usage.get('completion_tokens') or 0
+                total_prompt_tokens += prompt_tokens
+                total_completion_tokens += completion_tokens
+                total_tokens += usage.get('total_tokens') or (prompt_tokens + completion_tokens)
+                model_name = result.get('model')
+                if model_name:
+                    models_used.add(model_name)
                 # 修复SSE消息格式，处理多行文本
                 # 在SSE协议中，data字段中的每个换行符前都需要加上"data: "前缀
                 # 将文本中的换行符替换为换行+data前缀
@@ -132,7 +140,7 @@ def format_text_stream(user, texts, ip_address=None, user_agent=None):
     except Exception as e:
         # Send error event with proper event type
         error_message = str(e)
-        print(f"Error in format_text_stream: {error_message}")  # Log the error
+        logger.error("Error in format_text_stream: %s", error_message)
         yield f"event: error\ndata: [ERROR] {error_message}\n\n"
 
     finally:
@@ -144,6 +152,7 @@ def format_text_stream(user, texts, ip_address=None, user_agent=None):
                 'prompt_tokens': total_prompt_tokens,
                 'completion_tokens': total_completion_tokens,
                 'total_tokens': total_tokens,
+                'llm_models': sorted(models_used),
             }
             detail = '自动排版完成' if success else f"自动排版失败：{error_message or '未知错误'}"
             OperationRecord.objects.create(
@@ -153,6 +162,20 @@ def format_text_stream(user, texts, ip_address=None, user_agent=None):
                 operation_detail=detail,
                 status='success' if success else 'failed',
                 metadata=metadata,
+                ip_address=ip_address,
+                user_agent=user_agent,
+            )
+            deduction_metadata = {
+                'prompt_tokens': total_prompt_tokens,
+                'completion_tokens': total_completion_tokens,
+                'total_tokens': total_tokens,
+                'llm_models': sorted(models_used),
+            }
+            deduct_llm_points(
+                user=user,
+                total_tokens=total_tokens,
+                operation_object='自动排版 LLM',
+                metadata=deduction_metadata,
                 ip_address=ip_address,
                 user_agent=user_agent,
             )
@@ -252,6 +275,7 @@ def translate_text_stream(user, texts, target_language, ip_address=None, user_ag
         total_tokens = 0
         success = False
         error_message = None
+        models_used = set()
 
         # Send start event
         yield "event: start\ndata: Starting text translation...\n\n"
@@ -294,9 +318,14 @@ def translate_text_stream(user, texts, target_language, ip_address=None, user_ag
                 if isinstance(result, dict) and result.get('success') and result.get('result'):
                     translated_text = result['result']
                     usage = result.get('usage') or {}
-                    total_prompt_tokens += usage.get('prompt_tokens') or 0
-                    total_completion_tokens += usage.get('completion_tokens') or 0
-                    total_tokens += usage.get('total_tokens') or 0
+                    prompt_tokens = usage.get('prompt_tokens') or 0
+                    completion_tokens = usage.get('completion_tokens') or 0
+                    total_prompt_tokens += prompt_tokens
+                    total_completion_tokens += completion_tokens
+                    total_tokens += usage.get('total_tokens') or (prompt_tokens + completion_tokens)
+                    model_name = result.get('model')
+                    if model_name:
+                        models_used.add(model_name)
 
                     # Save to cache
                     try:
@@ -327,7 +356,7 @@ def translate_text_stream(user, texts, target_language, ip_address=None, user_ag
     except Exception as e:
         # Send error event with proper event type
         error_message = str(e)
-        print(f"Error in translate_text_stream: {error_message}")  # Log the error
+        logger.error("Error in translate_text_stream: %s", error_message)
         yield f"event: error\ndata: [ERROR] {error_message}\n\n"
     finally:
         try:
@@ -341,6 +370,7 @@ def translate_text_stream(user, texts, target_language, ip_address=None, user_ag
                 'completion_tokens': total_completion_tokens,
                 'total_tokens': total_tokens,
                 'target_language': target_language,
+                'llm_models': sorted(models_used),
             }
             detail = '文本翻译完成' if success else f"文本翻译失败：{error_message or '未知错误'}"
             OperationRecord.objects.create(
@@ -353,6 +383,21 @@ def translate_text_stream(user, texts, target_language, ip_address=None, user_ag
                 ip_address=ip_address,
                 user_agent=user_agent,
             )
+            deduction_metadata = {
+                'prompt_tokens': total_prompt_tokens,
+                'completion_tokens': total_completion_tokens,
+                'target_language': target_language,
+                'total_tokens': total_tokens,
+                'llm_models': sorted(models_used),
+            }
+            deduct_llm_points(
+                user=user,
+                total_tokens=total_tokens,
+                operation_object=f'文本翻译 LLM -> {target_lang_name}',
+                metadata=deduction_metadata,
+                ip_address=ip_address,
+                user_agent=user_agent,
+            )
         except Exception:
             pass
-
+logger = logging.getLogger(__name__)

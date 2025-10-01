@@ -1,8 +1,9 @@
-from django.core.cache import cache
-from home.models import PointsConfig
 import logging
+import math
 
-logger = logging.getLogger(__name__)
+from django.core.cache import cache
+
+from home.models import PointsConfig
 
 class PointsManager:
     """积分配置管理器 - 提供统一的积分配置访问接口"""
@@ -43,22 +44,23 @@ class PointsManager:
         except PointsConfig.DoesNotExist:
             # 使用默认值
             defaults = {
-                'audio_generation': 2,
-                'ocr_processing': 7,
+                'audio_generation': {'points': 2, 'unit': '秒'},
+                'ocr_processing': {'points': 7, 'unit': '页'},
+                'llm_usage': {'points': 5, 'unit': '千token'},
             }
-            
+
             config = {
-                'points_per_unit': default_points or defaults.get(operation_type, 0),
-                'unit_name': '次',
+                'points_per_unit': default_points or defaults.get(operation_type, {}).get('points', 0),
+                'unit_name': defaults.get(operation_type, {}).get('unit', '次'),
                 'description': '系统默认值'
             }
-            
+
             # 如果配置不存在且没有提供默认值，创建默认配置
             if default_points is None and operation_type in defaults:
                 PointsConfig.objects.create(
                     operation_type=operation_type,
-                    points_per_unit=defaults[operation_type],
-                    unit_name='秒' if operation_type == 'audio_generation' else '页' if operation_type == 'ocr_processing' else '次',
+                    points_per_unit=defaults[operation_type]['points'],
+                    unit_name=defaults[operation_type]['unit'],
                     description='系统自动创建的默认配置'
                 )
                 logger.info(f"Created default PointsConfig for {operation_type}")
@@ -82,6 +84,18 @@ class PointsManager:
             return 0
         config = cls.get_points_config('ocr_processing')
         return config['points_per_unit'] * image_count
+
+    @classmethod
+    def get_llm_usage_points(cls, token_count):
+        """根据 token 数计算 LLM 调用积分消耗。
+
+        返回 (需要积分, 计费单位数量)。计费单位为千 token，向上取整。
+        """
+        if token_count <= 0:
+            return 0, 0
+        config = cls.get_points_config('llm_usage')
+        units = max(1, math.ceil(token_count / 1000))
+        return config['points_per_unit'] * units, units
     
     @classmethod
     def get_config_for_display(cls, operation_type):
@@ -99,6 +113,7 @@ class PointsManager:
             # 对于LocMemCache，我们无法列出所有键，所以直接删除我们知道的两个键
             cache.delete(f"{cls.CACHE_KEY_PREFIX}audio_generation")
             cache.delete(f"{cls.CACHE_KEY_PREFIX}ocr_processing")
+            cache.delete(f"{cls.CACHE_KEY_PREFIX}llm_usage")
     
     @classmethod
     def get_all_active_configs(cls):
@@ -126,7 +141,12 @@ class PointsManager:
                 'points_per_unit': 7,
                 'unit_name': '页',
                 'description': 'OCR处理积分消耗：每页图片7积分'
-            }
+            },
+            'llm_usage': {
+                'points_per_unit': 5,
+                'unit_name': '千token',
+                'description': 'LLM 调用积分消耗：每千 token 5 积分'
+            },
         }
         
         created_count = 0

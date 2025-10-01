@@ -137,7 +137,9 @@ class DialogueService:
             return {
                 "success": True,
                 "dialogue_data": dialogue_data,
-                "raw_response": llm_response
+                "raw_response": llm_response,
+                "usage": result.get("usage"),
+                "model": result.get("model"),
             }
             
         except Exception as e:
