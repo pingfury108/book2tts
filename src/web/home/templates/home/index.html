@@ -65,7 +65,7 @@
                   
                   <!-- 右侧按钮 - 移动端水平排列 -->
                   <div class="flex items-center gap-2">
-                    <a href="{% url 'audio_detail' segment.id %}" class="btn btn-xs sm:btn-sm border-purple-700 text-purple-700 hover:bg-purple-100">
+                    <a href="{% url 'audio_detail' segment.type segment.id %}" class="btn btn-xs sm:btn-sm border-purple-700 text-purple-700 hover:bg-purple-100">
                       详情
                     </a>
                     
@@ -77,7 +77,7 @@
                       </div>
                       <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-[1] w-32 p-2 shadow">
                         <li><a href="{{ segment.subtitle_file.url }}" download><i class="fas fa-download"></i>下载</a></li>
-                        <li><a href="#" class="view-subtitles" data-segment-id="{{ segment.id }}" data-subtitle-url="{{ segment.subtitle_file.url }}"><i class="fas fa-eye"></i>查看</a></li>
+                        <li><a href="#" class="view-subtitles" data-segment-id="{{ segment.type }}-{{ segment.id }}" data-subtitle-url="{{ segment.subtitle_file.url }}"><i class="fas fa-eye"></i>查看</a></li>
                       </ul>
                     </div>
                     {% endif %}
@@ -88,7 +88,7 @@
                       data-audio-title="{{ segment.title }}"
                       data-subtitle-url="{% if segment.subtitle_file %}{{ segment.subtitle_file.url }}{% endif %}"
                       data-chapters-url="{% if segment.chapters_file and segment.chapters_file.url %}{{ segment.chapters_file.url }}{% endif %}"
-                      {% if segment.chapters %}data-chapters-target="home-chapters-{{ segment.id }}"{% endif %}
+                      {% if segment.chapters %}data-chapters-target="home-chapters-{{ segment.type }}-{{ segment.id }}"{% endif %}
                     >
                       <i class="fas fa-play text-white"></i>
                     </button>
@@ -128,7 +128,7 @@
                 
                 <!-- 桌面端：右侧按钮 -->
                 <div class="hidden sm:flex flex-col gap-2">
-                  <a href="{% url 'audio_detail' segment.id %}" class="btn btn-sm border-purple-700 text-purple-700 hover:bg-purple-100">
+                  <a href="{% url 'audio_detail' segment.type segment.id %}" class="btn btn-sm border-purple-700 text-purple-700 hover:bg-purple-100">
                     详情
                   </a>
                   
@@ -139,7 +139,7 @@
                       <i class="fas fa-download"></i>
                     </a>
                     <button class="btn btn-sm btn-outline btn-secondary view-subtitles" 
-                            data-segment-id="{{ segment.id }}" 
+                            data-segment-id="{{ segment.type }}-{{ segment.id }}" 
                             data-subtitle-url="{{ segment.subtitle_file.url }}" 
                             title="查看字幕">
                       <i class="fas fa-closed-captioning"></i>
@@ -153,15 +153,15 @@
                     data-audio-title="{{ segment.title }}"
                     data-subtitle-url="{% if segment.subtitle_file %}{{ segment.subtitle_file.url }}{% endif %}"
                     data-chapters-url="{% if segment.chapters_file and segment.chapters_file.url %}{{ segment.chapters_file.url }}{% endif %}"
-                    {% if segment.chapters %}data-chapters-target="home-chapters-{{ segment.id }}"{% endif %}
+                    {% if segment.chapters %}data-chapters-target="home-chapters-{{ segment.type }}-{{ segment.id }}"{% endif %}
                   >
                     <i class="fas fa-play text-white text-2xl"></i>
                   </button>
                 </div>
               </div>
               {% if segment.chapters %}
-                {% with segment_id_str=segment.id|stringformat:'s' %}
-                  {% with script_id='home-chapters-'|add:segment_id_str %}
+                {% with segment_id_str=segment.id|stringformat:'s' segment_type_str=segment.type|stringformat:'s' %}
+                  {% with script_id='home-chapters-'|add:segment_type_str|add:'-'|add:segment_id_str %}
                     {{ segment.chapters|json_script:script_id }}
                   {% endwith %}
                 {% endwith %}
@@ -202,8 +202,8 @@
                     data-audio-url="{{ segment.file_url }}"
                     data-audio-title="{{ segment.title }}"
                     data-subtitle-url="{% if segment.subtitle_file %}{{ segment.subtitle_file.url }}{% endif %}"
-                    data-chapters-url="{% if segment.chapters_file and segment.chapters_file.url %}{{ segment.chapters_file.url }}{% endif %}"
-                    {% if segment.chapters %}data-chapters-target="home-chapters-{{ segment.id }}"{% endif %}
+                      data-chapters-url="{% if segment.chapters_file and segment.chapters_file.url %}{{ segment.chapters_file.url }}{% endif %}"
+                      {% if segment.chapters %}data-chapters-target="home-chapters-{{ segment.type }}-{{ segment.id }}"{% endif %}
                   >
                     <i class="fas fa-play"></i>
                   </button>
@@ -217,7 +217,7 @@
                 </div>
 
                 <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-base-200">
-                  <a href="{% url 'audio_detail' segment.id %}"
+                  <a href="{% url 'audio_detail' segment.type segment.id %}"
                      class="btn btn-sm btn-outline border-purple-700 text-purple-700 hover:bg-purple-100">
                     详情
                   </a>
@@ -227,7 +227,7 @@
                         <i class="fas fa-download mr-1"></i>字幕
                       </a>
                       <button class="btn btn-sm btn-ghost view-subtitles"
-                              data-segment-id="{{ segment.id }}"
+                              data-segment-id="{{ segment.type }}-{{ segment.id }}"
                               data-subtitle-url="{{ segment.subtitle_file.url }}">
                         <i class="fas fa-closed-captioning mr-1"></i>查看
                       </button>
@@ -236,8 +236,8 @@
                 </div>
               </div>
               {% if segment.chapters %}
-                {% with segment_id_str=segment.id|stringformat:'s' %}
-                  {% with script_id='home-chapters-'|add:segment_id_str %}
+                {% with segment_id_str=segment.id|stringformat:'s' segment_type_str=segment.type|stringformat:'s' %}
+                  {% with script_id='home-chapters-'|add:segment_type_str|add:'-'|add:segment_id_str %}
                     {{ segment.chapters|json_script:script_id }}
                   {% endwith %}
                 {% endwith %}

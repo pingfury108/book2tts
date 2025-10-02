@@ -4,7 +4,7 @@ from django.core.cache import cache
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.cache import cache_page
@@ -107,17 +107,16 @@ def index(request):
     return render(request, "home/index.html", context)
 
 
-def audio_detail(request, segment_id):
-    # 首先尝试从AudioSegment中查找
-    try:
+def audio_detail(request, segment_type, segment_id):
+    if segment_type == 'audio_segment':
         segment = get_object_or_404(AudioSegment, id=segment_id, published=True)
-        segment_type = 'audio_segment'
-    except:
-        # 如果AudioSegment中没有，尝试从DialogueScript中查找
+    elif segment_type == 'dialogue_script':
         from workbench.models import DialogueScript
         segment = get_object_or_404(DialogueScript, id=segment_id, published=True, audio_file__isnull=False)
-        segment_type = 'dialogue_script'
-    
+    else:
+        from django.http import Http404
+        raise Http404("不支持的音频类型")
+
     context = {
         'segment': segment,
         'segment_type': segment_type,
@@ -125,6 +124,20 @@ def audio_detail(request, segment_id):
     }
     
     return render(request, "home/audio_detail.html", context)
+
+
+def audio_detail_legacy(request, segment_id):
+    segment = AudioSegment.objects.filter(id=segment_id, published=True).first()
+    if segment:
+        return redirect('audio_detail', segment_type='audio_segment', segment_id=segment.id)
+
+    from workbench.models import DialogueScript
+    script = DialogueScript.objects.filter(id=segment_id, published=True, audio_file__isnull=False).first()
+    if script:
+        return redirect('audio_detail', segment_type='dialogue_script', segment_id=script.id)
+
+    from django.http import Http404
+    raise Http404("未找到对应的音频记录")
 
 
 def book_audio_list(request, book_id):
@@ -234,7 +247,10 @@ def audio_rss_feed(request, user_id=None):
         # 使用音频文件直接URL而不是网页URL
         audio_url = _absolute_for_request(request, item['file_url'])
         # 备用页面链接，如果没有音频文件
-        item_link = audio_url or _absolute_for_request(request, reverse('audio_detail', args=[item['id']]))
+        item_link = audio_url or _absolute_for_request(
+            request,
+            reverse('audio_detail', kwargs={'segment_type': item['type'], 'segment_id': item['id']})
+        )
         
         # 处理音频时长
         if item['type'] == 'dialogue_script' and item.get('audio_duration'):
@@ -394,7 +410,10 @@ def audio_rss_feed_by_book(request, token, book_id):
         # 使用音频文件直接URL而不是网页URL
         audio_url = _absolute_for_request(request, item['file_url'])
         # 备用页面链接，如果没有音频文件
-        item_link = audio_url or _absolute_for_request(request, reverse('audio_detail', args=[item['id']]))
+        item_link = audio_url or _absolute_for_request(
+            request,
+            reverse('audio_detail', kwargs={'segment_type': item['type'], 'segment_id': item['id']})
+        )
         
         # 处理音频时长
         if item['type'] == 'dialogue_script' and item.get('audio_duration'):
@@ -526,7 +545,10 @@ def audio_rss_feed_by_token(request, token, book_id=None):
         # 使用音频文件直接URL而不是网页URL
         audio_url = _absolute_for_request(request, item['file_url'])
         # 备用页面链接，如果没有音频文件
-        item_link = audio_url or _absolute_for_request(request, reverse('audio_detail', args=[item['id']]))
+        item_link = audio_url or _absolute_for_request(
+            request,
+            reverse('audio_detail', kwargs={'segment_type': item['type'], 'segment_id': item['id']})
+        )
 
         # 处理音频时长
         if item['type'] == 'dialogue_script' and item.get('audio_duration'):
