@@ -314,15 +314,33 @@ def translate_text_stream(user, texts, target_language, ip_address=None, user_ag
         error_occurred = False
         error_message = None
         models_used = set()
+        heartbeat_interval = 30
+        heartbeat_padding = '#' * 256
 
         # Send start event
         yield "event: start\ndata: Starting text translation...\n\n"
+        yield (
+            "event: progress\n"
+            "data: heartbeat - translation queued\n"
+            f"data: padding {heartbeat_padding}\n\n"
+        )
+        last_heartbeat = time.time()
 
         for chunk in chunk_iterator:
             if not chunk:
                 continue
 
             chunk_index += 1
+
+            # Emit heartbeat if需要
+            now = time.time()
+            if now - last_heartbeat >= heartbeat_interval:
+                yield (
+                    "event: progress\n"
+                    "data: heartbeat - translation in progress\n"
+                    f"data: padding {heartbeat_padding}\n\n"
+                )
+                last_heartbeat = time.time()
 
             # Check cache first
             cache_result, needs_translation = TranslationCache.get_or_create_cache(chunk, target_language)
@@ -332,12 +350,15 @@ def translate_text_stream(user, texts, target_language, ip_address=None, user_ag
                 translated_text = cache_result.translated_text
                 progress_msg = f"[缓存命中 {chunk_index}/{estimated_total_chunks}] 使用缓存翻译..."
                 yield f"event: progress\ndata: {progress_msg}\n\n"
+                last_heartbeat = time.time()
                 sse_formatted_text = translated_text.replace('\n', '\ndata: ')
                 yield f"event: message\ndata: {sse_formatted_text}\n\n"
+                last_heartbeat = time.time()
             else:
                 new_chunks += 1
                 progress_msg = f"[翻译中 {chunk_index}/{estimated_total_chunks}] 正在生成翻译..."
                 yield f"event: progress\ndata: {progress_msg}\n\n"
+                last_heartbeat = time.time()
 
                 result = llm_service.process_text(
                     system_prompt=system_prompt,
@@ -364,6 +385,7 @@ def translate_text_stream(user, texts, target_language, ip_address=None, user_ag
 
                     sse_formatted_text = translated_text.replace('\n', '\ndata: ')
                     yield f"event: message\ndata: {sse_formatted_text}\n\n"
+                    last_heartbeat = time.time()
                 else:
                     error_message = result.get('error') if isinstance(result, dict) else '翻译文本失败'
                     yield f"event: error\ndata: {error_message}\n\n"
