@@ -34,13 +34,15 @@
     <div class="mb-6">
         <div class="text-base-content flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:gap-6 lg:items-start">
             <div class="min-w-0">
-                <div class="flex items-start gap-2 flex-wrap">
-                    <h1 class="text-3xl font-bold break-words leading-snug" id="script-title-display">{{ script.title }}</h1>
-                    <button type="button"
-                            id="edit-script-btn"
-                            class="btn btn-ghost btn-sm text-blue-600 hover:text-blue-800">
-                        <i class="fas fa-edit"></i> 编辑
-                    </button>
+                <div class="flex flex-col gap-2 lg:flex-row lg:items-start lg:gap-3">
+                    <div class="flex items-start gap-2 flex-wrap">
+                        <h1 class="text-3xl font-bold break-words leading-snug flex-1" id="script-title-display">{{ script.title }}</h1>
+                        <button type="button"
+                                data-role="edit-script"
+                                class="btn btn-ghost btn-sm text-blue-600 hover:text-blue-800 hidden lg:inline-flex">
+                            <i class="fas fa-edit"></i> 编辑
+                        </button>
+                    </div>
                 </div>
                 <div class="mt-2 text-sm lg:text-base">
                     <span class="text-base-content/70">关联书籍：</span>
@@ -51,6 +53,11 @@
                 </div>
             </div>
             <div class="flex flex-wrap items-center justify-end gap-3 flex-shrink-0">
+                <button type="button"
+                        data-role="edit-script"
+                        class="btn btn-ghost btn-sm text-blue-600 hover:text-blue-800 lg:hidden">
+                    <i class="fas fa-edit"></i> 编辑
+                </button>
                 <a href="{% url 'dialogue_list' %}"
                    class="btn btn-outline flex-shrink-0">
                     <i class="fas fa-arrow-left mr-2"></i>返回列表
@@ -992,6 +999,65 @@ document.addEventListener('DOMContentLoaded', function() {
         return container.firstElementChild || null;
     }
 
+    function isPreviewingCurrentVoice(voiceName) {
+        return window.voicePreviewAudio && window.voicePreviewAudioName === voiceName;
+    }
+
+    function setPreviewButtonState(button, state) {
+        if (!button) {
+            return;
+        }
+
+        if (state === 'loading') {
+            button.innerHTML = '<span class="loading loading-spinner loading-xs"></span>';
+            button.disabled = true;
+            button.classList.add('btn-active');
+            return;
+        }
+
+        if (state === 'playing') {
+            button.innerHTML = '<i class="fas fa-stop"></i>';
+            button.disabled = false;
+            button.classList.add('btn-active');
+            return;
+        }
+
+        resetPreviewButton(button);
+    }
+
+    function resetPreviewButton(button) {
+        if (!button) {
+            return;
+        }
+
+        const original = button.dataset.originalContent || '<i class="fas fa-headphones"></i>';
+        button.innerHTML = original;
+        button.disabled = false;
+        button.classList.remove('btn-active');
+        delete button.dataset.originalContent;
+    }
+
+    function stopVoicePreview() {
+        const audio = window.voicePreviewAudio;
+        const trigger = window.voicePreviewTrigger;
+
+        window.voicePreviewAudio = null;
+        window.voicePreviewAudioName = null;
+        window.voicePreviewTrigger = null;
+
+        if (audio) {
+            try {
+                audio.pause();
+            } catch (error) {
+                console.warn('停止试听时出错:', error);
+            }
+        }
+
+        if (trigger) {
+            resetPreviewButton(trigger);
+        }
+    }
+
     if (voiceConfigForm) {
         voiceConfigForm.querySelectorAll('[data-voice-dropdown]').forEach((container) => {
             const speaker = container.dataset.speaker;
@@ -1339,6 +1405,7 @@ document.addEventListener('DOMContentLoaded', function() {
             selectBtn.className = 'flex-1 text-left text-sm';
             selectBtn.textContent = option.name || option.value;
             selectBtn.addEventListener('click', () => {
+                stopVoicePreview();
                 selectVoice(speaker, option.value, option.name || option.value);
             });
 
@@ -1391,6 +1458,7 @@ document.addEventListener('DOMContentLoaded', function() {
             delete voiceSettings[speaker];
         }
 
+        stopVoicePreview();
         if (menu) {
             menu.classList.add('hidden');
         }
@@ -1430,6 +1498,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     dropdown.menu.classList.toggle('hidden');
                     if (!dropdown.menu.classList.contains('hidden')) {
                         scrollSelectedIntoView(dropdown);
+                    } else {
+                        stopVoicePreview();
                     }
                 });
             }
@@ -1439,6 +1509,7 @@ document.addEventListener('DOMContentLoaded', function() {
             voiceDropdowns.forEach((dropdown) => {
                 if (!dropdown.container.contains(event.target)) {
                     dropdown.menu.classList.add('hidden');
+                    stopVoicePreview();
                 }
             });
         });
@@ -1456,9 +1527,16 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        if (isPreviewingCurrentVoice(voiceName)) {
+            stopVoicePreview();
+            return;
+        }
+
+        stopVoicePreview();
+
         const originalContent = triggerButton.innerHTML;
-        triggerButton.innerHTML = '<span class="loading loading-spinner loading-xs"></span>';
-        triggerButton.disabled = true;
+        triggerButton.dataset.originalContent = originalContent;
+        setPreviewButtonState(triggerButton, 'loading');
 
         try {
             const response = await fetch(`{% url 'tts_preview' %}`, {
@@ -1484,29 +1562,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error(data?.message || '试听失败');
             }
 
-            if (window.voicePreviewAudio) {
-                try {
-                    window.voicePreviewAudio.pause();
-                } catch (pauseError) {
-                    console.warn('暂停上一段试听音频失败:', pauseError);
-                }
-            }
-
             const audio = new Audio(data.audio_url);
             window.voicePreviewAudio = audio;
+            window.voicePreviewAudioName = voiceName;
+            window.voicePreviewTrigger = triggerButton;
+
+            audio.addEventListener('ended', stopVoicePreview);
+            audio.addEventListener('pause', () => {
+                if (audio.currentTime < audio.duration) {
+                    stopVoicePreview();
+                }
+            });
 
             try {
                 await audio.play();
+                setPreviewButtonState(triggerButton, 'playing');
             } catch (playError) {
                 console.error('播放试听音频失败:', playError);
                 showToast('浏览器阻止了自动播放，请点击播放按钮重试', 'error');
+                stopVoicePreview();
             }
         } catch (error) {
             console.error('音色试听失败:', error);
+            stopVoicePreview();
             showToast(error.message || '试听失败，请稍后重试', 'error');
         } finally {
-            triggerButton.innerHTML = originalContent;
-            triggerButton.disabled = false;
+            if (!isPreviewingCurrentVoice(voiceName)) {
+                resetPreviewButton(triggerButton);
+            }
         }
     }
     
@@ -1611,13 +1694,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // 绑定按钮事件
-    const editScriptBtn = document.getElementById('edit-script-btn');
+    const editScriptBtns = document.querySelectorAll('[data-role="edit-script"]');
     const deleteScriptBtn = document.getElementById('delete-script-btn');
     const publishBtn = document.getElementById('publish-btn');
     
     // 绑定脚本编辑按钮
-    if (editScriptBtn) {
-        editScriptBtn.addEventListener('click', editScript);
+    if (editScriptBtns.length) {
+        editScriptBtns.forEach((btn) => btn.addEventListener('click', editScript));
     }
     
     // 绑定发布按钮

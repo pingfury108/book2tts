@@ -687,6 +687,8 @@ if (voiceDropdownToggle) {
     voiceDropdownMenu.classList.toggle('hidden');
     if (!voiceDropdownMenu.classList.contains('hidden')) {
       scrollSelectedVoiceIntoView();
+    } else {
+      stopVoicePreview();
     }
   });
 }
@@ -695,6 +697,7 @@ document.addEventListener('click', (event) => {
   if (!voiceDropdown || !voiceDropdownMenu) return;
   if (!voiceDropdown.contains(event.target)) {
     voiceDropdownMenu.classList.add('hidden');
+    stopVoicePreview();
   }
 });
 
@@ -745,6 +748,7 @@ function buildVoiceDropdown() {
     selectBtn.textContent = option.textContent;
 
     selectBtn.addEventListener('click', () => {
+      stopVoicePreview();
       voiceHiddenSelect.value = option.value;
       voiceDropdownLabel.textContent = option.textContent;
       voiceDropdownMenu.classList.add('hidden');
@@ -805,9 +809,16 @@ async function previewVoice(voiceName, triggerButton) {
     return;
   }
 
+  if (isPreviewingCurrentVoice(voiceName)) {
+    stopVoicePreview();
+    return;
+  }
+
+  stopVoicePreview();
+
   const originalContent = triggerButton.innerHTML;
-  triggerButton.innerHTML = '<span class="loading loading-spinner loading-xs"></span>';
-  triggerButton.disabled = true;
+  triggerButton.dataset.originalContent = originalContent;
+  setPreviewButtonState(triggerButton, 'loading');
 
   try {
     const response = await fetch(`{% url 'tts_preview' %}`, {
@@ -843,19 +854,90 @@ async function previewVoice(voiceName, triggerButton) {
 
     const audio = new Audio(data.audio_url);
     window.voicePreviewAudio = audio;
+    window.voicePreviewAudioName = voiceName;
+    window.voicePreviewTrigger = triggerButton;
+
+    audio.addEventListener('ended', stopVoicePreview);
+    audio.addEventListener('pause', () => {
+      if (audio.currentTime < audio.duration) {
+        stopVoicePreview();
+      }
+    });
 
     try {
       await audio.play();
+      setPreviewButtonState(triggerButton, 'playing');
     } catch (playError) {
       console.error('播放试听音频失败:', playError);
       alert('浏览器阻止了自动播放，请点击播放按钮重试');
+      stopVoicePreview();
     }
   } catch (error) {
     console.error('音色试听失败:', error);
     alert(error.message || '试听失败，请稍后重试');
   } finally {
-    triggerButton.innerHTML = originalContent;
-    triggerButton.disabled = false;
+    if (!isPreviewingCurrentVoice(voiceName)) {
+      resetPreviewButton(triggerButton);
+    }
+  }
+}
+
+function isPreviewingCurrentVoice(voiceName) {
+  return window.voicePreviewAudio && window.voicePreviewAudioName === voiceName;
+}
+
+function setPreviewButtonState(button, state) {
+  if (!button) {
+    return;
+  }
+
+  if (state === 'loading') {
+    button.innerHTML = '<span class="loading loading-spinner loading-xs"></span>';
+    button.disabled = true;
+    button.classList.add('btn-active');
+    return;
+  }
+
+  if (state === 'playing') {
+    button.innerHTML = '<i class="fas fa-stop"></i>';
+    button.disabled = false;
+    button.classList.add('btn-active');
+    return;
+  }
+
+  resetPreviewButton(button);
+}
+
+function resetPreviewButton(button) {
+  if (!button) {
+    return;
+  }
+
+  const original = button.dataset.originalContent || '<i class="fas fa-headphones"></i>';
+  button.innerHTML = original;
+  button.disabled = false;
+  button.classList.remove('btn-active');
+  delete button.dataset.originalContent;
+}
+
+function stopVoicePreview() {
+  const audio = window.voicePreviewAudio;
+  const trigger = window.voicePreviewTrigger;
+
+  window.voicePreviewAudio = null;
+  window.voicePreviewAudioName = null;
+  window.voicePreviewTrigger = null;
+
+  if (audio) {
+    try {
+      audio.pause();
+    } catch (error) {
+      console.warn('停止试听时出错:', error);
+    }
+  }
+
+  if (trigger) {
+    resetPreviewButton(trigger);
   }
 }
 
