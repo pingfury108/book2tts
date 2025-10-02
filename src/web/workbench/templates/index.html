@@ -579,6 +579,107 @@ const voiceDropdownToggle = document.getElementById('voice-dropdown-toggle');
 const voiceDropdownMenu = document.getElementById('voice-dropdown-menu');
 const voiceDropdownLabel = document.getElementById('voice-dropdown-label');
 const voiceHiddenSelect = document.getElementById('voice-model');
+const browserVoicePreferences = getBrowserLanguagePreferences();
+
+function getBrowserLanguagePreferences() {
+  if (typeof navigator === 'undefined') {
+    return ['en-us', 'en'];
+  }
+
+  const rawList = navigator.languages && navigator.languages.length
+    ? Array.from(navigator.languages)
+    : [navigator.language || navigator.userLanguage || ''];
+
+  const normalized = [];
+
+  rawList.forEach((raw) => {
+    const localeInfo = normalizeLocale(raw);
+    if (!localeInfo) {
+      return;
+    }
+
+    if (localeInfo.locale && !normalized.includes(localeInfo.locale)) {
+      normalized.push(localeInfo.locale);
+    }
+    if (localeInfo.lang && !normalized.includes(localeInfo.lang)) {
+      normalized.push(localeInfo.lang);
+    }
+  });
+
+  if (!normalized.includes('en-us')) {
+    normalized.push('en-us');
+  }
+  if (!normalized.includes('en')) {
+    normalized.push('en');
+  }
+
+  return normalized;
+}
+
+function normalizeLocale(locale) {
+  if (!locale || typeof locale !== 'string') {
+    return null;
+  }
+
+  const cleaned = locale.trim().replace('_', '-');
+  if (!cleaned) {
+    return null;
+  }
+
+  const segments = cleaned.split('-');
+  if (!segments.length) {
+    return null;
+  }
+
+  const lang = segments[0].toLowerCase();
+  const region = segments[1] ? segments[1].toUpperCase() : '';
+  const normalizedLocale = region ? `${lang}-${region}` : lang;
+
+  return {
+    locale: normalizedLocale.toLowerCase(),
+    lang,
+  };
+}
+
+function extractVoiceLocale(shortName) {
+  if (!shortName || typeof shortName !== 'string') {
+    return { locale: '', lang: '' };
+  }
+
+  const parts = shortName.split('-');
+  if (parts.length < 2) {
+    const lang = parts[0] ? parts[0].toLowerCase() : '';
+    return { locale: lang, lang };
+  }
+
+  const lang = parts[0].toLowerCase();
+  const region = parts[1] ? parts[1].toUpperCase() : '';
+  const locale = region ? `${lang}-${region}` : lang;
+
+  return { locale: locale.toLowerCase(), lang };
+}
+
+function findPreferredVoiceItem(container) {
+  if (!container) {
+    return null;
+  }
+
+  for (const preference of browserVoicePreferences) {
+    const exactMatch = container.querySelector(`[data-voice-locale="${preference}"]`);
+    if (exactMatch) {
+      return exactMatch;
+    }
+
+    if (!preference.includes('-')) {
+      const fallbackMatch = container.querySelector(`[data-voice-lang="${preference}"]`);
+      if (fallbackMatch) {
+        return fallbackMatch;
+      }
+    }
+  }
+
+  return container.firstElementChild || null;
+}
 
 if (voiceDropdownToggle) {
   voiceDropdownToggle.addEventListener('click', () => {
@@ -634,6 +735,9 @@ function buildVoiceDropdown() {
     const item = document.createElement('div');
     item.className = 'flex items-center gap-2 px-3 py-2 cursor-pointer transition-colors duration-150';
     item.dataset.voiceValue = option.value;
+    const localeInfo = extractVoiceLocale(option.value);
+    item.dataset.voiceLocale = localeInfo.locale;
+    item.dataset.voiceLang = localeInfo.lang;
 
     const selectBtn = document.createElement('button');
     selectBtn.type = 'button';
@@ -677,10 +781,19 @@ function buildVoiceDropdown() {
 }
 
 function scrollSelectedVoiceIntoView() {
-  if (!voiceDropdownMenu) return;
+  if (!voiceDropdownMenu) {
+    return;
+  }
+
   const selectedItem = voiceDropdownMenu.querySelector('[data-selected="true"]');
   if (selectedItem) {
     selectedItem.scrollIntoView({ block: 'nearest' });
+    return;
+  }
+
+  const preferredItem = findPreferredVoiceItem(voiceDropdownMenu);
+  if (preferredItem) {
+    preferredItem.scrollIntoView({ block: 'nearest' });
   }
 }
 
