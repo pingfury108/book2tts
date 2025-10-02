@@ -226,7 +226,7 @@
                     </h3>
                     {% if script.subtitle_file and script.subtitle_file.name %}
                     <button id="generate-dialogue-chapters-btn"
-                        class="btn btn-sm btn-outline w-32 sm:w-36 justify-center"
+                        class="btn btn-sm btn-outline justify-center whitespace-nowrap px-3"
                         data-target-url="{% url 'dialogue_generate_chapters' script.id %}"
                         data-force="{% if script.chapters %}true{% else %}false{% endif %}">
                         <i class="fas fa-magic mr-1"></i>

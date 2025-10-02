@@ -1,4 +1,5 @@
 import logging
+import re
 import time
 
 from django.contrib.auth.decorators import login_required
@@ -266,7 +267,29 @@ def translate_text_stream(user, texts, target_language, ip_address=None, user_ag
 
         total_chars = len(texts)
         chunk_size = 1000
-        total_chunks = (total_chars + chunk_size - 1) // chunk_size
+
+        # Split文本，确保段落级别的逐段返回体验
+        raw_parts = re.split(r'(\n{2,})', texts)
+
+        def iter_units():
+            for part in raw_parts:
+                if part is None or part == '':
+                    continue
+
+                if part.strip() == '' and '\n' in part:
+                    yield ('separator', part, False)
+                    continue
+
+                part_length = len(part)
+                for offset in range(0, part_length, chunk_size):
+                    sub_text = part[offset: offset + chunk_size]
+                    if not sub_text:
+                        continue
+                    is_last = (offset + chunk_size) >= part_length
+                    yield ('text', sub_text, is_last)
+
+        units = list(iter_units())
+        total_chunks = sum(1 for unit in units if unit[0] == 'text') or 1
         cached_chunks = 0
         new_chunks = 0
         chunk_index = 0
@@ -280,41 +303,40 @@ def translate_text_stream(user, texts, target_language, ip_address=None, user_ag
         # Send start event
         yield "event: start\ndata: Starting text translation...\n\n"
 
-        for i in range(0, total_chars, chunk_size):
-            chunk = texts[i:i + chunk_size]
-            chunk_index = i // chunk_size + 1
+        pending_separator = ''
+
+        for unit_type, value, is_last_in_part in units:
+            if unit_type == 'separator':
+                pending_separator += value
+                continue
+
+            chunk = value
+            chunk_index += 1
 
             # Check cache first
             cache_result, needs_translation = TranslationCache.get_or_create_cache(chunk, target_language)
 
             if not needs_translation and cache_result:
-                # Cache hit - use cached translation
                 cached_chunks += 1
                 translated_text = cache_result.translated_text
-
-                # Send progress message
                 progress_msg = f"[缓存命中 {chunk_index}/{total_chunks}] 使用缓存翻译..."
                 yield f"event: progress\ndata: {progress_msg}\n\n"
-
-                # Send cached translated text directly via SSE
+                if pending_separator and is_last_in_part:
+                    translated_text += pending_separator
+                    pending_separator = ''
                 sse_formatted_text = translated_text.replace('\n', '\ndata: ')
                 yield f"event: message\ndata: {sse_formatted_text}\n\n"
-
             else:
-                # Cache miss - need to translate
                 new_chunks += 1
-
-                # Send progress message
                 progress_msg = f"[翻译中 {chunk_index}/{total_chunks}] 正在生成翻译..."
                 yield f"event: progress\ndata: {progress_msg}\n\n"
 
                 result = llm_service.process_text(
                     system_prompt=system_prompt,
                     user_content=chunk,
-                    temperature=0.3  # Lower temperature for more consistent translation
+                    temperature=0.3
                 )
 
-                # Extract result text content
                 if isinstance(result, dict) and result.get('success') and result.get('result'):
                     translated_text = result['result']
                     usage = result.get('usage') or {}
@@ -327,24 +349,27 @@ def translate_text_stream(user, texts, target_language, ip_address=None, user_ag
                     if model_name:
                         models_used.add(model_name)
 
-                    # Save to cache
                     try:
                         TranslationCache.create_cache(chunk, target_language, translated_text)
                     except Exception as cache_error:
                         print(f"Error saving translation cache: {cache_error}")
-                        # Continue without caching if there's an error
 
-                    # Send translated text directly via SSE
+                    if pending_separator and is_last_in_part:
+                        translated_text += pending_separator
+                        pending_separator = ''
+
                     sse_formatted_text = translated_text.replace('\n', '\ndata: ')
                     yield f"event: message\ndata: {sse_formatted_text}\n\n"
                 else:
-                    # Handle error cases
                     error_message = result.get('error') if isinstance(result, dict) else '翻译文本失败'
                     yield f"event: error\ndata: {error_message}\n\n"
                     break
 
-            # Add a small delay to prevent overwhelming the client
-            time.sleep(0.1)
+                time.sleep(0.1)
+
+        if pending_separator:
+            sse_formatted_separator = pending_separator.replace('\n', '\ndata: ')
+            yield f"event: message\ndata: {sse_formatted_separator}\n\n"
 
         else:
             success = True
