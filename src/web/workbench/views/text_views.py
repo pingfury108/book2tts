@@ -1,5 +1,4 @@
 import logging
-import re
 import time
 
 from django.contrib.auth.decorators import login_required
@@ -267,50 +266,62 @@ def translate_text_stream(user, texts, target_language, ip_address=None, user_ag
 
         total_chars = len(texts)
         chunk_size = 1000
+        estimated_total_chunks = max(1, (total_chars + chunk_size - 1) // chunk_size)
 
-        # Split文本，确保段落级别的逐段返回体验
-        raw_parts = re.split(r'(\n{2,})', texts)
+        def iter_line_chunks(text, max_chunk_size):
+            if not text:
+                return
 
-        def iter_units():
-            for part in raw_parts:
-                if part is None or part == '':
+            buffer = []
+            current_len = 0
+
+            for line in text.splitlines(keepends=True):
+                line_len = len(line)
+
+                # 针对超长单行，直接按阈值切分
+                if line_len >= max_chunk_size:
+                    if buffer:
+                        yield ''.join(buffer)
+                        buffer = []
+                        current_len = 0
+
+                    start = 0
+                    while start < line_len:
+                        end = start + max_chunk_size
+                        yield line[start:end]
+                        start = end
                     continue
 
-                if part.strip() == '' and '\n' in part:
-                    yield ('separator', part, False)
-                    continue
+                # 缓冲区即将超出阈值，则先输出
+                if buffer and current_len + line_len > max_chunk_size:
+                    yield ''.join(buffer)
+                    buffer = []
+                    current_len = 0
 
-                part_length = len(part)
-                for offset in range(0, part_length, chunk_size):
-                    sub_text = part[offset: offset + chunk_size]
-                    if not sub_text:
-                        continue
-                    is_last = (offset + chunk_size) >= part_length
-                    yield ('text', sub_text, is_last)
+                buffer.append(line)
+                current_len += line_len
 
-        units = list(iter_units())
-        total_chunks = sum(1 for unit in units if unit[0] == 'text') or 1
+            if buffer:
+                yield ''.join(buffer)
+
+        chunk_iterator = iter_line_chunks(texts, chunk_size)
         cached_chunks = 0
         new_chunks = 0
         chunk_index = 0
         total_prompt_tokens = 0
         total_completion_tokens = 0
         total_tokens = 0
-        success = False
+        error_occurred = False
         error_message = None
         models_used = set()
 
         # Send start event
         yield "event: start\ndata: Starting text translation...\n\n"
 
-        pending_separator = ''
-
-        for unit_type, value, is_last_in_part in units:
-            if unit_type == 'separator':
-                pending_separator += value
+        for chunk in chunk_iterator:
+            if not chunk:
                 continue
 
-            chunk = value
             chunk_index += 1
 
             # Check cache first
@@ -319,16 +330,13 @@ def translate_text_stream(user, texts, target_language, ip_address=None, user_ag
             if not needs_translation and cache_result:
                 cached_chunks += 1
                 translated_text = cache_result.translated_text
-                progress_msg = f"[缓存命中 {chunk_index}/{total_chunks}] 使用缓存翻译..."
+                progress_msg = f"[缓存命中 {chunk_index}/{estimated_total_chunks}] 使用缓存翻译..."
                 yield f"event: progress\ndata: {progress_msg}\n\n"
-                if pending_separator and is_last_in_part:
-                    translated_text += pending_separator
-                    pending_separator = ''
                 sse_formatted_text = translated_text.replace('\n', '\ndata: ')
                 yield f"event: message\ndata: {sse_formatted_text}\n\n"
             else:
                 new_chunks += 1
-                progress_msg = f"[翻译中 {chunk_index}/{total_chunks}] 正在生成翻译..."
+                progress_msg = f"[翻译中 {chunk_index}/{estimated_total_chunks}] 正在生成翻译..."
                 yield f"event: progress\ndata: {progress_msg}\n\n"
 
                 result = llm_service.process_text(
@@ -354,41 +362,34 @@ def translate_text_stream(user, texts, target_language, ip_address=None, user_ag
                     except Exception as cache_error:
                         print(f"Error saving translation cache: {cache_error}")
 
-                    if pending_separator and is_last_in_part:
-                        translated_text += pending_separator
-                        pending_separator = ''
-
                     sse_formatted_text = translated_text.replace('\n', '\ndata: ')
                     yield f"event: message\ndata: {sse_formatted_text}\n\n"
                 else:
                     error_message = result.get('error') if isinstance(result, dict) else '翻译文本失败'
                     yield f"event: error\ndata: {error_message}\n\n"
+                    error_occurred = True
                     break
 
-                time.sleep(0.1)
-
-        if pending_separator:
-            sse_formatted_separator = pending_separator.replace('\n', '\ndata: ')
-            yield f"event: message\ndata: {sse_formatted_separator}\n\n"
-
-        else:
-            success = True
-
-        if success:
-            stats_msg = f"翻译完成！共处理 {total_chunks} 个片段，其中 {cached_chunks} 个来自缓存，{new_chunks} 个新生成。"
+        if not error_occurred:
+            stats_msg = (
+                f"翻译完成！共处理 {chunk_index} 个片段，其中 {cached_chunks} 个来自缓存，"
+                f"{new_chunks} 个新生成。"
+            )
             yield f"event: complete\ndata: {stats_msg}\n\n"
 
     except Exception as e:
         # Send error event with proper event type
         error_message = str(e)
+        error_occurred = True
         logger.error("Error in translate_text_stream: %s", error_message)
         yield f"event: error\ndata: [ERROR] {error_message}\n\n"
     finally:
         try:
+            success = not error_occurred and error_message is None
             metadata = {
                 'total_chars': len(texts),
                 'chunk_size': 1000,
-                'total_chunks': total_chunks,
+                'total_chunks': chunk_index,
                 'cached_chunks': cached_chunks,
                 'new_chunks': new_chunks,
                 'prompt_tokens': total_prompt_tokens,
