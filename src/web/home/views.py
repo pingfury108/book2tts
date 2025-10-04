@@ -703,6 +703,60 @@ def operation_records(request):
     return render(request, "home/operation_records.html", context)
 
 
+def explore(request):
+    """探索页面 - 显示所有已发布的公开音频，支持搜索"""
+    # 搜索功能
+    search_query = request.GET.get('q', '').strip()
+
+    # 使用数据库搜索获取音频内容
+    all_audio_items = get_unified_audio_content(
+        published_only=True,
+        search_query=search_query
+    )
+
+    # 分页配置
+    display_title = '探索音频作品'
+    if search_query:
+        display_title = f'搜索: "{search_query}"'
+
+    page_size_options = [12, 24, 36, 48]
+    default_page_size = 12
+    min_page_size = min(page_size_options)
+    max_page_size = max(page_size_options)
+
+    # 分页处理
+    page = request.GET.get('page', 1)
+    try:
+        page_size = int(request.GET.get('page_size', default_page_size))
+        page_size = min(max(page_size, min_page_size), max_page_size)
+    except (ValueError, TypeError):
+        page_size = default_page_size
+
+    # 创建分页器
+    paginator = Paginator(all_audio_items, page_size)
+
+    try:
+        audio_segments = paginator.page(page)
+    except PageNotAnInteger:
+        audio_segments = paginator.page(1)
+    except EmptyPage:
+        if paginator.num_pages > 0:
+            audio_segments = paginator.page(paginator.num_pages)
+        else:
+            audio_segments = paginator.page(1)
+
+    context = {
+        'audio_segments': audio_segments,
+        'display_title': display_title,
+        'paginator': paginator,
+        'page_size': page_size,
+        'page_size_options': page_size_options,
+        'search_query': search_query,
+    }
+
+    return render(request, "home/explore.html", context)
+
+
 def about(request):
     """关于页面"""
     context = {

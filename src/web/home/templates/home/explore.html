@@ -1,0 +1,395 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}探索 - Book2TTS{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+  <!-- 搜索区域 -->
+  <div class="mb-6 sm:mb-8">
+    <div class="text-center">
+      <div class="max-w-2xl mx-auto px-2 sm:px-0">
+        <h1 class="text-2xl sm:text-4xl font-bold mb-3 sm:mb-4">探索音频作品</h1>
+
+        <!-- 搜索框 -->
+        <form method="get" action="{% url 'explore' %}" class="flex gap-2 max-w-md mx-auto px-2 sm:px-0">
+          <div class="relative flex-1">
+            <input
+              type="text"
+              name="q"
+              value="{{ search_query }}"
+              placeholder="搜索标题、内容或书籍名称..."
+              class="input input-bordered w-full pr-12 text-sm sm:text-base"
+            >
+            <button type="submit" class="absolute right-2 top-1/2 transform -translate-y-1/2 btn btn-ghost btn-sm">
+              <i class="fas fa-search"></i>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
+    <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+      <h2 class="text-xl sm:text-2xl font-bold">{{ display_title }}</h2>
+      {% if search_query %}
+        <span class="badge badge-primary">{{ paginator.count }} 个结果</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- 音频列表区域 -->
+  {% if audio_segments %}
+    {% if audio_segments.object_list %}
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 px-1 sm:px-0">
+        {% for segment in audio_segments %}
+          <div class="card bg-base-100 border border-base-200 shadow-lg hover:shadow-xl transition-transform duration-200 hover:-translate-y-1">
+            <div class="card-body gap-3 sm:gap-4">
+              <div class="flex items-start justify-between gap-2 sm:gap-3">
+                <div class="flex items-center gap-2 sm:gap-3">
+                  <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-purple-600 to-purple-800 flex items-center justify-center text-white flex-shrink-0">
+                    <i class="fas fa-headphones text-sm sm:text-lg"></i>
+                  </div>
+                  <div class="flex flex-col min-w-0 flex-1">
+                    {% if segment.book %}
+                      <a href="{% url 'book_audio_list' segment.book.id %}"
+                         class="badge badge-primary badge-outline text-xs inline-flex items-center shrink-0 px-0 max-w-[8rem] sm:max-w-[12rem]"
+                         title="{{ segment.book.name }}">
+                        <span class="block px-2 sm:px-4 py-0.5 overflow-hidden text-ellipsis whitespace-nowrap text-left leading-tight">
+                          {{ segment.book.name }}
+                        </span>
+                      </a>
+                    {% else %}
+                      <span class="badge badge-outline text-xs">独立片段</span>
+                    {% endif %}
+                    <span class="text-xs text-base-content/60 mt-1 flex items-center gap-1 truncate">
+                      <i class="fas fa-user"></i>
+                      {{ segment.user.username }}
+                    </span>
+                    <span class="text-xs text-base-content/60 flex items-center gap-1 truncate">
+                      <i class="fas fa-calendar-alt"></i>
+                      {{ segment.updated_at|date:"Y-m-d H:i" }}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  class="btn btn-sm btn-circle bg-purple-700 hover:bg-purple-800 border-none text-white play-audio-btn flex-shrink-0"
+                  title="播放"
+                  data-audio-url="{{ segment.file_url }}"
+                  data-audio-title="{{ segment.title }}"
+                  data-subtitle-url="{% if segment.subtitle_file %}{{ segment.subtitle_file.url }}{% endif %}"
+                  data-chapters-url="{% if segment.chapters_file and segment.chapters_file.url %}{{ segment.chapters_file.url }}{% endif %}"
+                  {% if segment.chapters %}data-chapters-target="explore-chapters-{{ segment.type }}-{{ segment.id }}"{% endif %}
+                >
+                  <i class="fas fa-play"></i>
+                </button>
+              </div>
+
+              <div class="space-y-2">
+                <h3 class="text-base sm:text-lg font-semibold text-base-content line-clamp-2 min-h-[2.5rem] sm:min-h-[3rem]">{{ segment.title }}</h3>
+                <p class="text-xs sm:text-sm text-base-content/70 line-clamp-3 min-h-[3.5rem] sm:min-h-[4.5rem]">
+                  {{ segment.text|truncatechars:180 }}
+                </p>
+              </div>
+
+              <div class="flex flex-wrap items-center justify-between gap-1 sm:gap-2 pt-2 border-t border-base-200">
+                <a href="{% url 'audio_detail' segment.type segment.id %}"
+                   class="btn btn-xs sm:btn-sm btn-outline border-purple-700 text-purple-700 hover:bg-purple-100">
+                  详情
+                </a>
+                <div class="flex items-center gap-1 sm:gap-2">
+                  {% if segment.subtitle_file %}
+                    <a href="{{ segment.subtitle_file.url }}" class="btn btn-xs sm:btn-sm btn-ghost" download>
+                      <i class="fas fa-download mr-1"></i>字幕
+                    </a>
+                    <button class="btn btn-xs sm:btn-sm btn-ghost view-subtitles"
+                            data-segment-id="{{ segment.type }}-{{ segment.id }}"
+                            data-subtitle-url="{{ segment.subtitle_file.url }}">
+                      <i class="fas fa-closed-captioning mr-1"></i>查看
+                    </button>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            {% if segment.chapters %}
+              {% with segment_id_str=segment.id|stringformat:'s' segment_type_str=segment.type|stringformat:'s' %}
+                {% with script_id='explore-chapters-'|add:segment_type_str|add:'-'|add:segment_id_str %}
+                  {{ segment.chapters|json_script:script_id }}
+                {% endwith %}
+              {% endwith %}
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="alert alert-info shadow-lg">
+        <div>
+          <i class="fas fa-info-circle text-lg"></i>
+          <span>{% if search_query %}没有找到匹配的音频内容。{% else %}暂时没有公开音频。{% endif %}</span>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- 分页导航 - 只有有音频数据时才显示 -->
+    {% if paginator %}
+      <div class="flex flex-col gap-3 sm:gap-4 mt-6 sm:mt-8 px-1 sm:px-0">
+        <!-- 分页信息 -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+          <!-- 项目数量信息 -->
+          <div class="flex items-center text-xs text-base-content opacity-70">
+            <i class="fas fa-file-alt text-xs mr-1"></i>
+            <span>显示 {{ audio_segments.start_index }}-{{ audio_segments.end_index }} 项，共 {{ paginator.count }} 项</span>
+          </div>
+
+          <!-- 每页显示数量选择器 -->
+          <div class="flex items-center gap-1 sm:gap-2 text-xs">
+            <span class="hidden sm:inline">每页显示:</span>
+            <span class="sm:hidden">每页:</span>
+            <select
+              class="select select-xs sm:select-sm w-20 sm:w-24"
+              onchange="changePageSize(this.value)"
+              id="page-size-selector">
+              {% for size in page_size_options %}
+                <option value="{{ size }}" {% if size == page_size %}selected{% endif %}>{{ size }}</option>
+              {% endfor %}
+            </select>
+            <span class="hidden sm:inline">项</span>
+          </div>
+        </div>
+
+        <!-- 分页按钮 - 只有超过1页时才显示 -->
+        {% if paginator.num_pages > 1 %}
+        <div class="flex justify-center">
+          <div class="join">
+            {% if audio_segments.has_previous %}
+              <a href="?page=1{% if page_size != 12 %}&page_size={{ page_size }}{% endif %}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="join-item btn btn-xs">«</a>
+              <a href="?page={{ audio_segments.previous_page_number }}{% if page_size != 12 %}&page_size={{ page_size }}{% endif %}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="join-item btn btn-xs">‹</a>
+            {% endif %}
+
+            {% for num in audio_segments.paginator.page_range %}
+              {% if num == audio_segments.number %}
+                <span class="join-item btn btn-xs btn-active">{{ num }}</span>
+              {% elif num > audio_segments.number|add:'-2' and num < audio_segments.number|add:'2' %}
+                <a href="?page={{ num }}{% if page_size != 12 %}&page_size={{ page_size }}{% endif %}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="join-item btn btn-xs">{{ num }}</a>
+              {% elif num == 1 or num == audio_segments.paginator.num_pages %}
+                <a href="?page={{ num }}{% if page_size != 12 %}&page_size={{ page_size }}{% endif %}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="join-item btn btn-xs">{{ num }}</a>
+              {% elif num == audio_segments.number|add:'-3' or num == audio_segments.number|add:'3' %}
+                <span class="join-item btn btn-xs btn-disabled">...</span>
+              {% endif %}
+            {% endfor %}
+
+            {% if audio_segments.has_next %}
+              <a href="?page={{ audio_segments.next_page_number }}{% if page_size != 12 %}&page_size={{ page_size }}{% endif %}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="join-item btn btn-xs">›</a>
+              <a href="?page={{ audio_segments.paginator.num_pages }}{% if page_size != 12 %}&page_size={{ page_size }}{% endif %}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="join-item btn btn-xs">»</a>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    {% endif %}
+  {% endif %}
+</div>
+
+<!-- 字幕查看模态窗口 -->
+<div id="subtitle-modal" class="modal">
+  <div class="modal-box w-11/12 max-w-3xl">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="font-bold text-lg">字幕内容</h3>
+      <button class="btn btn-sm btn-circle btn-ghost" onclick="closeSubtitleModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div id="subtitle-content" class="max-h-96 overflow-y-auto">
+      <div class="text-center text-gray-500">
+        <i class="fas fa-spinner fa-spin mr-2"></i>
+        加载字幕中...
+      </div>
+    </div>
+
+    <div class="modal-action">
+      <button class="btn btn-secondary" id="download-subtitle-btn">
+        <i class="fas fa-download mr-2"></i>下载字幕
+      </button>
+      <button class="btn" onclick="closeSubtitleModal()">关闭</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block script %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const playerContainer = document.getElementById('audio-player-container');
+    const audioPlayerMobile = document.getElementById('audio-player-mobile');
+    const audioPlayerDesktop = document.getElementById('audio-player-desktop');
+    const audioTitleMobile = document.getElementById('audio-title-mobile');
+    const audioTitleDesktop = document.getElementById('audio-title-desktop');
+    const closePlayerMobile = document.getElementById('close-player-mobile');
+    const closePlayerDesktop = document.getElementById('close-player-desktop');
+    const playButtons = document.querySelectorAll('.play-audio-btn');
+    const viewSubtitlesButtons = document.querySelectorAll('.view-subtitles');
+    const subtitleModal = document.getElementById('subtitle-modal');
+    const subtitleContent = document.getElementById('subtitle-content');
+    const downloadSubtitleBtn = document.getElementById('download-subtitle-btn');
+
+    let currentSubtitleUrl = '';
+
+    // 字幕查看功能
+    viewSubtitlesButtons.forEach(button => {
+      button.addEventListener('click', function(e) {
+        e.preventDefault();
+        const subtitleUrl = this.getAttribute('data-subtitle-url');
+        currentSubtitleUrl = subtitleUrl;
+        showSubtitleModal(subtitleUrl);
+      });
+    });
+
+    // 下载字幕按钮
+    downloadSubtitleBtn.addEventListener('click', function() {
+      if (currentSubtitleUrl) {
+        const link = document.createElement('a');
+        link.href = currentSubtitleUrl;
+        link.download = '';
+        link.click();
+      }
+    });
+
+    // 使用全局播放器播放音频
+    playButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        const audioUrl = this.getAttribute('data-audio-url');
+        const title = this.getAttribute('data-audio-title');
+        const subtitleUrl = this.getAttribute('data-subtitle-url');
+        const chapterTargetId = this.getAttribute('data-chapters-target');
+        const chapterUrl = this.getAttribute('data-chapters-url');
+        let chapters = [];
+
+        if (chapterTargetId) {
+          const scriptEl = document.getElementById(chapterTargetId);
+          if (scriptEl) {
+            try {
+              chapters = JSON.parse(scriptEl.textContent);
+            } catch (error) {
+              console.warn('[探索页] 章节数据解析失败:', error);
+            }
+          }
+        }
+
+        const chapterOptions = {
+          chapters,
+          chaptersUrl: chapterUrl || null
+        };
+
+        if (window.globalAudioPlayer) {
+          // 如果有字幕文件，加载字幕
+          if (subtitleUrl) {
+            fetch(subtitleUrl)
+              .then(response => response.text())
+              .then(srtContent => {
+                const subtitles = window.globalAudioPlayer.parseSRTSubtitles(srtContent);
+                window.globalAudioPlayer.playAudio(audioUrl, title, subtitles, chapterOptions);
+              })
+              .catch(() => {
+                // 如果字幕加载失败，仍然播放音频
+                window.globalAudioPlayer.playAudio(audioUrl, title, null, chapterOptions);
+              });
+          } else {
+            // 无字幕文件，直接播放
+            window.globalAudioPlayer.playAudio(audioUrl, title, null, chapterOptions);
+          }
+        } else {
+          console.error('全局播放器未初始化');
+        }
+      });
+    });
+  });
+
+  // 字幕功能函数
+  function showSubtitleModal(subtitleUrl) {
+    const modal = document.getElementById('subtitle-modal');
+    const content = document.getElementById('subtitle-content');
+
+    // 重置内容
+    content.innerHTML = `
+      <div class="text-center text-gray-500">
+        <i class="fas fa-spinner fa-spin mr-2"></i>
+        加载字幕中...
+      </div>
+    `;
+
+    // 显示模态窗口
+    modal.classList.add('modal-open');
+
+    // 加载字幕内容
+    fetch(subtitleUrl)
+      .then(response => response.text())
+      .then(subtitleText => {
+        content.innerHTML = formatSubtitles(subtitleText);
+      })
+      .catch(error => {
+        content.innerHTML = `
+          <div class="text-center text-red-500">
+            <i class="fas fa-exclamation-triangle mr-2"></i>
+            加载字幕失败
+          </div>
+        `;
+      });
+  }
+
+  function closeSubtitleModal() {
+    const modal = document.getElementById('subtitle-modal');
+    modal.classList.remove('modal-open');
+  }
+
+  function formatSubtitles(srtText) {
+    if (!srtText.trim()) {
+      return '<div class="text-center text-gray-500">暂无字幕内容</div>';
+    }
+
+    // 解析SRT格式字幕
+    const entries = srtText.trim().split('\n\n');
+    let html = '<div class="space-y-3">';
+
+    entries.forEach(entry => {
+      const lines = entry.trim().split('\n');
+      if (lines.length >= 3) {
+        const number = lines[0];
+        const timestamp = lines[1];
+        let text = lines.slice(2).join('\n');
+
+        // 清理多余空格
+        text = cleanSubtitleText(text);
+
+        html += `
+          <div class="border-l-4 border-primary pl-4 py-2 bg-base-200 rounded-r-lg">
+            <div class="text-xs text-gray-500 mb-1 font-mono">${timestamp}</div>
+            <div class="text-sm leading-relaxed">${text}</div>
+          </div>
+        `;
+      }
+    });
+
+    html += '</div>';
+    return html;
+  }
+
+  // 清理字幕文本中的多余空格
+  function cleanSubtitleText(text) {
+    // 去除所有空格
+    text = text.replace(/\s+/g, '');
+
+    return text;
+  }
+
+  // 处理每页显示数量变化
+  function changePageSize(newSize) {
+    const url = new URL(window.location);
+    url.searchParams.set('page_size', newSize);
+    url.searchParams.set('page', '1'); // 重置到第一页
+    window.location.href = url.toString();
+  }
+</script>
+{% endblock %}

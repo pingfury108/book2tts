@@ -110,28 +110,38 @@ def get_or_create_dialogue_virtual_book(user):
     return virtual_book
 
 
-def get_unified_audio_content(user=None, book=None, published_only=True):
+def get_unified_audio_content(user=None, book=None, published_only=True, search_query=None):
     """
     统一获取音频内容（AudioSegment + DialogueScript）
     返回统一格式的数据列表，按创建时间倒序排列
     """
     audio_items = []
-    
+
     # 构建查询条件
     audio_filter = Q()
     dialogue_filter = Q()
-    
+
     if user:
         audio_filter &= Q(user=user)
         dialogue_filter &= Q(user=user)
-    
+
     if book:
         audio_filter &= Q(book=book)
         dialogue_filter &= Q(book=book)
-    
+
     if published_only:
         audio_filter &= Q(published=True)
         dialogue_filter &= Q(published=True)
+
+    # 搜索功能 - 在数据库层面进行搜索
+    if search_query:
+        # 对于音频片段，搜索标题、内容和书籍名称
+        audio_search_filter = Q(title__icontains=search_query) | Q(text__icontains=search_query) | Q(book__name__icontains=search_query)
+        audio_filter &= audio_search_filter
+
+        # 对于对话脚本，搜索标题、原始文本和书籍名称
+        dialogue_search_filter = Q(title__icontains=search_query) | Q(original_text__icontains=search_query) | Q(book__name__icontains=search_query)
+        dialogue_filter &= dialogue_search_filter
     
     # 获取传统音频片段
     audio_segments = AudioSegment.objects.filter(audio_filter).order_by('-created_at')
