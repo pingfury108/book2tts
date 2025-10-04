@@ -738,3 +738,27 @@ def create_podcast_feed(title, link, description, language, author_name, image_u
     fg.podcast.itunes_image(image_url)
     
     return fg
+
+
+def ads_txt(request):
+    """返回 ads.txt 文件内容"""
+    from .models import SiteConfig
+
+    # 获取站点配置
+    config = SiteConfig.get_config()
+
+    # 如果配置了 ads.txt 内容，则返回配置的内容
+    if config.ads_txt_content:
+        content = config.ads_txt_content
+    else:
+        # 默认的 ads.txt 内容
+        content = """# Google AdSense
+google.com, pub-EXAMPLE, DIRECT, f08c47fec0942fa0
+
+# 其他广告网络可以在这里添加
+# example.com, pub-ANOTHER, DIRECT, abc123def456"""
+
+    # 返回纯文本响应
+    response = HttpResponse(content, content_type='text/plain')
+    response['Cache-Control'] = 'public, max-age=3600'  # 缓存1小时
+    return response

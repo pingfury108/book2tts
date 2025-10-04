@@ -7,8 +7,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    {% if site_description %}
+    <meta name="description" content="{{ site_description }}">
+    {% else %}
     <meta name="description" content="Book2TTS - 专业的在线文本转语音工具，支持EPUB、PDF、扫描PDF等多种格式转换，提供高质量有声书制作、多音色对话生成、SRT字幕支持和音频内容管理服务">
+    {% endif %}
+    {% if site_keywords %}
+    <meta name="keywords" content="{{ site_keywords }}">
+    {% else %}
     <meta name="keywords" content="文本转语音,TTS,有声书制作,EPUB解析,电子书目录,PDF转语音,OCR识别,SRT字幕,章节生成,章节标注,LLM排版,翻译润色,对话脚本,多人对话,角色扮演对话,剧本生成,音频队列,RSS章节,播客章节,播客发布,Podcast Chapters">
+    {% endif %}
     <meta name="format-detection" content="telephone=no">
     <meta name="robots" content="index, follow">
     <meta name="language" content="zh-CN">
@@ -42,7 +50,13 @@
     <link rel="alternate" type="application/rss+xml" title="{{ user.username }}的Book2TTS音频"
         href="{% url 'token_audio_rss_feed' token=user.profile.rss_token|stringformat:'s' %}" />
     {% endif %}
+    {% if google_ads_enabled %}
+    {% if google_ads_script %}
+    {{ google_ads_script|safe }}
+    {% else %}
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7326790660929371" crossorigin="anonymous"></script>
+    {% endif %}
+    {% endif %}
 </head>
 
 <body class="flex flex-col min-h-screen">

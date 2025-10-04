@@ -4,7 +4,7 @@ from django.utils.html import format_html
 from django.core.exceptions import ValidationError
 from django.db import transaction
 import re
-from .models import UserQuota, OperationRecord, PointsConfig
+from .models import UserQuota, OperationRecord, PointsConfig, SiteConfig
 
 # Register your models here.
 
@@ -338,3 +338,68 @@ class PointsConfigAdmin(admin.ModelAdmin):
 
 # 注册操作记录管理
 admin.site.register(OperationRecord, OperationRecordAdmin)
+
+
+@admin.register(SiteConfig)
+class SiteConfigAdmin(admin.ModelAdmin):
+    """站点配置管理"""
+
+    # 列表显示字段
+    list_display = (
+        'google_ads_enabled',
+        'site_description_preview',
+        'site_keywords_preview',
+        'updated_at'
+    )
+
+    # 字段集
+    fieldsets = (
+        ('Google Ads 配置', {
+            'fields': (
+                'google_ads_enabled',
+                'google_ads_script',
+                'ads_txt_content',
+            ),
+            'description': '配置 Google Ads 相关设置，启用后会在网站头部添加广告脚本'
+        }),
+        ('SEO 配置', {
+            'fields': (
+                'site_description',
+                'site_keywords',
+            ),
+            'description': '配置站点的 SEO 信息，这些信息会添加到页面的 meta 标签中'
+        }),
+        ('时间信息', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    # 只读字段
+    readonly_fields = ('created_at', 'updated_at')
+
+    # 禁用添加权限（单例模式）
+    def has_add_permission(self, request):
+        return False
+
+    # 禁用删除权限（单例模式）
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def site_description_preview(self, obj):
+        """站点描述预览"""
+        if obj.site_description:
+            if len(obj.site_description) > 50:
+                return f'{obj.site_description[:50]}...'
+            return obj.site_description
+        return '未设置'
+    site_description_preview.short_description = '站点描述'
+
+    def site_keywords_preview(self, obj):
+        """站点关键词预览"""
+        if obj.site_keywords:
+            if len(obj.site_keywords) > 50:
+                return f'{obj.site_keywords[:50]}...'
+            return obj.site_keywords
+        return '未设置'
+    site_keywords_preview.short_description = '站点关键词'

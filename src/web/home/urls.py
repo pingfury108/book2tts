@@ -11,4 +11,5 @@ urlpatterns = [
     path("profile/", views.profile, name="profile"),
     path("operation-records/", views.operation_records, name="operation_records"),
     path("about/", views.about, name="about"),
+    path("ads.txt", views.ads_txt, name="ads_txt"),
 ]

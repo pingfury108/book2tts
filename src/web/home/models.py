@@ -260,3 +260,71 @@ class PointsConfig(models.Model):
     
     def __str__(self):
         return f'{self.get_operation_type_display()} - {self.points_per_unit}积分/{self.unit_name}'
+
+
+class SiteConfig(models.Model):
+    """站点配置模型（单例模式）"""
+
+    # Google Ads 配置
+    google_ads_enabled = models.BooleanField(
+        default=False,
+        verbose_name='启用 Google Ads',
+        help_text='是否在网站中启用 Google Ads 脚本'
+    )
+
+    google_ads_script = models.TextField(
+        blank=True,
+        verbose_name='Google Ads 脚本',
+        help_text='Google Ads 的 JavaScript 脚本代码'
+    )
+
+    # ads.txt 内容
+    ads_txt_content = models.TextField(
+        blank=True,
+        verbose_name='ads.txt 内容',
+        help_text='ads.txt 文件的内容，用于广告验证'
+    )
+
+    # SEO 配置
+    site_description = models.TextField(
+        blank=True,
+        verbose_name='站点描述',
+        help_text='站点的 meta description，用于 SEO'
+    )
+
+    site_keywords = models.TextField(
+        blank=True,
+        verbose_name='站点关键词',
+        help_text='站点的 meta keywords，用于 SEO'
+    )
+
+    # 创建和更新时间
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+
+    class Meta:
+        verbose_name = '站点配置'
+        verbose_name_plural = '站点配置'
+
+    def __str__(self):
+        return '站点配置'
+
+    def save(self, *args, **kwargs):
+        """确保只有一个站点配置实例"""
+        if not self.pk and SiteConfig.objects.exists():
+            # 如果已经存在实例，更新现有实例而不是创建新实例
+            existing = SiteConfig.objects.first()
+            existing.google_ads_enabled = self.google_ads_enabled
+            existing.google_ads_script = self.google_ads_script
+            existing.ads_txt_content = self.ads_txt_content
+            existing.site_description = self.site_description
+            existing.site_keywords = self.site_keywords
+            existing.save()
+            return existing
+        return super().save(*args, **kwargs)
+
+    @classmethod
+    def get_config(cls):
+        """获取站点配置（单例）"""
+        config, created = cls.objects.get_or_create(pk=1)
+        return config
