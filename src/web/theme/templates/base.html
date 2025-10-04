@@ -73,7 +73,8 @@
                 <ul tabindex="0"
                     class="menu menu-sm dropdown-content bg-base-100 rounded-box z-50 mt-3 w-52 p-2 shadow">
                     <li><a href="{% url 'index' %}">制作</a></li>
-                    <li><a href="{% url 'explore' %}">探索</a></li>
+                    <li><a href="{% url 'my_upload' %}">我的上传</a></li>
+                    <li><a href="{% url 'home' %}">我的公开音频</a></li>
                     <li>
                         <a>有声书</a>
                         <ul class="p-2">
@@ -82,7 +83,7 @@
                             <li><a href="{% url 'dialogue_list' %}">对话脚本</a></li>
                         </ul>
                     </li>
-                    <li><a href="{% url 'my_upload' %}">我的上传</a></li>
+                    <li><a href="{% url 'explore' %}">探索</a></li>
                     <li><a href="{% url 'about' %}">关于</a></li>
                 </ul>
             </div>
@@ -91,7 +92,8 @@
         <div class="navbar-center hidden lg:flex">
             <ul class="menu menu-horizontal px-1">
                 <li><a href="{% url 'index' %}">制作</a></li>
-                <li><a href="{% url 'explore' %}">探索</a></li>
+                <li><a href="{% url 'my_upload' %}">我的上传</a></li>
+                <li><a href="{% url 'home' %}">我的公开音频</a></li>
                 <li>
                     <details data-nav-details="audiobook">
                         <summary>有声书</summary>
@@ -102,7 +104,7 @@
                         </ul>
                     </details>
                 </li>
-                <li><a href="{% url 'my_upload' %}">我的上传</a></li>
+                <li><a href="{% url 'explore' %}">探索</a></li>
                 <li><a href="{% url 'about' %}">关于</a></li>
             </ul>
         </div>
