@@ -147,14 +147,18 @@
                                     <div id="audio-status" class="text-sm mt-1 text-center font-medium text-success"></div>
                                 </div>
                                 <div class="flex gap-2 mt-2">
-                                    <button class="btn btn-secondary btn-sm flex-1 text-sm" id="download-btn" disabled>
-                                        <i class="fas fa-download h-4 w-4 mr-1"></i>
-                                        下载
+                                    <button class="btn btn-secondary btn-sm flex-1 h-9" id="download-btn" disabled>
+                                        <span class="flex items-center gap-1">
+                                          <i class="fas fa-download h-3 w-3"></i>
+                                          <span class="text-xs">下载</span>
+                                        </span>
                                     </button>
-                                    <button class="btn btn-accent btn-sm flex-1 text-sm" id="publish-btn" disabled
+                                    <button class="btn btn-accent btn-sm flex-1 h-9" id="publish-btn" disabled
                                             onclick="handlePublishClick()">
-                                        <i class="fas fa-upload h-4 w-4 mr-1"></i>
-                                        发布
+                                        <span class="flex items-center gap-1">
+                                          <i class="fas fa-upload h-3 w-3"></i>
+                                          <span class="text-xs">发布</span>
+                                        </span>
                                     </button>
                                 </div>
                                 <div id="publish-status" class="text-sm mt-1 text-center font-medium"></div>
@@ -383,6 +387,40 @@
    window.currentAudioSegmentId = 0;
  }
 
+ // 重置发布状态功能
+ function resetPublishState() {
+   // 重置当前音频ID
+   window.currentAudioSegmentId = 0;
+
+   // 重置发布按钮到初始状态
+   const publishBtn = document.getElementById('publish-btn');
+   if (publishBtn) {
+     publishBtn.disabled = true;
+     publishBtn.className = 'btn btn-accent btn-sm flex-1 h-9';
+     publishBtn.innerHTML = `
+       <span class="flex items-center gap-1">
+         <i class="fas fa-upload h-3 w-3"></i>
+         <span class="text-xs">发布</span>
+       </span>
+     `;
+     publishBtn.title = '发布';
+   }
+
+   // 禁用下载按钮
+   const downloadBtn = document.getElementById('download-btn');
+   if (downloadBtn) {
+     downloadBtn.disabled = true;
+   }
+
+   // 隐藏音频播放器
+   const playerContainer = document.getElementById('audio-player-container');
+   if (playerContainer) {
+     playerContainer.classList.add('hidden');
+   }
+
+   console.log('[PublishState] 发布状态已重置');
+ }
+
  // Font size adjustment with HTMX compatibility
  function setupFontSizeButtons() {
    // 去除可选链操作符，使用常规null检查
@@ -561,6 +599,7 @@ $(document).ready(function() {
      $('#tab_page').removeClass('tab-active');
      window.activeTab = 'tab_toc';
      resetAudioDisplay(); // 切换到目录选项卡时重置音频显示
+     resetPublishState(); // 重置发布状态
      logState('Tab switched to TOC');
    });
 
@@ -569,6 +608,7 @@ $(document).ready(function() {
     $('#tab_toc').removeClass('tab-active');
     window.activeTab = 'tab_page';
     resetAudioDisplay(); // 切换到页面选项卡时重置音频显示
+    resetPublishState(); // 重置发布状态
     logState('Tab switched to Page');
   });
 });
@@ -1017,7 +1057,7 @@ function stopVoicePreview() {
      }
      
      // 显示加载状态
-     this.innerHTML = '<span class="loading loading-spinner loading-xs"></span> 启动任务...';
+     this.innerHTML = '<span class="flex items-center gap-1"><span class="loading loading-spinner loading-xs"></span><span class="text-xs">处理中</span></span>';
      this.disabled = true;
      console.log('[Button] 合成按钮状态：启动任务中');
      
@@ -1046,7 +1086,7 @@ function stopVoicePreview() {
        
        if (data.status === 'started') {
          // 任务已启动，开始轮询状态
-         this.innerHTML = '<span class="loading loading-spinner loading-xs"></span> 正在合成...';
+         this.innerHTML = '<span class="flex items-center gap-1"><span class="loading loading-spinner loading-xs"></span><span class="text-xs">合成中</span></span>';
          console.log('[Button] 合成按钮状态：正在合成');
          await pollTaskStatus(data.task_id, audioTitle);
        } else {
@@ -1081,7 +1121,7 @@ function stopVoicePreview() {
        switch (statusData.status) {
          case 'pending':
            if (synthesizeBtn) {
-             synthesizeBtn.innerHTML = '<span class="loading loading-spinner loading-xs"></span> 等待执行...';
+             synthesizeBtn.innerHTML = '<span class="flex items-center gap-1"><span class="loading loading-spinner loading-xs"></span><span class="text-xs">等待中</span></span>';
              synthesizeBtn.disabled = true;
              console.log('[Button] 合成按钮状态：等待执行');
            }
@@ -1089,7 +1129,7 @@ function stopVoicePreview() {
            
          case 'processing':
            if (synthesizeBtn) {
-             synthesizeBtn.innerHTML = `<span class="loading loading-spinner loading-xs"></span> ${statusData.message || '正在处理...'}`;
+             synthesizeBtn.innerHTML = `<span class="flex items-center gap-1"><span class="loading loading-spinner loading-xs"></span><span class="text-xs">${statusData.message || '处理中'}</span></span>`;
              synthesizeBtn.disabled = true;
              console.log('[Button] 合成按钮状态：正在处理 -', statusData.message);
            }
@@ -1109,7 +1149,7 @@ function stopVoicePreview() {
            
          default:
            if (synthesizeBtn) {
-             synthesizeBtn.innerHTML = `<span class="loading loading-spinner loading-xs"></span> ${statusData.message || '处理中...'}`;
+             synthesizeBtn.innerHTML = `<span class="flex items-center gap-1"><span class="loading loading-spinner loading-xs"></span><span class="text-xs">${statusData.message || '处理中'}</span></span>`;
              synthesizeBtn.disabled = true;
              console.log('[Button] 合成按钮状态：处理中 -', statusData.message);
            }
@@ -1237,10 +1277,12 @@ function stopVoicePreview() {
      console.log("Setting audio segment ID:", window.currentAudioSegmentId);
      
      // 重置按钮为未发布状态
-     publishBtn.className = 'btn btn-success btn-sm flex-1';
+     publishBtn.className = 'btn btn-success btn-sm flex-1 h-9';
      publishBtn.innerHTML = `
-       <i class="fas fa-check h-5 w-5 mr-1"></i>
-       发布
+       <span class="flex items-center gap-1">
+         <i class="fas fa-check h-3 w-3"></i>
+         <span class="text-xs">发布</span>
+       </span>
      `;
      publishBtn.title = '发布';
    }
@@ -2010,18 +2052,22 @@ async function playWorkbenchAudioInGlobal() {
    
    if (data.published) {
      // 已发布状态 - 显示取消发布按钮
-     publishBtn.className = 'btn btn-warning btn-sm flex-1';
+     publishBtn.className = 'btn btn-warning btn-sm flex-1 h-9';
      publishBtn.innerHTML = `
-       <i class="fas fa-times h-5 w-5 mr-1"></i>
-       取消发布
+       <span class="flex items-center gap-1">
+         <i class="fas fa-times h-3 w-3"></i>
+         <span class="text-xs">取消发布</span>
+       </span>
      `;
      publishBtn.title = '取消发布';
    } else {
      // 未发布状态 - 显示发布按钮
-     publishBtn.className = 'btn btn-success btn-sm flex-1';
+     publishBtn.className = 'btn btn-success btn-sm flex-1 h-9';
      publishBtn.innerHTML = `
-       <i class="fas fa-check h-5 w-5 mr-1"></i>
-       发布
+       <span class="flex items-center gap-1">
+         <i class="fas fa-check h-3 w-3"></i>
+         <span class="text-xs">发布</span>
+       </span>
      `;
      publishBtn.title = '发布';
    }
@@ -2692,7 +2738,10 @@ window.updateCurrentPageState = function(pageId, pageName, pdfType, selectedPage
   }
   
   showPageImageButton();
-  
+
+  // 重置发布状态（当选择新内容时）
+  resetPublishState();
+
   // 自动检查页面音频状态
   checkPageAudioStatus(window.currentSelectedPages);
 };
