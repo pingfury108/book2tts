@@ -279,7 +279,16 @@
 
             <!-- 音色配置 -->
             <div class="bg-base-100 shadow-md rounded-lg p-6">
-                <h3 class="text-lg font-semibold mb-3">音色配置</h3>
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-lg font-semibold">音色配置</h3>
+                    <button type="button"
+                            id="ai-recommend-btn"
+                            class="btn btn-primary btn-sm"
+                            title="AI智能推荐音色">
+                        <i class="fas fa-robot mr-1"></i>
+                        AI推荐
+                    </button>
+                </div>
                 <form id="voice-config-form">
                     {% for speaker in speakers %}
                     <div class="mb-4">
@@ -894,6 +903,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const speakers = JSON.parse('{{ speakers_json|escapejs }}') || [];
     const chapterButtons = document.querySelectorAll('.dialogue-chapter-btn');
     const generateChaptersBtn = document.getElementById('generate-dialogue-chapters-btn');
+    const aiRecommendBtn = document.getElementById('ai-recommend-btn');
 
     let dialogueAudioPollingTimer = null;
 
@@ -1691,6 +1701,62 @@ document.addEventListener('DOMContentLoaded', function() {
         generateChaptersBtn.addEventListener('click', () => {
             requestChapterGeneration(generateChaptersBtn);
         });
+    }
+
+    // AI音色推荐功能
+    function aiRecommendVoices() {
+        if (!aiRecommendBtn || aiRecommendBtn.disabled) {
+            return;
+        }
+
+        const originalHtml = aiRecommendBtn.innerHTML;
+        aiRecommendBtn.disabled = true;
+        aiRecommendBtn.innerHTML = '<span class="loading loading-spinner loading-xs mr-1"></span>分析中...';
+
+        fetch(`/workbench/dialogue/{{ script.id }}/ai-recommend-voices/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                // 应用推荐结果
+                applyVoiceRecommendations(result.recommendations);
+                showToast(result.message, 'success');
+            } else {
+                showToast('AI推荐失败：' + result.error, 'error');
+            }
+        })
+        .catch(error => {
+            showToast('网络错误：' + error.message, 'error');
+        })
+        .finally(() => {
+            aiRecommendBtn.disabled = false;
+            aiRecommendBtn.innerHTML = originalHtml;
+        });
+    }
+
+    function applyVoiceRecommendations(recommendations) {
+        if (!recommendations || Object.keys(recommendations).length === 0) {
+            return;
+        }
+
+        // 为每个说话者应用推荐的音色
+        Object.entries(recommendations).forEach(([speaker, voiceName]) => {
+            const dropdown = voiceDropdowns.get(speaker);
+            if (dropdown) {
+                selectVoice(speaker, voiceName, voiceName);
+            }
+        });
+
+        showToast(`已应用 ${Object.keys(recommendations).length} 个角色的音色推荐`, 'success');
+    }
+
+    if (aiRecommendBtn) {
+        aiRecommendBtn.addEventListener('click', aiRecommendVoices);
     }
 
     // 绑定按钮事件

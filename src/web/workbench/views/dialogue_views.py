@@ -23,6 +23,9 @@ from book2tts.llm_service import LLMService
 from book2tts.tts import edge_tts_volices, azure_text_to_speech
 from book2tts.edgetts import EdgeTTS
 
+# Import voice recommendation service
+from ..services.voice_recommendation_service import VoiceRecommendationService
+
 @login_required
 def dialogue_list(request):
     """对话脚本列表页面"""
@@ -500,6 +503,38 @@ def dialogue_update_book(request, script_id):
         return JsonResponse({'success': False, 'error': '无效的JSON数据'})
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'更新失败: {str(e)}'})
+
+@login_required
+@csrf_exempt
+@require_POST
+def dialogue_ai_recommend_voices(request, script_id):
+    """AI智能推荐音色"""
+    try:
+        script = get_object_or_404(DialogueScript, id=script_id, user=request.user)
+
+        # 获取对话脚本数据
+        script_data = script.script_data
+        if not script_data or 'segments' not in script_data:
+            return JsonResponse({'success': False, 'error': '对话脚本数据为空'})
+
+        # 使用AI推荐音色
+        recommendation_service = VoiceRecommendationService()
+        recommendations = recommendation_service.recommend_voices_for_script(script_data)
+
+        if not recommendations:
+            return JsonResponse({'success': False, 'error': '未能生成音色推荐'})
+
+        return JsonResponse({
+            'success': True,
+            'recommendations': recommendations,
+            'message': f'已为 {len(recommendations)} 个角色推荐音色'
+        })
+
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"AI音色推荐失败: {e}")
+        return JsonResponse({'success': False, 'error': f'AI推荐失败: {str(e)}'})
 
 @login_required
 @csrf_exempt

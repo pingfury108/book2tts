@@ -53,6 +53,7 @@ from .views.dialogue_views import (
     dialogue_segment_delete,
     dialogue_segment_update,
     dialogue_segment_preview,
+    dialogue_ai_recommend_voices,
     task_status,
 )
 from .views.ocr_views import (
@@ -138,6 +139,9 @@ urlpatterns = [
     path("dialogue/segment/<int:segment_id>/delete/", dialogue_segment_delete, name="dialogue_segment_delete"),
     path("dialogue/segment/<int:segment_id>/update/", dialogue_segment_update, name="dialogue_segment_update"),
     path("dialogue/segment/<int:segment_id>/preview/", dialogue_segment_preview, name="dialogue_segment_preview"),
+
+    # AI音色推荐
+    path("dialogue/<int:script_id>/ai-recommend-voices/", dialogue_ai_recommend_voices, name="dialogue_ai_recommend_voices"),
 
     # 任务状态查询
     path("task/<str:task_id>/status/", task_status, name="task_status"),
