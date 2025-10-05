@@ -379,7 +379,7 @@
    // 恢复合成按钮状态
    const synthesizeBtn = document.getElementById('synthesize-btn');
    if (synthesizeBtn) {
-     synthesizeBtn.innerHTML = '合成音频';
+     synthesizeBtn.innerHTML = '<i class="fas fa-wave-square h-4 w-4 mr-1"></i>合成音频';
      synthesizeBtn.disabled = false;
    }
    
@@ -1183,7 +1183,7 @@ function stopVoicePreview() {
  function restoreSynthesizeButton() {
    const synthesizeBtn = document.getElementById('synthesize-btn');
    if (synthesizeBtn) {
-     synthesizeBtn.innerHTML = '合成音频';
+     synthesizeBtn.innerHTML = '<i class="fas fa-wave-square h-4 w-4 mr-1"></i>合成音频';
      synthesizeBtn.disabled = false;
      console.log('[Button] 合成按钮状态已恢复为可用状态');
    }
