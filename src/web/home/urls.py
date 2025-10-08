@@ -13,4 +13,11 @@ urlpatterns = [
     path("operation-records/", views.operation_records, name="operation_records"),
     path("about/", views.about, name="about"),
     path("ads.txt", views.ads_txt, name="ads_txt"),
+    # 讨论主题相关URL
+    path("discussions/", views.discussion_list, name="discussion_list"),
+    path("discussions/create/", views.discussion_create, name="discussion_create"),
+    path("discussions/<int:topic_id>/", views.discussion_detail, name="discussion_topic_detail"),
+    path("discussions/<int:topic_id>/edit/", views.discussion_edit, name="discussion_edit"),
+    path("discussions/<int:topic_id>/close/", views.discussion_close, name="discussion_close"),
+    path("discussions/<int:topic_id>/pin/", views.discussion_pin, name="discussion_pin"),
 ]

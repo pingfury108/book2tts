@@ -328,3 +328,198 @@ class SiteConfig(models.Model):
         """获取站点配置（单例）"""
         config, created = cls.objects.get_or_create(pk=1)
         return config
+
+
+class DiscussionTopic(models.Model):
+    """独立讨论主题模型"""
+
+    # 主题分类
+    CATEGORY_CHOICES = [
+        ('general', '综合讨论'),
+        ('technical', '技术交流'),
+        ('feedback', '反馈建议'),
+        ('help', '求助问答'),
+        ('announcement', '公告通知'),
+        ('other', '其他话题'),
+    ]
+
+    title = models.CharField(
+        max_length=200,
+        verbose_name='主题标题',
+        help_text='讨论主题的标题'
+    )
+
+    content = models.TextField(
+        verbose_name='主题内容',
+        help_text='主题的详细描述和内容'
+    )
+
+    category = models.CharField(
+        max_length=20,
+        choices=CATEGORY_CHOICES,
+        default='general',
+        verbose_name='主题分类',
+        help_text='选择主题的分类'
+    )
+
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='discussion_topics',
+        verbose_name='创建者',
+        help_text='创建此主题的用户'
+    )
+
+    # 主题状态
+    is_pinned = models.BooleanField(
+        default=False,
+        verbose_name='是否置顶',
+        help_text='是否将此主题置顶显示'
+    )
+
+    is_closed = models.BooleanField(
+        default=False,
+        verbose_name='是否关闭',
+        help_text='是否关闭此主题，关闭后不能回复'
+    )
+
+    # 统计信息
+    view_count = models.PositiveIntegerField(
+        default=0,
+        verbose_name='查看次数',
+        help_text='主题被查看的次数'
+    )
+
+    reply_count = models.PositiveIntegerField(
+        default=0,
+        verbose_name='回复数量',
+        help_text='主题下的回复数量'
+    )
+
+    last_reply_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='最后回复时间',
+        help_text='最后一条回复的时间'
+    )
+
+    # 创建和更新时间
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+
+    class Meta:
+        verbose_name = '讨论主题'
+        verbose_name_plural = '讨论主题'
+        ordering = ['-is_pinned', '-last_reply_at', '-created_at']
+        indexes = [
+            models.Index(fields=['category', '-created_at']),
+            models.Index(fields=['author', '-created_at']),
+            models.Index(fields=['is_pinned', '-created_at']),
+            models.Index(fields=['-last_reply_at']),
+        ]
+
+    def __str__(self):
+        return f'{self.title} - {self.author.username}'
+
+    def get_absolute_url(self):
+        """获取主题的绝对URL"""
+        from django.urls import reverse
+        return reverse('discussion_topic_detail', kwargs={'topic_id': self.id})
+
+    def increment_view_count(self):
+        """增加查看次数"""
+        self.view_count += 1
+        self.save(update_fields=['view_count'])
+
+    def update_reply_stats(self):
+        """更新回复统计信息"""
+        from django.contrib.contenttypes.models import ContentType
+        from .models import Comment
+
+        content_type = ContentType.objects.get_for_model(DiscussionTopic)
+        self.reply_count = Comment.objects.filter(
+            content_type=content_type,
+            object_id=self.id
+        ).count()
+
+        last_reply = Comment.objects.filter(
+            content_type=content_type,
+            object_id=self.id
+        ).order_by('-created_at').first()
+
+        if last_reply:
+            self.last_reply_at = last_reply.created_at
+
+        self.save(update_fields=['reply_count', 'last_reply_at'])
+
+
+class Comment(models.Model):
+    """通用留言模型 - 支持关联任何对象和独立主题"""
+
+    # 留言内容
+    content = models.TextField(
+        verbose_name='留言内容',
+        help_text='留言的具体内容'
+    )
+
+    # 留言者
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='comments',
+        verbose_name='留言者',
+        help_text='发表留言的用户'
+    )
+
+    # 通用外键关联（支持任何模型）
+    content_type = models.ForeignKey(
+        'contenttypes.ContentType',
+        on_delete=models.CASCADE,
+        verbose_name='关联模型',
+        help_text='留言关联的模型类型'
+    )
+
+    object_id = models.PositiveIntegerField(
+        verbose_name='关联对象ID',
+        help_text='留言关联的对象ID'
+    )
+
+    # 父级留言（支持回复）
+    parent = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='replies',
+        verbose_name='父级留言',
+        help_text='如果是回复留言，则指向被回复的留言'
+    )
+
+    # 创建和更新时间
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+
+    class Meta:
+        verbose_name = '留言'
+        verbose_name_plural = '留言'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['content_type', 'object_id', '-created_at']),
+            models.Index(fields=['author', '-created_at']),
+            models.Index(fields=['parent', '-created_at']),
+        ]
+
+    def __str__(self):
+        return f'{self.author.username} - {self.content[:50]}...'
+
+    def get_associated_object(self):
+        """获取关联的对象"""
+        return self.content_type.get_object_for_this_type(id=self.object_id)
+
+    def is_reply(self):
+        """判断是否为回复留言"""
+        return self.parent is not None
+
+    def get_reply_count(self):
+        """获取回复数量"""
+        return self.replies.count()

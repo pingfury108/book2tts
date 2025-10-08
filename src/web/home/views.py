@@ -816,3 +816,268 @@ google.com, pub-EXAMPLE, DIRECT, f08c47fec0942fa0
     response = HttpResponse(content, content_type='text/plain')
     response['Cache-Control'] = 'public, max-age=3600'  # 缓存1小时
     return response
+
+
+# 讨论主题相关视图
+
+def discussion_list(request):
+    """讨论主题列表页面"""
+    from .models import DiscussionTopic
+    from django.db.models import Q
+
+    # 搜索功能
+    search_query = request.GET.get('q', '').strip()
+    category_filter = request.GET.get('category', '')
+
+    # 获取主题列表
+    topics = DiscussionTopic.objects.all()
+
+    # 应用搜索过滤
+    if search_query:
+        topics = topics.filter(
+            Q(title__icontains=search_query) | Q(content__icontains=search_query)
+        )
+
+    # 应用分类过滤
+    if category_filter:
+        topics = topics.filter(category=category_filter)
+
+    # 分页配置
+    page_size_options = [10, 20, 30, 50]
+    default_page_size = 20
+
+    # 分页处理
+    page = request.GET.get('page', 1)
+    try:
+        page_size = int(request.GET.get('page_size', default_page_size))
+        page_size = min(max(page_size, 10), 50)
+    except (ValueError, TypeError):
+        page_size = default_page_size
+
+    # 创建分页器
+    paginator = Paginator(topics, page_size)
+
+    try:
+        page_obj = paginator.page(page)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        if paginator.num_pages > 0:
+            page_obj = paginator.page(paginator.num_pages)
+        else:
+            page_obj = paginator.page(1)
+
+    context = {
+        'topics': page_obj,
+        'paginator': paginator,
+        'page_size': page_size,
+        'page_size_options': page_size_options,
+        'search_query': search_query,
+        'category_filter': category_filter,
+        'category_choices': DiscussionTopic.CATEGORY_CHOICES,
+        'display_title': '讨论区',
+    }
+
+    return render(request, "home/discussion_list.html", context)
+
+
+@login_required
+def discussion_create(request):
+    """创建新主题"""
+    from .models import DiscussionTopic
+
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        content = request.POST.get('content', '').strip()
+        category = request.POST.get('category', 'general')
+
+        # 表单验证
+        if not title:
+            return render(request, "home/discussion_create.html", {
+                'error': '请输入主题标题',
+                'title': title,
+                'content': content,
+                'category': category,
+                'category_choices': DiscussionTopic.CATEGORY_CHOICES,
+            })
+
+        if not content:
+            return render(request, "home/discussion_create.html", {
+                'error': '请输入主题内容',
+                'title': title,
+                'content': content,
+                'category': category,
+                'category_choices': DiscussionTopic.CATEGORY_CHOICES,
+            })
+
+        # 创建主题
+        topic = DiscussionTopic.objects.create(
+            title=title,
+            content=content,
+            category=category,
+            author=request.user
+        )
+
+        # 重定向到主题详情页
+        return redirect('discussion_topic_detail', topic_id=topic.id)
+
+    # GET请求显示创建表单
+    context = {
+        'category_choices': DiscussionTopic.CATEGORY_CHOICES,
+        'display_title': '创建新主题',
+    }
+
+    return render(request, "home/discussion_create.html", context)
+
+
+def discussion_detail(request, topic_id):
+    """主题详情页面"""
+    from .models import DiscussionTopic, Comment
+    from django.contrib.contenttypes.models import ContentType
+
+    # 获取主题
+    topic = get_object_or_404(DiscussionTopic, id=topic_id)
+
+    # 增加查看次数
+    topic.increment_view_count()
+
+    # 获取该主题的所有留言
+    content_type = ContentType.objects.get_for_model(DiscussionTopic)
+    comments = Comment.objects.filter(
+        content_type=content_type,
+        object_id=topic.id
+    ).order_by('created_at')
+
+    # 处理留言提交
+    if request.method == 'POST' and request.user.is_authenticated:
+        if topic.is_closed:
+            return render(request, "home/discussion_detail.html", {
+                'topic': topic,
+                'comments': comments,
+                'error': '此主题已关闭，不能回复',
+                'display_title': f'{topic.title} - 讨论区',
+            })
+
+        content = request.POST.get('content', '').strip()
+        parent_id = request.POST.get('parent_id')
+
+        if not content:
+            return render(request, "home/discussion_detail.html", {
+                'topic': topic,
+                'comments': comments,
+                'error': '请输入留言内容',
+                'display_title': f'{topic.title} - 讨论区',
+            })
+
+        # 创建留言
+        comment = Comment.objects.create(
+            content=content,
+            author=request.user,
+            content_type=content_type,
+            object_id=topic.id,
+            parent_id=parent_id if parent_id else None
+        )
+
+        # 更新主题的回复统计
+        topic.update_reply_stats()
+
+        # 重定向到当前页面（避免重复提交）
+        return redirect('discussion_topic_detail', topic_id=topic.id)
+
+    context = {
+        'topic': topic,
+        'comments': comments,
+        'display_title': f'{topic.title} - 讨论区',
+    }
+
+    return render(request, "home/discussion_detail.html", context)
+
+
+@login_required
+def discussion_edit(request, topic_id):
+    """编辑主题"""
+    from .models import DiscussionTopic
+
+    topic = get_object_or_404(DiscussionTopic, id=topic_id)
+
+    # 检查权限：只有作者可以编辑
+    if topic.author != request.user:
+        from django.http import Http404
+        raise Http404("您没有权限编辑此主题")
+
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        content = request.POST.get('content', '').strip()
+        category = request.POST.get('category', 'general')
+
+        # 表单验证
+        if not title:
+            return render(request, "home/discussion_edit.html", {
+                'topic': topic,
+                'error': '请输入主题标题',
+                'category_choices': DiscussionTopic.CATEGORY_CHOICES,
+            })
+
+        if not content:
+            return render(request, "home/discussion_edit.html", {
+                'topic': topic,
+                'error': '请输入主题内容',
+                'category_choices': DiscussionTopic.CATEGORY_CHOICES,
+            })
+
+        # 更新主题
+        topic.title = title
+        topic.content = content
+        topic.category = category
+        topic.save()
+
+        # 重定向到主题详情页
+        return redirect('discussion_topic_detail', topic_id=topic.id)
+
+    context = {
+        'topic': topic,
+        'category_choices': DiscussionTopic.CATEGORY_CHOICES,
+        'display_title': f'编辑主题 - {topic.title}',
+    }
+
+    return render(request, "home/discussion_edit.html", context)
+
+
+@login_required
+def discussion_close(request, topic_id):
+    """关闭/重新打开主题"""
+    from .models import DiscussionTopic
+
+    topic = get_object_or_404(DiscussionTopic, id=topic_id)
+
+    # 检查权限：只有作者可以操作
+    if topic.author != request.user:
+        from django.http import Http404
+        raise Http404("您没有权限操作此主题")
+
+    # 切换关闭状态
+    topic.is_closed = not topic.is_closed
+    topic.save()
+
+    # 重定向回主题详情页
+    return redirect('discussion_topic_detail', topic_id=topic.id)
+
+
+@login_required
+def discussion_pin(request, topic_id):
+    """置顶/取消置顶主题"""
+    from .models import DiscussionTopic
+
+    topic = get_object_or_404(DiscussionTopic, id=topic_id)
+
+    # 检查权限：只有管理员可以操作
+    if not request.user.is_staff:
+        from django.http import Http404
+        raise Http404("您没有权限操作此主题")
+
+    # 切换置顶状态
+    topic.is_pinned = not topic.is_pinned
+    topic.save()
+
+    # 重定向回主题列表页
+    return redirect('discussion_list')

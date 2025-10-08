@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ display_title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- 页面标题和操作栏 -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-base-content">{{ display_title }}</h1>
+            <p class="text-base-content/70 mt-2">与社区成员交流想法、分享经验、寻求帮助</p>
+        </div>
+        {% if user.is_authenticated %}
+        <a href="{% url 'discussion_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus mr-2"></i>
+            创建新主题
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- 搜索和筛选栏 -->
+    <div class="bg-base-200 rounded-lg p-4 mb-6">
+        <form method="get" class="flex flex-col sm:flex-row gap-4">
+            <!-- 搜索框 -->
+            <div class="flex-1">
+                <div class="relative">
+                    <input
+                        type="text"
+                        name="q"
+                        value="{{ search_query }}"
+                        placeholder="搜索主题..."
+                        class="input input-bordered w-full pl-10"
+                    >
+                    <i class="fas fa-search absolute left-3 top-3 text-base-content/50"></i>
+                </div>
+            </div>
+
+            <!-- 分类筛选 -->
+            <div class="sm:w-48">
+                <select name="category" class="select select-bordered w-full">
+                    <option value="">全部分类</option>
+                    {% for value, label in category_choices %}
+                        <option value="{{ value }}" {% if category_filter == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- 提交按钮 -->
+            <button type="submit" class="btn btn-ghost">
+                <i class="fas fa-filter mr-2"></i>
+                筛选
+            </button>
+        </form>
+    </div>
+
+    <!-- 主题列表 -->
+    <div class="space-y-4">
+        {% for topic in topics %}
+        <div class="card bg-base-100 shadow hover:shadow-md transition-shadow duration-300">
+            <div class="card-body">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div class="flex-1 min-w-0">
+                        <!-- 主题标题和状态 -->
+                        <div class="flex items-center gap-2 mb-2">
+                            {% if topic.is_pinned %}
+                            <span class="badge badge-primary badge-sm">
+                                <i class="fas fa-thumbtack mr-1"></i>
+                                置顶
+                            </span>
+                            {% endif %}
+                            {% if topic.is_closed %}
+                            <span class="badge badge-error badge-sm">
+                                <i class="fas fa-lock mr-1"></i>
+                                已关闭
+                            </span>
+                            {% endif %}
+                            <span class="badge badge-outline badge-sm">
+                                {{ topic.get_category_display }}
+                            </span>
+                        </div>
+
+                        <!-- 主题标题 -->
+                        <h2 class="card-title text-lg hover:text-primary transition-colors">
+                            <a href="{% url 'discussion_topic_detail' topic.id %}" class="hover:underline">
+                                {{ topic.title }}
+                            </a>
+                        </h2>
+
+                        <!-- 主题内容预览 -->
+                        <p class="text-base-content/70 text-sm mt-2 line-clamp-2">
+                            {{ topic.content|truncatechars:150 }}
+                        </p>
+                    </div>
+
+                    <!-- 统计信息 -->
+                    <div class="flex flex-col items-end gap-2 text-sm text-base-content/60">
+                        <div class="flex items-center gap-4">
+                            <span class="flex items-center gap-1">
+                                <i class="fas fa-eye"></i>
+                                {{ topic.view_count }}
+                            </span>
+                            <span class="flex items-center gap-1">
+                                <i class="fas fa-comment"></i>
+                                {{ topic.reply_count }}
+                            </span>
+                        </div>
+                        <div class="text-xs">
+                            {% if topic.last_reply_at %}
+                                最后回复 {{ topic.last_reply_at|timesince }}前
+                            {% else %}
+                                {{ topic.created_at|timesince }}前
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 作者信息 -->
+                <div class="flex justify-between items-center mt-4 pt-4 border-t border-base-300">
+                    <div class="flex items-center gap-2 text-sm text-base-content/60">
+                        <div class="avatar">
+                            <div class="w-6 h-6 rounded-full bg-primary text-primary-content flex items-center justify-center text-xs font-bold">
+                                {{ topic.author.username|slice:":2"|upper }}
+                            </div>
+                        </div>
+                        <span>{{ topic.author.username }}</span>
+                        <span>•</span>
+                        <span>{{ topic.created_at|date:"Y-m-d H:i" }}</span>
+                    </div>
+
+                    <!-- 操作按钮 -->
+                    <div class="flex gap-2">
+                        {% if user == topic.author %}
+                        <a href="{% url 'discussion_edit' topic.id %}" class="btn btn-ghost btn-xs">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        {% endif %}
+                        {% if user.is_staff %}
+                        <a href="{% url 'discussion_pin' topic.id %}" class="btn btn-ghost btn-xs">
+                            <i class="fas fa-thumbtack"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <!-- 空状态 -->
+        <div class="text-center py-12">
+            <i class="fas fa-comments text-6xl text-base-content/20 mb-4"></i>
+            <h3 class="text-xl font-semibold text-base-content/60 mb-2">暂无主题</h3>
+            <p class="text-base-content/50 mb-6">还没有人创建讨论主题，快来创建第一个吧！</p>
+            {% if user.is_authenticated %}
+            <a href="{% url 'discussion_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus mr-2"></i>
+                创建主题
+            </a>
+            {% else %}
+            <a href="{% url 'login' %}" class="btn btn-primary">
+                登录后创建主题
+            </a>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- 分页控件 -->
+    {% if topics.paginator.num_pages > 1 %}
+    <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mt-8 pt-6 border-t border-base-300">
+        <!-- 分页信息 -->
+        <div class="text-sm text-base-content/60">
+            显示 {{ topics.start_index }} - {{ topics.end_index }} 条，共 {{ topics.paginator.count }} 条主题
+        </div>
+
+        <!-- 分页按钮 -->
+        <div class="join">
+            {% if topics.has_previous %}
+                <a href="?page={{ topics.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}" class="join-item btn btn-sm">«</a>
+            {% endif %}
+
+            {% for num in topics.paginator.page_range %}
+                {% if topics.number == num %}
+                    <span class="join-item btn btn-sm btn-active">{{ num }}</span>
+                {% else %}
+                    <a href="?page={{ num }}{% if search_query %}&q={{ search_query }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}" class="join-item btn btn-sm">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if topics.has_next %}
+                <a href="?page={{ topics.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}" class="join-item btn btn-sm">»</a>
+            {% endif %}
+        </div>
+
+        <!-- 页面大小选择 -->
+        <div class="flex items-center gap-2 text-sm">
+            <span class="text-base-content/60">每页显示</span>
+            <select class="select select-bordered select-sm" onchange="window.location.href=this.value">
+                {% for size in page_size_options %}
+                    <option value="?page_size={{ size }}{% if search_query %}&q={{ search_query }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}"
+                            {% if page_size == size %}selected{% endif %}>
+                        {{ size }} 条
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

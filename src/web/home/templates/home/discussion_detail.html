@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ display_title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6 max-w-4xl">
+    <!-- 导航和操作栏 -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <div class="flex items-center gap-4">
+            <a href="{% url 'discussion_list' %}" class="btn btn-ghost btn-sm">
+                <i class="fas fa-arrow-left mr-2"></i>
+                返回列表
+            </a>
+            <h1 class="text-2xl font-bold text-base-content">{{ topic.title }}</h1>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="flex gap-2">
+            {% if user == topic.author %}
+            <a href="{% url 'discussion_edit' topic.id %}" class="btn btn-ghost btn-sm">
+                <i class="fas fa-edit mr-2"></i>
+                编辑
+            </a>
+            <a href="{% url 'discussion_close' topic.id %}" class="btn btn-ghost btn-sm">
+                {% if topic.is_closed %}
+                <i class="fas fa-unlock mr-2"></i>
+                重新打开
+                {% else %}
+                <i class="fas fa-lock mr-2"></i>
+                关闭
+                {% endif %}
+            </a>
+            {% endif %}
+            {% if user.is_staff %}
+            <a href="{% url 'discussion_pin' topic.id %}" class="btn btn-ghost btn-sm">
+                {% if topic.is_pinned %}
+                <i class="fas fa-thumbtack mr-2"></i>
+                取消置顶
+                {% else %}
+                <i class="fas fa-thumbtack mr-2"></i>
+                置顶
+                {% endif %}
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 错误提示 -->
+    {% if error %}
+    <div class="alert alert-error mb-6">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span>{{ error }}</span>
+    </div>
+    {% endif %}
+
+    <!-- 主题状态提示 -->
+    {% if topic.is_closed %}
+    <div class="alert alert-warning mb-6">
+        <i class="fas fa-lock"></i>
+        <span>此主题已关闭，不能回复</span>
+    </div>
+    {% endif %}
+
+    <!-- 主题信息 -->
+    <div class="flex flex-wrap items-center gap-4 text-sm text-base-content/60 mb-6">
+        <div class="flex items-center gap-2">
+            <div class="avatar">
+                <div class="w-8 h-8 rounded-full bg-primary text-primary-content flex items-center justify-center text-sm font-bold">
+                    {{ topic.author.username|slice:":2"|upper }}
+                </div>
+            </div>
+            <span>{{ topic.author.username }}</span>
+        </div>
+        <span>•</span>
+        <span>{{ topic.created_at|date:"Y-m-d H:i" }}</span>
+        <span>•</span>
+        <span class="badge badge-outline">{{ topic.get_category_display }}</span>
+        <span>•</span>
+        <span class="flex items-center gap-1">
+            <i class="fas fa-eye"></i>
+            {{ topic.view_count }} 次查看
+        </span>
+        <span>•</span>
+        <span class="flex items-center gap-1">
+            <i class="fas fa-comment"></i>
+            {{ topic.reply_count }} 条回复
+        </span>
+    </div>
+
+    <!-- 主题内容 -->
+    <div class="card bg-base-100 shadow mb-8">
+        <div class="card-body">
+            <div class="prose max-w-none">
+                {{ topic.content|linebreaks }}
+            </div>
+        </div>
+    </div>
+
+    <!-- 留言列表 -->
+    <div class="mb-8">
+        <h2 class="text-xl font-semibold mb-4">
+            留言（{{ comments|length }}）
+        </h2>
+
+        {% if comments %}
+        <div class="space-y-6">
+            {% for comment in comments %}
+            <div class="card bg-base-100 shadow" id="comment-{{ comment.id }}">
+                <div class="card-body">
+                    <!-- 留言头部 -->
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="avatar">
+                                <div class="w-8 h-8 rounded-full bg-secondary text-secondary-content flex items-center justify-center text-sm font-bold">
+                                    {{ comment.author.username|slice:":2"|upper }}
+                                </div>
+                            </div>
+                            <div>
+                                <div class="font-semibold">{{ comment.author.username }}</div>
+                                <div class="text-xs text-base-content/60">
+                                    {{ comment.created_at|date:"Y-m-d H:i" }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 回复按钮 -->
+                        {% if not topic.is_closed and user.is_authenticated %}
+                        <button
+                            onclick="showReplyForm({{ comment.id }})"
+                            class="btn btn-ghost btn-sm"
+                        >
+                            <i class="fas fa-reply mr-1"></i>
+                            回复
+                        </button>
+                        {% endif %}
+                    </div>
+
+                    <!-- 留言内容 -->
+                    <div class="prose max-w-none">
+                        {{ comment.content|linebreaks }}
+                    </div>
+
+                    <!-- 回复表单（隐藏） -->
+                    {% if not topic.is_closed and user.is_authenticated %}
+                    <div id="reply-form-{{ comment.id }}" class="mt-4 hidden">
+                        <form method="post" class="space-y-3">
+                            {% csrf_token %}
+                            <input type="hidden" name="parent_id" value="{{ comment.id }}">
+                            <textarea
+                                name="content"
+                                placeholder="回复 {{ comment.author.username }}..."
+                                class="textarea textarea-bordered w-full h-20"
+                                required
+                            ></textarea>
+                            <div class="flex gap-2">
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-paper-plane mr-1"></i>
+                                    回复
+                                </button>
+                                <button type="button" onclick="hideReplyForm({{ comment.id }})" class="btn btn-ghost btn-sm">
+                                    取消
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    {% endif %}
+
+                    <!-- 子回复 -->
+                    {% for reply in comment.replies.all %}
+                    <div class="mt-4 ml-8 pl-4 border-l-2 border-base-300">
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="avatar">
+                                <div class="w-6 h-6 rounded-full bg-accent text-accent-content flex items-center justify-center text-xs font-bold">
+                                    {{ reply.author.username|slice:":2"|upper }}
+                                </div>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-sm">{{ reply.author.username }}</div>
+                                <div class="text-xs text-base-content/60">
+                                    {{ reply.created_at|date:"Y-m-d H:i" }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="prose prose-sm max-w-none">
+                            {{ reply.content|linebreaks }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <!-- 空状态 -->
+        <div class="text-center py-12 bg-base-100 rounded-lg">
+            <i class="fas fa-comments text-4xl text-base-content/20 mb-4"></i>
+            <h3 class="text-lg font-semibold text-base-content/60 mb-2">暂无留言</h3>
+            <p class="text-base-content/50">还没有人留言，快来发表第一个留言吧！</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 发表留言表单 -->
+    {% if not topic.is_closed and user.is_authenticated %}
+    <div class="card bg-base-100 shadow">
+        <div class="card-body">
+            <h3 class="card-title mb-4">发表留言</h3>
+            <form method="post">
+                {% csrf_token %}
+                <textarea
+                    name="content"
+                    placeholder="请输入您的留言内容..."
+                    class="textarea textarea-bordered w-full h-32"
+                    required
+                ></textarea>
+                <div class="card-actions justify-end mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane mr-2"></i>
+                        发表留言
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% elif not user.is_authenticated %}
+    <!-- 未登录提示 -->
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i>
+        <span>请<a href="{% url 'login' %}" class="link link-primary">登录</a>后发表留言</span>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function showReplyForm(commentId) {
+    const form = document.getElementById(`reply-form-${commentId}`);
+    form.classList.remove('hidden');
+    form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function hideReplyForm(commentId) {
+    const form = document.getElementById(`reply-form-${commentId}`);
+    form.classList.add('hidden');
+}
+</script>
+{% endblock %}
