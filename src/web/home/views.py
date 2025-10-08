@@ -938,8 +938,8 @@ def discussion_detail(request, topic_id):
     # 获取主题
     topic = get_object_or_404(DiscussionTopic, id=topic_id)
 
-    # 增加查看次数
-    topic.increment_view_count()
+    # 增加查看次数（作者查看自己的帖子不统计）
+    topic.increment_view_count(request.user)
 
     # 获取该主题的所有留言
     content_type = ContentType.objects.get_for_model(DiscussionTopic)

@@ -8,9 +8,9 @@
     <!-- 页面标题和导航 -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div class="flex items-center gap-4">
-            <a href="{% url 'discussion_list' %}" class="btn btn-ghost btn-sm">
+            <a href="{% url 'discussion_topic_detail' topic.id %}" class="btn btn-ghost btn-sm">
                 <i class="fas fa-arrow-left mr-2"></i>
-                返回列表
+                返回详情
             </a>
             <h1 class="text-2xl font-bold text-base-content">{{ display_title }}</h1>
         </div>
@@ -24,7 +24,7 @@
     </div>
     {% endif %}
 
-    <!-- 创建表单 -->
+    <!-- 编辑表单 -->
     <div class="card bg-base-100 shadow">
         <div class="card-body">
             <form method="post">
@@ -39,7 +39,7 @@
                     <input
                         type="text"
                         name="title"
-                        value="{{ title }}"
+                        value="{{ topic.title }}"
                         placeholder="请输入主题标题（2-200个字符）"
                         class="input input-bordered w-full"
                         required
@@ -57,7 +57,7 @@
                     </label>
                     <select name="category" class="select select-bordered w-full">
                         {% for value, label in category_choices %}
-                            <option value="{{ value }}" {% if category == value %}selected{% endif %}>
+                            <option value="{{ value }}" {% if topic.category == value %}selected{% endif %}>
                                 {{ label }}
                             </option>
                         {% endfor %}
@@ -78,7 +78,7 @@
                         placeholder="请详细描述您的问题、想法或分享的内容..."
                         class="textarea textarea-bordered w-full h-64"
                         required
-                    >{{ content }}</textarea>
+                    >{{ topic.content }}</textarea>
                     <label class="label">
                         <span class="label-text-alt text-base-content/60">详细的内容描述有助于获得更好的回复</span>
                     </label>
@@ -87,10 +87,10 @@
                 <!-- 操作按钮 -->
                 <div class="flex gap-4">
                     <button type="submit" class="btn btn-primary flex-1">
-                        <i class="fas fa-paper-plane mr-2"></i>
-                        发布主题
+                        <i class="fas fa-save mr-2"></i>
+                        保存修改
                     </button>
-                    <a href="{% url 'discussion_list' %}" class="btn btn-ghost">
+                    <a href="{% url 'discussion_topic_detail' topic.id %}" class="btn btn-ghost">
                         取消
                     </a>
                 </div>
@@ -98,28 +98,28 @@
         </div>
     </div>
 
-    <!-- 发帖指南 -->
+    <!-- 主题信息 -->
     <div class="mt-8">
         <div class="bg-base-200 rounded-lg p-6">
-            <h3 class="text-lg font-semibold mb-4">发帖指南</h3>
-            <ul class="space-y-2 text-sm text-base-content/70">
-                <li class="flex items-start gap-2">
-                    <i class="fas fa-check text-success mt-1"></i>
-                    <span>标题要简洁明了，准确反映主题内容</span>
-                </li>
-                <li class="flex items-start gap-2">
-                    <i class="fas fa-check text-success mt-1"></i>
-                    <span>内容要详细具体，便于他人理解和回复</span>
-                </li>
-                <li class="flex items-start gap-2">
-                    <i class="fas fa-check text-success mt-1"></i>
-                    <span>选择合适的分类，方便主题归类</span>
-                </li>
-                <li class="flex items-start gap-2">
-                    <i class="fas fa-check text-success mt-1"></i>
-                    <span>遵守社区规范，文明交流</span>
-                </li>
-            </ul>
+            <h3 class="text-lg font-semibold mb-4">主题信息</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-base-content/70">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-user text-primary"></i>
+                    <span>作者：{{ topic.author.username }}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-calendar text-primary"></i>
+                    <span>创建时间：{{ topic.created_at|date:"Y-m-d H:i" }}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-eye text-primary"></i>
+                    <span>查看次数：{{ topic.view_count }}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-comment text-primary"></i>
+                    <span>回复数量：{{ topic.reply_count }}</span>
+                </div>
+            </div>
         </div>
     </div>
 </div>

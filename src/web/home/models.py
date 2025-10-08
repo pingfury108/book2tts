@@ -426,8 +426,12 @@ class DiscussionTopic(models.Model):
         from django.urls import reverse
         return reverse('discussion_topic_detail', kwargs={'topic_id': self.id})
 
-    def increment_view_count(self):
-        """增加查看次数"""
+    def increment_view_count(self, user=None):
+        """增加查看次数，如果提供了用户且用户是作者则不增加"""
+        # 如果提供了用户且用户是作者，则不增加查看次数
+        if user and user == self.author:
+            return
+
         self.view_count += 1
         self.save(update_fields=['view_count'])
 
