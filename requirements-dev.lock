@@ -232,7 +232,7 @@ numpy==2.1.2
     # via pandas
 openai==1.76.0
     # via litellm
-opendal==0.45.11
+opendal==0.46.0
     # via book2tts
 orjson==3.10.7
     # via gradio

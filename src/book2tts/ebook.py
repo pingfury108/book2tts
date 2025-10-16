@@ -584,8 +584,86 @@ def _html_to_plain_text(content: str) -> str:
     return "\n".join(normalized_lines)
 
 
-def get_content_with_href(book: PyMuPdfEpubAdapter, href: str):
-    h = (href or "").split("#")[0]
+def _split_href_and_fragment(href: str) -> tuple[str, Optional[str]]:
+    if not href:
+        return "", None
+    parts = href.split("#", 1)
+    base = parts[0]
+    fragment = parts[1] if len(parts) > 1 else None
+    return base, fragment
+
+
+def _matches_fragment(node, fragment: Optional[str]) -> bool:
+    if not fragment or not fragment.strip():
+        return False
+    fragment = fragment.strip()
+    from bs4 import Tag
+
+    if isinstance(node, Tag):
+        if node.get("id") == fragment or node.get("name") == fragment:
+            return True
+        anchor = node.find(attrs={"id": fragment})
+        if anchor:
+            return True
+        anchor = node.find(attrs={"name": fragment})
+        if anchor:
+            return True
+    return False
+
+
+def _locate_fragment_start(soup: BeautifulSoup, fragment: Optional[str]):
+    if not fragment or not fragment.strip():
+        return None
+
+    fragment = fragment.strip()
+    from bs4 import Tag
+
+    target = soup.find(id=fragment)
+    if not target:
+        target = soup.find(attrs={"name": fragment})
+    if not target:
+        target = soup.find("a", attrs={"href": f"#{fragment}"})
+
+    if not target:
+        return None
+
+    if isinstance(target, Tag) and target.name in {"a", "span"}:
+        heading_parent = target.find_parent(["h1", "h2", "h3", "h4", "h5", "h6"])
+        if heading_parent:
+            return heading_parent
+        if target.parent and isinstance(target.parent, Tag):
+            return target.parent
+
+    return target
+
+
+def _extract_fragment_html(content_text: str, fragment: Optional[str], end_fragment: Optional[str]) -> str:
+    if not fragment:
+        return content_text
+
+    soup = BeautifulSoup(content_text, "html.parser")
+    start_node = _locate_fragment_start(soup, fragment)
+    if start_node is None:
+        return content_text
+
+    nodes_html: List[str] = []
+    current = start_node
+
+    while current is not None:
+        if current is not start_node and _matches_fragment(current, end_fragment):
+            break
+        nodes_html.append(str(current))
+        current = current.next_sibling
+
+    if not nodes_html:
+        return content_text
+
+    return "".join(nodes_html)
+
+
+def get_content_with_href(book: PyMuPdfEpubAdapter, href: str, end_fragment: Optional[str] = None):
+    base_href, fragment = _split_href_and_fragment(href)
+    h = base_href
 
     try:
         item = book.get_item_with_href(h)
@@ -596,7 +674,8 @@ def get_content_with_href(book: PyMuPdfEpubAdapter, href: str):
     try:
         content_bytes = item.get_content()
         content_text = _decode_bytes(content_bytes)
-        return _html_to_plain_text(content_text)
+        fragment_html = _extract_fragment_html(content_text, fragment, end_fragment and end_fragment.strip())
+        return _html_to_plain_text(fragment_html)
     except Exception as exc:  # noqa: BLE001
         fallback_text = book.extract_text_by_href(h)
         return fallback_text or f"Error extracting content: {exc}"

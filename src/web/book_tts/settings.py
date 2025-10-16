@@ -155,6 +155,12 @@ TAILWIND_APP_NAME = "theme"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.getenv("MEDIA_ROOT", os.path.join(BASE_DIR, "media"))
 
+# 默认使用动态存储后端
+DEFAULT_FILE_STORAGE = "storage.DynamicStorage"
+
+# 存储配置 - 使用 SiteConfig 适配器
+STORAGE_CONFIG_CLASS = "storage.adapters.create_site_config_adapter"
+
 # Add login redirect settings
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "/"

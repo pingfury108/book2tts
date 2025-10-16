@@ -1,0 +1,26 @@
+{% extends "admin/change_form.html" %}
+{% load static %}
+
+{% block field_sets %}
+    {{ block.super }}
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 找到 S3 配置字段集
+        const s3Fieldset = document.querySelector('fieldset:has(#id_s3_enabled)');
+        if (!s3Fieldset) return;
+
+        const s3Enabled = document.querySelector('#id_s3_enabled');
+        const s3ConfigFields = s3Fieldset.querySelectorAll('.form-row:not(:has(#id_s3_enabled))');
+
+        function toggleS3Fields() {
+            s3ConfigFields.forEach(field => {
+                field.style.display = s3Enabled.checked ? 'block' : 'none';
+            });
+        }
+
+        s3Enabled.addEventListener('change', toggleS3Fields);
+        toggleS3Fields(); // 初始状态
+    });
+    </script>
+{% endblock %}

@@ -298,6 +298,64 @@ class SiteConfig(models.Model):
         help_text='站点的 meta keywords，用于 SEO'
     )
 
+    # S3 对象存储配置
+    s3_enabled = models.BooleanField(
+        default=False,
+        verbose_name='启用 S3 对象存储',
+        help_text='是否启用 S3 对象存储（启用后文件将上传到S3）'
+    )
+
+    s3_access_key_id = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name='S3 Access Key ID',
+        help_text='S3 访问密钥 ID'
+    )
+
+    s3_secret_access_key = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name='S3 Secret Access Key',
+        help_text='S3 秘密访问密钥'
+    )
+
+    s3_bucket_name = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name='S3 存储桶名称',
+        help_text='S3 存储桶名称'
+    )
+
+    s3_region = models.CharField(
+        max_length=50,
+        blank=True,
+        default='us-east-1',
+        verbose_name='S3 区域',
+        help_text='S3 存储区域（如：us-east-1, cn-north-1）'
+    )
+
+    s3_endpoint_url = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name='S3 端点URL',
+        help_text='S3 兼容服务的端点URL（如使用其他S3兼容服务）'
+    )
+
+    s3_custom_domain = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name='S3 自定义域名',
+        help_text='S3 自定义域名（用于CDN加速）'
+    )
+
+    s3_prefix = models.CharField(
+        max_length=100,
+        blank=True,
+        default='media/',
+        verbose_name='S3 路径前缀',
+        help_text='S3 存储路径前缀'
+    )
+
     # 创建和更新时间
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
@@ -319,6 +377,14 @@ class SiteConfig(models.Model):
             existing.ads_txt_content = self.ads_txt_content
             existing.site_description = self.site_description
             existing.site_keywords = self.site_keywords
+            existing.s3_enabled = self.s3_enabled
+            existing.s3_access_key_id = self.s3_access_key_id
+            existing.s3_secret_access_key = self.s3_secret_access_key
+            existing.s3_bucket_name = self.s3_bucket_name
+            existing.s3_region = self.s3_region
+            existing.s3_endpoint_url = self.s3_endpoint_url
+            existing.s3_custom_domain = self.s3_custom_domain
+            existing.s3_prefix = self.s3_prefix
             existing.save()
             return existing
         return super().save(*args, **kwargs)

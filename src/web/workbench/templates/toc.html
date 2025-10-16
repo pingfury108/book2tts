@@ -31,7 +31,6 @@
             <a class="flex-1 toc-link text-base-content opacity-80 hover:opacity-100 transition-colors duration-200 min-w-0"
                data-text-url="{% url 'text_by_toc' book_id=book_id %}"
                data-toc-href="{{ toc.href }}"
-               data-names="{{ toc.href|stringformat:"s" }}"
             >
               <span class="flex items-center gap-2 min-w-0">
                 {% if toc.has_children %}
@@ -276,7 +275,7 @@ $(document).ready(function() {
     });
     return sortedSelectedItems;
   }
-  
+
   // Function to load selected TOC items
   function loadSelectedTocItems() {
     if (selectedTocItems.size === 0) return;
@@ -292,7 +291,7 @@ $(document).ready(function() {
     // 按照TOC在页面中的显示顺序排序，而不是选中的操作顺序
     const sortedSelectedItems = getSelectedItemsInOrder();
     const names = sortedSelectedItems.join(',');
-    
+
     // Reset audio display if function exists
     if (typeof resetAudioDisplay === 'function') {
       resetAudioDisplay();

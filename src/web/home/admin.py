@@ -344,9 +344,13 @@ admin.site.register(OperationRecord, OperationRecordAdmin)
 class SiteConfigAdmin(admin.ModelAdmin):
     """站点配置管理"""
 
+    # 使用自定义模板
+    change_form_template = "admin/site_config_form.html"
+
     # 列表显示字段
     list_display = (
         'google_ads_enabled',
+        's3_enabled',
         'site_description_preview',
         'site_keywords_preview',
         'updated_at'
@@ -361,6 +365,19 @@ class SiteConfigAdmin(admin.ModelAdmin):
                 'ads_txt_content',
             ),
             'description': '配置 Google Ads 相关设置，启用后会在网站头部添加广告脚本'
+        }),
+        ('S3 对象存储配置', {
+            'fields': (
+                's3_enabled',
+                's3_access_key_id',
+                's3_secret_access_key',
+                's3_bucket_name',
+                's3_region',
+                's3_endpoint_url',
+                's3_custom_domain',
+                's3_prefix',
+            ),
+            'description': '配置 S3 对象存储，启用后文件将上传到 S3 存储桶'
         }),
         ('SEO 配置', {
             'fields': (

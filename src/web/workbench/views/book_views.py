@@ -142,18 +142,26 @@ def traverse_toc_with_level(items, toc, level=0):
     for item in items:
         if isinstance(item, tuple):
             section, children = item
+            href = section.href or ""
+            base_href, fragment = (href.split("#", 1) + [None])[:2]
             toc.append({
                 "title": section.title,
-                "href": section.href.split("#")[0],
+                "href": href,
+                "base_href": base_href,
+                "fragment": fragment,
                 "level": level,
                 "has_children": bool(children)
             })
             # 递归处理子目录，层级加1
             traverse_toc_with_level(children, toc, level + 1)
         elif isinstance(item, epub.Link):
+            href = item.href or ""
+            base_href, fragment = (href.split("#", 1) + [None])[:2]
             toc.append({
                 "title": item.title,
-                "href": item.href.split("#")[0],
+                "href": href,
+                "base_href": base_href,
+                "fragment": fragment,
                 "level": level,
                 "has_children": False
             })
@@ -169,14 +177,51 @@ def ebook_toc_with_level(book):
     tocs = []
     traverse_toc_with_level(book.toc, tocs)
 
-    seen = set()
     result = []
 
     for t in tocs:
-        if t["href"] not in seen:
-            seen.add(t["href"])
-            result.append(t)
+        href = t.get("href", "")
+        if "base_href" not in t:
+            t["base_href"] = href.split("#")[0]
+        if "fragment" not in t:
+            parts = href.split("#", 1)
+            t["fragment"] = parts[1] if len(parts) > 1 else None
+
+        result.append(t)
     return result
+
+
+def build_epub_fragment_successors(toc_entries):
+    """按 base_href 排序 fragment，返回每个条目的后续 fragment 信息"""
+    successors = {}
+    grouped = {}
+
+    for entry in toc_entries:
+        href = entry.get("href")
+        base_href = entry.get("base_href") or (href.split("#", 1)[0] if href else "")
+        grouped.setdefault(base_href, []).append(entry)
+
+    for entries in grouped.values():
+        # entries 已按原有 TOC 顺序排列
+        total = len(entries)
+        for idx, entry in enumerate(entries):
+            current_href = entry.get("href")
+            if not current_href:
+                continue
+
+            next_fragment = None
+            next_href = None
+            if idx + 1 < total:
+                next_entry = entries[idx + 1]
+                next_href = next_entry.get("href")
+                next_fragment = next_entry.get("fragment")
+
+            successors[current_href] = {
+                "next_fragment": next_fragment,
+                "next_href": next_href,
+            }
+
+    return successors
 
 
 def annotate_toc_children(flat_tocs):
@@ -270,30 +315,41 @@ def parse_and_deduplicate_page_ranges(names_list):
     return sorted(all_pages)
 
 
-def calculate_epub_toc_page_ranges(toc_list, all_pages):
+def calculate_epub_toc_page_ranges(toc_list, all_pages, fragment_successors=None):
     """
     计算EPUB TOC条目的页面范围
     参数:
         toc_list: TOC列表，格式为 [{"title": str, "href": str, "level": int}, ...]
         all_pages: 所有页面列表，格式为 [{"title": str, "href": str}, ...]
+        fragment_successors: 片段边界映射，用于确定锚点范围
     返回:
         处理后的TOC列表，每个条目包含页面范围信息
     """
     if not toc_list or not all_pages:
         return []
+
+    fragment_successors = fragment_successors or {}
     
-    # 创建页面href到索引的映射
-    page_href_to_index = {page["href"]: idx for idx, page in enumerate(all_pages)}
+    # 创建页面href到索引的映射，支持锚点和基础href
+    page_href_to_index = {}
+    for idx, page in enumerate(all_pages):
+        page_href = page.get("href", "")
+        base = page_href.split("#")[0]
+        if page_href not in page_href_to_index:
+            page_href_to_index[page_href] = idx
+        if base not in page_href_to_index:
+            page_href_to_index[base] = idx
     
     toc_with_ranges = []
     
     for i, toc in enumerate(toc_list):
         title = toc["title"]
-        href = toc["href"]
+        href = toc.get("href", "")
+        base_href = toc.get("base_href") or href.split("#")[0]
         level = toc["level"]
-        
+
         # 找到当前TOC条目对应的页面索引
-        start_page_index = page_href_to_index.get(href)
+        start_page_index = page_href_to_index.get(base_href)
         if start_page_index is None:
             # 如果找不到对应页面，跳过这个TOC条目
             continue
@@ -304,8 +360,8 @@ def calculate_epub_toc_page_ranges(toc_list, all_pages):
         for j in range(i + 1, len(toc_list)):
             next_toc = toc_list[j]
             next_level = next_toc["level"]
-            next_href = next_toc["href"]
-            
+            next_href = next_toc.get("base_href") or next_toc.get("href", "").split("#")[0]
+
             # 如果找到同级别或更高级别的条目
             if next_level <= level:
                 next_page_index = page_href_to_index.get(next_href)
@@ -319,15 +375,23 @@ def calculate_epub_toc_page_ranges(toc_list, all_pages):
         # 获取页面范围内的所有页面href
         page_hrefs = [all_pages[idx]["href"] for idx in range(start_page_index, end_page_index + 1)]
         
+        next_fragment_info = fragment_successors.get(href, {})
+
         toc_with_ranges.append({
             "title": title,
-            "href": ",".join(page_hrefs),  # 使用逗号分隔的多个页面href
+            "href": href,
+            "page_refs": ",".join(page_hrefs),  # 使用逗号分隔的多个页面href
+            "base_href": base_href,
             "start_page_index": start_page_index,
             "end_page_index": end_page_index,
             "level": level,
-            "page_count": len(page_hrefs)
+            "page_count": len(page_hrefs),
+            "has_children": toc.get("has_children"),
+            "fragment": toc.get("fragment"),
+            "next_fragment": next_fragment_info.get("next_fragment"),
+            "next_href": next_fragment_info.get("next_href"),
         })
-    
+
     return toc_with_ranges
 
 
@@ -373,16 +437,23 @@ def index(request, book_id):
         ebook = open_ebook(book.file.path)
         all_pages = ebook_pages(ebook)
         toc_list = ebook_toc_with_level(ebook)
-        toc_with_ranges = calculate_epub_toc_page_ranges(toc_list, all_pages)
+        fragment_successors = build_epub_fragment_successors(toc_list)
+        toc_with_ranges = calculate_epub_toc_page_ranges(toc_list, all_pages, fragment_successors)
         
         tocs = [
             {
                 "title": toc.get("title"),
-                "href": toc.get("href").replace("/", "_"),  # 已经是逗号分隔的页面列表
+                "href": toc.get("href"),  # 保留原始href用于展示和定位
+                "page_refs": toc.get("page_refs"),
+                "base_href": toc.get("base_href"),
                 "level": toc.get("level", 0),
                 "start_page_index": toc.get("start_page_index"),
                 "end_page_index": toc.get("end_page_index"),
-                "page_count": toc.get("page_count", 1)
+                "page_count": toc.get("page_count", 1),
+                "has_children": toc.get("has_children"),
+                "fragment": toc.get("fragment"),
+                "next_fragment": toc.get("next_fragment"),
+                "next_href": toc.get("next_href"),
             }
             for toc in toc_with_ranges
         ]
@@ -492,16 +563,23 @@ def toc(request, book_id):
         ebook = open_ebook(book.file.path)
         all_pages = ebook_pages(ebook)
         toc_list = ebook_toc_with_level(ebook)
-        toc_with_ranges = calculate_epub_toc_page_ranges(toc_list, all_pages)
+        fragment_successors = build_epub_fragment_successors(toc_list)
+        toc_with_ranges = calculate_epub_toc_page_ranges(toc_list, all_pages, fragment_successors)
         
         tocs = [
             {
                 "title": toc.get("title"), 
-                "href": toc.get("href"),  # 已经是逗号分隔的页面列表
+                "href": toc.get("href"),
+                "page_refs": toc.get("page_refs"),
+                "base_href": toc.get("base_href"),
                 "level": toc.get("level", 0),
                 "start_page_index": toc.get("start_page_index"),
                 "end_page_index": toc.get("end_page_index"),
-                "page_count": toc.get("page_count", 1)
+                "page_count": toc.get("page_count", 1),
+                "has_children": toc.get("has_children"),
+                "fragment": toc.get("fragment"),
+                "next_fragment": toc.get("next_fragment"),
+                "next_href": toc.get("next_href"),
             }
             for toc in toc_with_ranges
         ]
@@ -585,6 +663,31 @@ def text_by_toc(request, book_id):
     combined_texts = []
     ocr_results = []  # Store OCR metadata
     non_cached_count = 0  # Track non-cached OCR results for point deduction
+    ebook = None
+    seen_epub_targets = set()
+    epub_toc_lookup = {}
+    epub_toc_lookup_by_base = {}
+
+    if book.file_type == ".epub":
+        try:
+            ebook = open_ebook(book.file.path)
+            all_pages = ebook_pages(ebook)
+            toc_list = ebook_toc_with_level(ebook)
+            fragment_successors = build_epub_fragment_successors(toc_list)
+            toc_with_ranges = calculate_epub_toc_page_ranges(toc_list, all_pages, fragment_successors)
+
+            for entry in toc_with_ranges:
+                href_key = entry.get("href")
+                if href_key:
+                    epub_toc_lookup[href_key] = entry
+
+                base_key = entry.get("base_href")
+                if base_key and base_key not in epub_toc_lookup_by_base:
+                    epub_toc_lookup_by_base[base_key] = entry
+        except Exception:  # noqa: BLE001
+            ebook = None
+            epub_toc_lookup = {}
+            epub_toc_lookup_by_base = {}
 
     for single_name in names:
         text_content = ""
@@ -676,20 +779,51 @@ def text_by_toc(request, book_id):
                 text_content = f"Error extracting text: {str(e)}"
         elif book.file_type == ".epub":
             try:
-                ebook = open_ebook(book.file.path)
-                # 检查是否是多页面格式（逗号分隔）
-                if ',' in single_name:
-                    # 多页面模式：获取多个页面的内容
-                    page_hrefs = single_name.split(',')
-                    page_texts = []
-                    for href in page_hrefs:
-                        page_text = get_content_with_href(ebook, href.strip())
-                        if page_text.strip():  # 只添加非空页面
-                            page_texts.append(page_text)
-                    text_content = "\n\n".join(page_texts)
-                else:
-                    # 单页面模式（保持向后兼容）
-                    text_content = get_content_with_href(ebook, single_name)
+                if ebook is None:
+                    ebook = open_ebook(book.file.path)
+
+                page_ref = single_name.strip()
+                if not page_ref:
+                    continue
+
+                if page_ref in seen_epub_targets:
+                    continue
+                seen_epub_targets.add(page_ref)
+
+                entry = epub_toc_lookup.get(page_ref)
+                if entry is None:
+                    base_ref = page_ref.split('#', 1)[0]
+                    entry = epub_toc_lookup.get(base_ref) or epub_toc_lookup_by_base.get(base_ref)
+
+                page_refs_value = entry.get("page_refs") if entry else None
+                page_hrefs = [ref.strip() for ref in (page_refs_value.split(',') if page_refs_value else []) if ref.strip()]
+                if not page_hrefs:
+                    page_hrefs = [page_ref.split('#', 1)[0]]
+
+                fragment = None
+                if '#' in page_ref:
+                    fragment = page_ref.split('#', 1)[1]
+                elif entry:
+                    fragment = entry.get("fragment")
+
+                next_fragment = None
+                if entry:
+                    base_href = entry.get("base_href") or page_hrefs[0].split('#', 1)[0]
+                    next_href_candidate = entry.get("next_href")
+                    if next_href_candidate and next_href_candidate.split('#', 1)[0] == base_href:
+                        next_fragment = entry.get("next_fragment")
+
+                page_texts = []
+                first_page = True
+                for page_href in page_hrefs:
+                    effective_href = page_ref if first_page and fragment else page_href
+                    end_fragment = next_fragment if first_page else None
+                    page_text = get_content_with_href(ebook, effective_href, end_fragment=end_fragment)
+                    if page_text.strip():
+                        page_texts.append(page_text)
+                    first_page = False
+
+                text_content = "\n\n".join(page_texts)
             except Exception as e:
                 text_content = f"Error extracting text: {str(e)}"
         
