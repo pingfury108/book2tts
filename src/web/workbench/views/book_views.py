@@ -180,12 +180,24 @@ def ebook_toc_with_level(book):
     result = []
 
     for t in tocs:
-        href = t.get("href", "")
-        if "base_href" not in t:
-            t["base_href"] = href.split("#")[0]
-        if "fragment" not in t:
+        href = (t.get("href") or "").strip()
+        base_href = (t.get("base_href") or "").strip()
+
+        if not base_href:
+            base_href = href.split("#", 1)[0] if href else ""
+
+        fragment = t.get("fragment")
+        if fragment is None:
             parts = href.split("#", 1)
-            t["fragment"] = parts[1] if len(parts) > 1 else None
+            fragment = parts[1] if len(parts) > 1 else None
+
+        normalized_href = base_href or href
+        if fragment:
+            normalized_href = f"{base_href}#{fragment}" if base_href else f"#{fragment}"
+
+        t["base_href"] = base_href
+        t["fragment"] = fragment
+        t["href"] = normalized_href or href
 
         result.append(t)
     return result

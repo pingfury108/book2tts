@@ -632,7 +632,10 @@ def _locate_fragment_start(soup: BeautifulSoup, fragment: Optional[str]):
         if heading_parent:
             return heading_parent
         if target.parent and isinstance(target.parent, Tag):
-            return target.parent
+            # 避免回退到 <body>/<html> 级别，否则会导致整章被提取
+            parent_name = target.parent.name.lower()
+            if parent_name not in {"body", "html"}:
+                return target.parent
 
     return target
 
