@@ -52,7 +52,8 @@
     {% endif %}
     {% if google_ads_enabled %}
     {% if google_ads_script %}
-    {{ google_ads_script|safe }}
+    {% load custom_filters %}
+    {{ google_ads_script|extract_script_tags|safe }}
     {% else %}
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7326790660929371" crossorigin="anonymous"></script>
     {% endif %}
@@ -242,6 +243,16 @@
             <p>Copyright © {% now "Y" %} pingfury - All rights reserved</p>
         </aside>
     </footer>
+
+    <!-- Google Ads 内容区域 -->
+    {% if google_ads_enabled %}
+    {% if google_ads_content %}
+        {{ google_ads_content|safe }}
+    {% elif google_ads_script %}
+    {% load custom_filters %}
+    {{ google_ads_script|extract_div_tags|safe }}
+    {% endif %}
+    {% endif %}
 
     {% block script %}
     {% endblock %}

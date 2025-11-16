@@ -67,7 +67,7 @@ def index(request):
         default_page_size = 10
     else:
         # 未登录用户：显示所有已发布的音频（跳过无关联书籍的对话脚本）
-        all_audio_items = get_unified_audio_content(published_only=True)
+        all_audio_items = get_unified_audio_content(published_only=True, sort_by_publish_time=True)
         display_title = '公开的音频作品'
         page_size_options = [12, 24, 36, 48]
         default_page_size = 12
@@ -155,7 +155,7 @@ def book_audio_list(request, book_id):
         ensure_rss_token(book.user)
     
     # 使用统一的音频内容获取函数
-    book_audio_items = get_unified_audio_content(book=book, published_only=True)
+    book_audio_items = get_unified_audio_content(book=book, published_only=True, sort_by_publish_time=True)
     
     # 添加分页
     page = request.GET.get('page', 1)
@@ -214,7 +214,7 @@ def audio_rss_feed(request, user_id=None):
         author_email = user.email if user.email else ""
         
         # 使用统一函数获取该用户的所有音频内容
-        audio_items = get_unified_audio_content(user=user, published_only=True)
+        audio_items = get_unified_audio_content(user=user, published_only=True, sort_by_publish_time=True)
     else:
         # Original behavior for all users
         title = "Book2TTS 公开发布的音频"
@@ -223,7 +223,7 @@ def audio_rss_feed(request, user_id=None):
         author_email = ""
         
         # 获取所有已发布的音频内容
-        audio_items = get_unified_audio_content(published_only=True)
+        audio_items = get_unified_audio_content(published_only=True, sort_by_publish_time=True)
 
     link = _absolute_for_request(request, reverse('home'))  # Link to the homepage
     # 站点图标URL
@@ -376,7 +376,7 @@ def audio_rss_feed_by_book(request, token, book_id):
         author_email = user.email if user.email else ""
         
         # 使用统一函数获取该书籍的音频内容
-        audio_items = get_unified_audio_content(user=user, book=book, published_only=True)
+        audio_items = get_unified_audio_content(user=user, book=book, published_only=True, sort_by_publish_time=True)
         
     except Exception as e:
         # Return 404 if any error occurs
@@ -510,13 +510,13 @@ def audio_rss_feed_by_token(request, token, book_id=None):
                 feed_image_url = _absolute_for_request(request, '/static/images/default_cover.png')
             
             # 使用统一函数获取该用户特定书籍的音频内容
-            audio_items = get_unified_audio_content(user=user, book=book, published_only=True)
+            audio_items = get_unified_audio_content(user=user, book=book, published_only=True, sort_by_publish_time=True)
         else:
             title = f"{user.username}的有声书合集"
             description = f"{user.username}的有声书作品集"
             feed_image_url = _absolute_for_request(request, '/static/images/logo.png')
             # 使用统一函数获取该用户的所有音频内容
-            audio_items = get_unified_audio_content(user=user, published_only=True)
+            audio_items = get_unified_audio_content(user=user, published_only=True, sort_by_publish_time=True)
         
         # 如果找不到音频片段，仍然返回空的feed
         if not audio_items:
@@ -711,7 +711,8 @@ def explore(request):
     # 使用数据库搜索获取音频内容
     all_audio_items = get_unified_audio_content(
         published_only=True,
-        search_query=search_query
+        search_query=search_query,
+        sort_by_publish_time=True
     )
 
     # 分页配置

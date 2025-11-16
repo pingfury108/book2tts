@@ -110,10 +110,17 @@ def get_or_create_dialogue_virtual_book(user):
     return virtual_book
 
 
-def get_unified_audio_content(user=None, book=None, published_only=True, search_query=None):
+def get_unified_audio_content(user=None, book=None, published_only=True, search_query=None, sort_by_publish_time=False):
     """
     统一获取音频内容（AudioSegment + DialogueScript）
-    返回统一格式的数据列表，按发布时间倒序排列
+    返回统一格式的数据列表
+
+    Args:
+        user: 用户对象，None表示所有用户
+        book: 书籍对象，None表示所有书籍
+        published_only: 是否只获取已发布的音频
+        search_query: 搜索关键词
+        sort_by_publish_time: 是否按发布时间排序（True：按发布时间，False：按更新时间+ID）
     """
     audio_items = []
 
@@ -144,12 +151,18 @@ def get_unified_audio_content(user=None, book=None, published_only=True, search_
         dialogue_filter &= dialogue_search_filter
     
     # 获取传统音频片段
-    audio_segments = AudioSegment.objects.filter(audio_filter).order_by('-updated_at')
+    if sort_by_publish_time:
+        # 按发布时间排序（公开视频和RSS使用）
+        audio_segments = AudioSegment.objects.filter(audio_filter).order_by('-created_at', '-id')
+    else:
+        # 按更新时间排序（成品页使用）
+        audio_segments = AudioSegment.objects.filter(audio_filter).order_by('-updated_at', '-id')
+
     for segment in audio_segments:
         # 确保AudioSegment有有效的book
         if not segment.book or not segment.book.id:
             continue
-            
+
         audio_items.append({
             'id': segment.id,
             'type': 'audio_segment',
@@ -170,11 +183,18 @@ def get_unified_audio_content(user=None, book=None, published_only=True, search_
             'chapters_file': segment.chapters_file,
             'chapters_html': segment.chapters_html,
         })
-    
+
     # 获取对话脚本
-    dialogue_scripts = DialogueScript.objects.filter(
-        dialogue_filter & Q(audio_file__isnull=False)
-    ).order_by('-updated_at')
+    if sort_by_publish_time:
+        # 按发布时间排序（公开视频和RSS使用）
+        dialogue_scripts = DialogueScript.objects.filter(
+            dialogue_filter & Q(audio_file__isnull=False)
+        ).order_by('-created_at', '-id')
+    else:
+        # 按更新时间排序（成品页使用）
+        dialogue_scripts = DialogueScript.objects.filter(
+            dialogue_filter & Q(audio_file__isnull=False)
+        ).order_by('-updated_at', '-id')
     
     # 如果有用户指定且有无关联书籍的对话脚本，创建虚拟书籍
     virtual_book = None
@@ -218,8 +238,13 @@ def get_unified_audio_content(user=None, book=None, published_only=True, search_
             'chapters_html': script.chapters_html,
         })
     
-    # 按发布时间倒序排列
-    audio_items.sort(key=lambda x: x['updated_at'], reverse=True)
+    # 根据排序策略进行内存排序
+    if sort_by_publish_time:
+        # 按发布时间排序（公开视频和RSS使用）
+        audio_items.sort(key=lambda x: (x['created_at'], x['id']), reverse=True)
+    else:
+        # 按更新时间排序（成品页使用）
+        audio_items.sort(key=lambda x: (x['updated_at'], x['id']), reverse=True)
     
     return audio_items
 
