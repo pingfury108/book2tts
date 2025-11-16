@@ -61,7 +61,7 @@ def index(request):
     # 根据用户登录状态决定显示内容
     if request.user.is_authenticated:
         # 已登录用户：显示自己的已发布音频（包括对话脚本）
-        all_audio_items = get_unified_audio_content(user=request.user, published_only=True)
+        all_audio_items = get_unified_audio_content(user=request.user, published_only=True, sort_by_publish_time=False)
         display_title = '我的音频作品'
         page_size_options = [5, 10, 20, 50]
         default_page_size = 10

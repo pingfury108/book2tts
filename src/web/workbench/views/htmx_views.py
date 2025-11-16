@@ -31,9 +31,10 @@ def book_details_htmx(request, book_id):
     
     # 使用统一的音频内容获取函数，包含AudioSegment和DialogueScript
     all_audio_items = get_unified_audio_content(
-        user=request.user, 
-        book=target_book, 
-        published_only=False  # 显示所有音频，包括未发布的
+        user=request.user,
+        book=target_book,
+        published_only=False,  # 显示所有音频，包括未发布的
+        sort_by_publish_time=False  # 按创建时间排序
     )
     
     # Create paginator for unified audio content

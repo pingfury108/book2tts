@@ -152,11 +152,11 @@ def get_unified_audio_content(user=None, book=None, published_only=True, search_
     
     # 获取传统音频片段
     if sort_by_publish_time:
-        # 按发布时间排序（公开视频和RSS使用）
-        audio_segments = AudioSegment.objects.filter(audio_filter).order_by('-created_at', '-id')
-    else:
-        # 按更新时间排序（成品页使用）
+        # 按更新时间排序（公开视频和RSS使用）
         audio_segments = AudioSegment.objects.filter(audio_filter).order_by('-updated_at', '-id')
+    else:
+        # 按创建时间排序（成品页使用）
+        audio_segments = AudioSegment.objects.filter(audio_filter).order_by('-created_at', '-id')
 
     for segment in audio_segments:
         # 确保AudioSegment有有效的book
@@ -186,15 +186,15 @@ def get_unified_audio_content(user=None, book=None, published_only=True, search_
 
     # 获取对话脚本
     if sort_by_publish_time:
-        # 按发布时间排序（公开视频和RSS使用）
-        dialogue_scripts = DialogueScript.objects.filter(
-            dialogue_filter & Q(audio_file__isnull=False)
-        ).order_by('-created_at', '-id')
-    else:
-        # 按更新时间排序（成品页使用）
+        # 按更新时间排序（公开视频和RSS使用）
         dialogue_scripts = DialogueScript.objects.filter(
             dialogue_filter & Q(audio_file__isnull=False)
         ).order_by('-updated_at', '-id')
+    else:
+        # 按创建时间排序（成品页使用）
+        dialogue_scripts = DialogueScript.objects.filter(
+            dialogue_filter & Q(audio_file__isnull=False)
+        ).order_by('-created_at', '-id')
     
     # 如果有用户指定且有无关联书籍的对话脚本，创建虚拟书籍
     virtual_book = None
@@ -240,11 +240,11 @@ def get_unified_audio_content(user=None, book=None, published_only=True, search_
     
     # 根据排序策略进行内存排序
     if sort_by_publish_time:
-        # 按发布时间排序（公开视频和RSS使用）
-        audio_items.sort(key=lambda x: (x['created_at'], x['id']), reverse=True)
-    else:
-        # 按更新时间排序（成品页使用）
+        # 按更新时间排序（公开视频和RSS使用）
         audio_items.sort(key=lambda x: (x['updated_at'], x['id']), reverse=True)
+    else:
+        # 按创建时间排序（成品页使用）
+        audio_items.sort(key=lambda x: (x['created_at'], x['id']), reverse=True)
     
     return audio_items
 
