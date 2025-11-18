@@ -56,7 +56,7 @@ def _cache_key_for_host(base_key: str, request) -> str:
 def _build_book_season_mapping(audio_items):
     """
     根据音频项目列表构建书籍到 Season 编号的映射。
-    Season 编号按照每本书第一个音频的发布时间排序。
+    Season 编号按照每本书第一个音频的创建时间排序。
 
     Args:
         audio_items: 音频项目列表
@@ -66,7 +66,7 @@ def _build_book_season_mapping(audio_items):
     """
     from collections import defaultdict
 
-    # 收集每本书的最早发布时间
+    # 收集每本书的最早创建时间
     book_earliest_time = {}
 
     for item in audio_items:
@@ -75,12 +75,13 @@ def _build_book_season_mapping(audio_items):
             continue
 
         book_id = book.id
-        publish_time = item.get('updated_at') or item.get('created_at')
+        # 使用创建时间（更稳定，不受后续编辑影响）
+        publish_time = item.get('created_at')
 
         if book_id not in book_earliest_time or publish_time < book_earliest_time[book_id]:
             book_earliest_time[book_id] = publish_time
 
-    # 按照最早发布时间排序书籍
+    # 按照最早创建时间排序书籍（升序：最早的 = Season 1）
     sorted_books = sorted(book_earliest_time.items(), key=lambda x: x[1])
 
     # 构建书籍 ID 到 Season 编号的映射（从1开始）
