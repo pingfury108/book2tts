@@ -193,7 +193,7 @@ def create_podcast_feed(title, link, description, language, author_name, image_u
     fg.podcast.itunes_owner(author_name, author_email)
     fg.podcast.itunes_explicit('no')  # 修改为 'no'，这是feedgen库支持的值
     fg.podcast.itunes_category('Arts', 'Books')
-    fg.podcast.itunes_type('episodic')
+    fg.podcast.itunes_type('serial')  # 改为 serial，更适合有声书按季度（书籍）分组的场景
     fg.podcast.itunes_image(image_url)
     
     return fg
@@ -229,15 +229,16 @@ def add_podcast_entry(feed, title, audio_url, audio_size, link, description, pub
     if image_url:
         fe.podcast.itunes_image(image_url)
     fe.podcast.itunes_explicit('no')  # 修改为 'no'，这是feedgen库支持的值
-    
+
+    # 设置 Season 和 Episode 标签（用于在播客应用中按书籍分组）
+    if season_number:
+        fe.podcast.itunes_season(season_number)
+    if episode_number:
+        fe.podcast.itunes_episode(episode_number)
+
     # 在生成XML时，我们会处理Podcast Index命名空间元素
     # 这里存储这些值，以便稍后手动添加
     fe.podcast._custom_tags = {}
-
-    if episode_number:
-        fe.podcast._custom_tags['episode'] = str(episode_number)
-    if season_number:
-        fe.podcast._custom_tags['season'] = str(season_number)
     fe.podcast._custom_tags['duration'] = str(duration_seconds)
 
     if chapters_url:

@@ -53,6 +53,44 @@ def _cache_key_for_host(base_key: str, request) -> str:
     return f"{base_key}::{scheme}://{host}"
 
 
+def _build_book_season_mapping(audio_items):
+    """
+    根据音频项目列表构建书籍到 Season 编号的映射。
+    Season 编号按照每本书第一个音频的发布时间排序。
+
+    Args:
+        audio_items: 音频项目列表
+
+    Returns:
+        dict: {book_id: season_number} 映射
+    """
+    from collections import defaultdict
+
+    # 收集每本书的最早发布时间
+    book_earliest_time = {}
+
+    for item in audio_items:
+        book = item.get('book')
+        if not book:
+            continue
+
+        book_id = book.id
+        publish_time = item.get('updated_at') or item.get('created_at')
+
+        if book_id not in book_earliest_time or publish_time < book_earliest_time[book_id]:
+            book_earliest_time[book_id] = publish_time
+
+    # 按照最早发布时间排序书籍
+    sorted_books = sorted(book_earliest_time.items(), key=lambda x: x[1])
+
+    # 构建书籍 ID 到 Season 编号的映射（从1开始）
+    book_season_map = {}
+    for season_num, (book_id, _) in enumerate(sorted_books, start=1):
+        book_season_map[book_id] = season_num
+
+    return book_season_map
+
+
 # Create your views here.
 
 
@@ -243,6 +281,9 @@ def audio_rss_feed(request, user_id=None):
         author_email=author_email
     )
 
+    # 构建书籍到 Season 编号的映射（按第一个音频发布时间排序）
+    book_season_map = _build_book_season_mapping(audio_items)
+
     for item in audio_items:
         # 使用音频文件直接URL而不是网页URL
         audio_url = _absolute_for_request(request, item['file_url'])
@@ -293,7 +334,7 @@ def audio_rss_feed(request, user_id=None):
             duration_seconds=duration_seconds,
             image_url=item_image_url,
             episode_number=item['id'],
-            season_number=item['book'].id if item['book'] else None,
+            season_number=book_season_map.get(item['book'].id) if item['book'] else None,
             unique_id=f"{item['type']}_{item['id']}",
             subtitle_url=_absolute_for_request(request, item['subtitle_file'].url) if item.get('subtitle_file') else None,
             chapters_url=chapters_url,
@@ -449,7 +490,7 @@ def audio_rss_feed_by_book(request, token, book_id):
             duration_seconds=duration_seconds,
             image_url=feed_image_url,
             episode_number=item['id'],
-            season_number=book.id,
+            season_number=1,  # 单本书的feed，固定为Season 1
             unique_id=f"{item['type']}_{item['id']}",
             subtitle_url=_absolute_for_request(request, item['subtitle_file'].url) if item.get('subtitle_file') else None,
             chapters_url=chapters_url,
@@ -541,6 +582,9 @@ def audio_rss_feed_by_token(request, token, book_id=None):
         author_email=user.email if user.email else ""
     )
 
+    # 构建书籍到 Season 编号的映射（按第一个音频发布时间排���）
+    book_season_map = _build_book_season_mapping(audio_items)
+
     for item in audio_items:
         # 使用音频文件直接URL而不是网页URL
         audio_url = _absolute_for_request(request, item['file_url'])
@@ -591,7 +635,7 @@ def audio_rss_feed_by_token(request, token, book_id=None):
             duration_seconds=duration_seconds,
             image_url=item_image_url,
             episode_number=item['id'],
-            season_number=item['book'].id if item['book'] else None,
+            season_number=book_season_map.get(item['book'].id) if item['book'] else None,
             unique_id=f"{item['type']}_{item['id']}",
             subtitle_url=_absolute_for_request(request, item['subtitle_file'].url) if item.get('subtitle_file') else None,
             chapters_url=chapters_url,
@@ -789,7 +833,7 @@ def create_podcast_feed(title, link, description, language, author_name, image_u
     fg.podcast.itunes_owner(author_name, author_email)
     fg.podcast.itunes_explicit('no')  # 修改为 'no'，这是feedgen库支持的值
     fg.podcast.itunes_category('Arts', 'Books')
-    fg.podcast.itunes_type('episodic')
+    fg.podcast.itunes_type('serial')  # 改为 serial，更适合有声书按季度（书籍）分组的场景
     fg.podcast.itunes_image(image_url)
     
     return fg
