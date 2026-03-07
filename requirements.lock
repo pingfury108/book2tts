@@ -105,7 +105,7 @@ django-timezone-field==7.1
     # via django-celery-beat
 ebooklib==0.18
     # via book2tts
-edge-tts==7.0.0
+edge-tts==7.2.7
     # via book2tts
 fastapi==0.115.0
     # via gradio
@@ -347,8 +347,6 @@ soupsieve==2.6
     # via beautifulsoup4
 sqlparse==0.5.1
     # via django
-srt==3.5.3
-    # via edge-tts
 starlette==0.38.6
     # via fastapi
 tabulate==0.9.0
