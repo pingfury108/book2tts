@@ -19,19 +19,27 @@ from book2tts.audio_utils import get_audio_duration, estimate_audio_duration_fro
 from home.models import UserQuota, OperationRecord
 from home.utils.utils import PointsManager
 from book2tts.multi_voice_tts import MultiVoiceTTS
-from .utils.subtitle_utils import convert_vtt_to_srt, save_srt_subtitle, save_chapters_assets
+from .utils.subtitle_utils import (
+    convert_vtt_to_srt,
+    save_srt_subtitle,
+    save_chapters_assets,
+)
 from book2tts.chapter_service import ChapterGenerator
 from web.workbench.utils.points_utils import deduct_llm_points
+
 
 # Import dialogue services - use lazy import to avoid circular imports
 def get_dialogue_service():
     """延迟导入对话服务以避免循环导入"""
     import os
     import sys
-    sys.path.insert(0, os.path.join(settings.BASE_DIR, '..'))
+
+    sys.path.insert(0, os.path.join(settings.BASE_DIR, ".."))
     from book2tts.dialogue_service import DialogueService
     from book2tts.llm_service import LLMService
+
     return DialogueService, LLMService
+
 
 # Get a logger instance for the tasks
 logger = get_task_logger(__name__)
@@ -39,15 +47,15 @@ logger = get_task_logger(__name__)
 
 def _summarize_llm_usage(usage: Optional[Dict[str, Any]]) -> Dict[str, int]:
     usage = usage or {}
-    prompt = usage.get('prompt_tokens') or 0
-    completion = usage.get('completion_tokens') or 0
-    total = usage.get('total_tokens')
+    prompt = usage.get("prompt_tokens") or 0
+    completion = usage.get("completion_tokens") or 0
+    total = usage.get("total_tokens")
     if total is None:
         total = prompt + completion
     return {
-        'prompt': prompt,
-        'completion': completion,
-        'total': total,
+        "prompt": prompt,
+        "completion": completion,
+        "total": total,
     }
 
 
@@ -55,7 +63,7 @@ def _generate_simple_subtitle(text: str, duration: float) -> str:
     """生成简单的单条字幕"""
     if not text or duration <= 0:
         return ""
-    
+
     return f"""1
 00:00:00,000 --> {_format_srt_time(duration)}
 {text}
@@ -67,27 +75,29 @@ def _generate_fallback_subtitle(text: str, duration: float) -> str:
     """生成回退字幕（基于文本分段）"""
     if not text or duration <= 0:
         return ""
-    
+
     # 简单按句子分割
-    sentences = [s.strip() for s in text.split('。') if s.strip()]
+    sentences = [s.strip() for s in text.split("。") if s.strip()]
     if not sentences:
         sentences = [text]
-    
+
     # 计算每个句子的时长
     time_per_sentence = duration / len(sentences)
-    
+
     srt_lines = []
     for i, sentence in enumerate(sentences):
         start_time = i * time_per_sentence
         end_time = (i + 1) * time_per_sentence
-        
-        srt_lines.extend([
-            str(i + 1),
-            f"{_format_srt_time(start_time)} --> {_format_srt_time(end_time)}",
-            sentence + "。" if not sentence.endswith('。') else sentence,
-            ""
-        ])
-    
+
+        srt_lines.extend(
+            [
+                str(i + 1),
+                f"{_format_srt_time(start_time)} --> {_format_srt_time(end_time)}",
+                sentence + "。" if not sentence.endswith("。") else sentence,
+                "",
+            ]
+        )
+
     return "\n".join(srt_lines)
 
 
@@ -126,45 +136,59 @@ def _read_subtitle_file(file_field) -> str:
 
 def get_client_ip_from_task(task_kwargs):
     """从任务参数中获取客户端IP地址"""
-    return task_kwargs.get('ip_address', '127.0.0.1')
+    return task_kwargs.get("ip_address", "127.0.0.1")
 
 
 def get_user_agent_from_task(task_kwargs):
     """从任务参数中获取用户代理"""
-    return task_kwargs.get('user_agent', '')
+    return task_kwargs.get("user_agent", "")
 
 
 def start_audio_synthesis_on_commit(user_id, text, voice_name, book_id, **kwargs):
     """
     在数据库事务提交后启动音频合成任务的辅助函数
-    
+
     这是使用 delay_on_commit 的推荐方式，确保任务只在数据库事务成功提交后执行
     """
+
     def _start_task():
         return synthesize_audio_task.delay(
-            user_id=user_id,
-            text=text,
-            voice_name=voice_name,
-            book_id=book_id,
-            **kwargs
+            user_id=user_id, text=text, voice_name=voice_name, book_id=book_id, **kwargs
         )
-    
+
     # 使用 transaction.on_commit 确保任务在事务提交后执行
     transaction.on_commit(_start_task)
-    
+
     # 注意：这种方式不能返回 task_id，因为任务还没有真正启动
     # 如果需要 task_id 用于状态跟踪，应该使用其他机制，比如数据库记录ID
-    logger.info(f"Scheduled audio synthesis task for user {user_id} to start after transaction commit")
+    logger.info(
+        f"Scheduled audio synthesis task for user {user_id} to start after transaction commit"
+    )
 
 
 @shared_task(bind=True)
-def synthesize_audio_task(self, user_id, text, voice_name, book_id, title="", book_page="", page_display_name="", audio_title="", rate="+0%", ip_address="127.0.0.1", user_agent=""):
+def synthesize_audio_task(
+    self,
+    user_id,
+    text,
+    voice_name,
+    book_id,
+    title="",
+    book_page="",
+    page_display_name="",
+    audio_title="",
+    rate="+0%",
+    ip_address="127.0.0.1",
+    user_agent="",
+):
     """异步音频合成任务（支持字幕生成）"""
     try:
         # 更新任务状态为开始处理
-        self.update_state(state='PROCESSING', meta={'message': '开始音频合成和字幕生成...'})
+        self.update_state(
+            state="PROCESSING", meta={"message": "开始音频合成和字幕生成..."}
+        )
         logger.info(f"Starting audio synthesis task for user {user_id}, book {book_id}")
-        
+
         # 获取用户和书籍对象
         try:
             user = User.objects.get(pk=user_id)
@@ -174,68 +198,72 @@ def synthesize_audio_task(self, user_id, text, voice_name, book_id, title="", bo
             logger.error(error_msg)
             OperationRecord.objects.create(
                 user_id=user_id,
-                operation_type='audio_create',
-                operation_object=f'Book ID: {book_id} - {title or page_display_name}',
-                operation_detail=f'音频合成任务失败：{error_msg}',
-                status='failed',
+                operation_type="audio_create",
+                operation_object=f"Book ID: {book_id} - {title or page_display_name}",
+                operation_detail=f"音频合成任务失败：{error_msg}",
+                status="failed",
                 metadata={
-                    'book_id': book_id,
-                    'error_reason': 'object_not_found',
-                    'exception_message': str(e)
+                    "book_id": book_id,
+                    "error_reason": "object_not_found",
+                    "exception_message": str(e),
                 },
                 ip_address=ip_address,
-                user_agent=user_agent
+                user_agent=user_agent,
             )
             raise Exception(error_msg)
-        
+
         # 获取或创建用户配额
         user_quota, created = UserQuota.objects.get_or_create(user=user)
-        
+
         # 估算音频时长
         estimated_duration_seconds = estimate_audio_duration_from_text(text)
-        
+
         # 计算需要的积分
-        required_points = PointsManager.get_audio_generation_points(estimated_duration_seconds)
-        
+        required_points = PointsManager.get_audio_generation_points(
+            estimated_duration_seconds
+        )
+
         # 检查积分是否足够
         if not user_quota.can_consume_points(required_points):
             error_msg = f"积分不足。预估需要 {required_points} 积分，剩余 {user_quota.points} 积分"
             logger.warning(f"Insufficient points for user {user_id}: {error_msg}")
             OperationRecord.objects.create(
                 user=user,
-                operation_type='audio_create',
-                operation_object=f'{book.name} - {title or page_display_name}',
-                operation_detail=f'音频合成任务失败：{error_msg}',
-                status='failed',
+                operation_type="audio_create",
+                operation_object=f"{book.name} - {title or page_display_name}",
+                operation_detail=f"音频合成任务失败：{error_msg}",
+                status="failed",
                 metadata={
-                    'book_id': book_id,
-                    'book_name': book.name,
-                    'estimated_duration': estimated_duration_seconds,
-                    'required_points': required_points,
-                    'remaining_points': user_quota.points,
-                    'text_length': len(text),
-                    'voice_name': voice_name,
-                    'error_reason': 'insufficient_points'
+                    "book_id": book_id,
+                    "book_name": book.name,
+                    "estimated_duration": estimated_duration_seconds,
+                    "required_points": required_points,
+                    "remaining_points": user_quota.points,
+                    "text_length": len(text),
+                    "voice_name": voice_name,
+                    "error_reason": "insufficient_points",
                 },
                 ip_address=ip_address,
-                user_agent=user_agent
+                user_agent=user_agent,
             )
             raise Exception(error_msg)
-        
+
         # 更新任务状态
-        self.update_state(state='PROCESSING', meta={'message': '正在生成音频和字幕文件...'})
-        
+        self.update_state(
+            state="PROCESSING", meta={"message": "正在生成音频和字幕文件..."}
+        )
+
         # 创建临时文件
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as audio_file:
             audio_path = audio_file.name
-        
+
         with tempfile.NamedTemporaryFile(suffix=".vtt", delete=False) as subtitle_file:
             subtitle_path = subtitle_file.name
-        
+
         try:
             # 使用改进的EdgeTTS合成音频和字幕
             logger.info(f"Starting TTS synthesis with voice {voice_name}")
-            
+
             # 获取当前事件循环或创建新的
             try:
                 loop = asyncio.get_event_loop()
@@ -244,121 +272,134 @@ def synthesize_audio_task(self, user_id, text, voice_name, book_id, title="", bo
             except RuntimeError:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-            
+
             # 使用改进的字幕生成方法
             tts = EdgeTTS(voice_name=voice_name, rate=rate)
-            
+
             # 根据文本长度选择合成方法
             if len(text) > 3000:  # 长文本使用分段合成
                 synthesis_result = loop.run_until_complete(
                     tts.synthesize_long_text_with_subtitles(
-                        text=text, 
-                        output_file=audio_path, 
+                        text=text,
+                        output_file=audio_path,
                         subtitle_file=subtitle_path,
                         segment_length=2000,
-                        words_in_cue=8
+                        words_in_cue=8,
                     )
                 )
             else:  # 短文本使用直接合成
                 synthesis_result = loop.run_until_complete(
                     tts.synthesize_with_subtitles_v2(
-                        text=text, 
-                        output_file=audio_path, 
+                        text=text,
+                        output_file=audio_path,
                         subtitle_file=subtitle_path,
-                        words_in_cue=8  # 每个字幕条目8个词
+                        words_in_cue=8,  # 每个字幕条目8个词
                     )
                 )
-            
+
             # 详细的结果验证和日志
             logger.info(f"Synthesis result: {synthesis_result}")
-            
-            if not synthesis_result["success"]:
-                error_details = []
-                if not synthesis_result["audio_generated"]:
-                    error_details.append("音频生成失败")
-                if not synthesis_result["subtitle_generated"]:
-                    error_details.append("字幕生成失败")
-                
-                error_msg = f"TTS合成失败: {', '.join(error_details)}"
+
+            # 只在音频生成失败时才抛出异常
+            if not synthesis_result["audio_generated"]:
+                error_msg = "音频生成失败"
                 logger.error(error_msg)
                 OperationRecord.objects.create(
                     user=user,
-                    operation_type='audio_create',
-                    operation_object=f'{book.name} - {title or page_display_name}',
-                    operation_detail=f'音频合成任务失败：{error_msg}',
-                    status='failed',
+                    operation_type="audio_create",
+                    operation_object=f"{book.name} - {title or page_display_name}",
+                    operation_detail=f"音频合成任务失败：{error_msg}",
+                    status="failed",
                     metadata={
-                        'book_id': book_id,
-                        'book_name': book.name,
-                        'estimated_duration': estimated_duration_seconds,
-                        'text_length': len(text),
-                        'voice_name': voice_name,
-                        'error_reason': 'tts_synthesis_failed',
-                        'synthesis_details': synthesis_result
+                        "book_id": book_id,
+                        "book_name": book.name,
+                        "estimated_duration": estimated_duration_seconds,
+                        "text_length": len(text),
+                        "voice_name": voice_name,
+                        "error_reason": "audio_generation_failed",
+                        "synthesis_details": synthesis_result,
                     },
                     ip_address=ip_address,
-                    user_agent=user_agent
+                    user_agent=user_agent,
                 )
                 raise Exception(error_msg)
-            
+
+            # 字幕生成失败只记录警告，不阻止音频保存
+            if not synthesis_result["subtitle_generated"]:
+                logger.warning("字幕生成失败，将使用 fallback 方法生成字幕")
+
             # 字幕文件处理 - 增加多重验证
             vtt_content = ""
             srt_content = ""
-            
+
             if os.path.exists(subtitle_path):
                 file_size = os.path.getsize(subtitle_path)
                 logger.info(f"Subtitle file found: {subtitle_path}, size: {file_size}")
-                
+
                 if file_size > 0:
-                    with open(subtitle_path, 'r', encoding='utf-8') as f:
+                    with open(subtitle_path, "r", encoding="utf-8") as f:
                         vtt_content = f.read()
                         logger.info(f"VTT content length: {len(vtt_content)}")
-                        
+
                     # 转换为SRT并验证
                     srt_content = convert_vtt_to_srt(vtt_content) if vtt_content else ""
                     logger.info(f"SRT content length: {len(srt_content)}")
-                    
+
                     if not srt_content:
-                        logger.warning("VTT to SRT conversion resulted in empty content")
+                        logger.warning(
+                            "VTT to SRT conversion resulted in empty content"
+                        )
                 else:
                     logger.warning("Subtitle file exists but is empty")
             else:
                 logger.warning(f"Subtitle file not found: {subtitle_path}")
-            
+
             # 如果字幕仍然为空，尝试生成基础字幕
             if not srt_content:
-                logger.info("No subtitle content found, generating fallback subtitle from text")
+                logger.info(
+                    "No subtitle content found, generating fallback subtitle from text"
+                )
                 actual_duration_seconds = get_audio_duration(audio_path, text)
                 srt_content = _generate_fallback_subtitle(text, actual_duration_seconds)
                 logger.info(f"Generated fallback subtitle length: {len(srt_content)}")
-            
+
             # 读取生成的VTT字幕（保留原逻辑作为备用）
             if not vtt_content and os.path.exists(subtitle_path):
-                with open(subtitle_path, 'r', encoding='utf-8') as f:
+                with open(subtitle_path, "r", encoding="utf-8") as f:
                     vtt_content = f.read()
-            
+
             # 转换为SRT格式（如果还没转换）
             if not srt_content and vtt_content:
                 srt_content = convert_vtt_to_srt(vtt_content)
-            
+
             # 确保有字幕内容
             if not srt_content:
-                logger.warning("Still no subtitle content after all attempts, generating simple subtitle")
+                logger.warning(
+                    "Still no subtitle content after all attempts, generating simple subtitle"
+                )
                 actual_duration_seconds = get_audio_duration(audio_path, text)
                 srt_content = _generate_simple_subtitle(text, actual_duration_seconds)
                 logger.info(f"Generated simple subtitle length: {len(srt_content)}")
-            
+
             # 更新任务状态
-            self.update_state(state='PROCESSING', meta={'message': '音频和字幕生成完成，正在保存...'})
-            
+            self.update_state(
+                state="PROCESSING", meta={"message": "音频和字幕生成完成，正在保存..."}
+            )
+
             # 获取实际音频时长
             actual_duration_seconds = get_audio_duration(audio_path, text)
-            logger.info(f"Audio synthesis completed. Duration: {actual_duration_seconds} seconds")
-            
+            logger.info(
+                f"Audio synthesis completed. Duration: {actual_duration_seconds} seconds"
+            )
+
             # 使用自定义音频标题或默认标题
-            segment_title = audio_title if audio_title else (page_display_name if page_display_name else title)
+            segment_title = (
+                audio_title
+                if audio_title
+                else (page_display_name if page_display_name else title)
+            )
             chapters_data = []
-            
+
             # 使用事务确保数据一致性
             with transaction.atomic():
                 # 创建 AudioSegment 实例
@@ -369,31 +410,37 @@ def synthesize_audio_task(self, user_id, text, voice_name, book_id, title="", bo
                     text=text,
                     book_page=book_page,
                     chapters=[],
-                    published=False
+                    published=False,
                 )
-                
+
                 # 确保媒体目录存在
                 media_root = settings.MEDIA_ROOT
-                upload_dir = os.path.join(media_root, 'audio_segments', time.strftime('%Y/%m/%d'))
+                upload_dir = os.path.join(
+                    media_root, "audio_segments", time.strftime("%Y/%m/%d")
+                )
                 os.makedirs(upload_dir, exist_ok=True)
-                
+
                 # 生成唯一文件名
                 filename = f"audio_{book_id}_{int(time.time())}.wav"
-                
+
                 # 保存音频文件到 AudioSegment
                 with open(audio_path, "rb") as f:
                     audio_segment.file.save(filename, ContentFile(f.read()))
-                
+
                 # 保存字幕文件 - 确保总是保存字幕
                 if srt_content:
                     logger.info(f"Saving subtitle with {len(srt_content)} characters")
-                    save_srt_subtitle(audio_segment, srt_content, 'subtitle_file')
+                    save_srt_subtitle(audio_segment, srt_content, "subtitle_file")
                 else:
-                    logger.warning("No subtitle content to save - this should not happen")
+                    logger.warning(
+                        "No subtitle content to save - this should not happen"
+                    )
                     # 作为最后的保证，创建一个基本字幕
-                    simple_srt = _generate_simple_subtitle(text, actual_duration_seconds)
+                    simple_srt = _generate_simple_subtitle(
+                        text, actual_duration_seconds
+                    )
                     if simple_srt:
-                        save_srt_subtitle(audio_segment, simple_srt, 'subtitle_file')
+                        save_srt_subtitle(audio_segment, simple_srt, "subtitle_file")
                         logger.info("Saved emergency fallback subtitle")
                         srt_content = simple_srt
 
@@ -411,115 +458,126 @@ def synthesize_audio_task(self, user_id, text, voice_name, book_id, title="", bo
 
                 audio_segment.chapters = chapters_data
                 audio_segment.save()
-                save_chapters_assets(audio_segment, chapters_data, total_duration=actual_duration_seconds)
-                
+                save_chapters_assets(
+                    audio_segment, chapters_data, total_duration=actual_duration_seconds
+                )
+
                 # 刷新用户配额以获取最新数据
                 user_quota.refresh_from_db()
-                
+
                 # 扣除用户积分
-                required_points = PointsManager.get_audio_generation_points(actual_duration_seconds)
+                required_points = PointsManager.get_audio_generation_points(
+                    actual_duration_seconds
+                )
                 user_quota.consume_points(required_points)
-                
+
                 # 记录成功的音频创建操作
                 OperationRecord.objects.create(
                     user=user,
-                    operation_type='audio_create',
-                    operation_object=f'{book.name} - {segment_title}',
-                    operation_detail=f'成功创建音频片段：{segment_title}，时长 {actual_duration_seconds} 秒，消耗积分 {required_points} 分',
-                    status='success',
+                    operation_type="audio_create",
+                    operation_object=f"{book.name} - {segment_title}",
+                    operation_detail=f"成功创建音频片段：{segment_title}，时长 {actual_duration_seconds} 秒，消耗积分 {required_points} 分",
+                    status="success",
                     metadata={
-                        'book_id': book_id,
-                        'book_name': book.name,
-                        'audio_segment_id': audio_segment.id,
-                        'actual_duration': actual_duration_seconds,
-                        'estimated_duration': estimated_duration_seconds,
-                        'consumed_points': required_points,
-                        'remaining_points_after': user_quota.points,
-                        'text_length': len(text),
-                        'voice_name': voice_name,
-                        'file_path': audio_segment.file.name,
-                        'file_size': os.path.getsize(audio_path) if os.path.exists(audio_path) else 0
+                        "book_id": book_id,
+                        "book_name": book.name,
+                        "audio_segment_id": audio_segment.id,
+                        "actual_duration": actual_duration_seconds,
+                        "estimated_duration": estimated_duration_seconds,
+                        "consumed_points": required_points,
+                        "remaining_points_after": user_quota.points,
+                        "text_length": len(text),
+                        "voice_name": voice_name,
+                        "file_path": audio_segment.file.name,
+                        "file_size": os.path.getsize(audio_path)
+                        if os.path.exists(audio_path)
+                        else 0,
                     },
                     ip_address=ip_address,
-                    user_agent=user_agent
+                    user_agent=user_agent,
                 )
-            
-            logger.info(f"Audio synthesis task completed successfully for user {user_id}")
-            
+
+            logger.info(
+                f"Audio synthesis task completed successfully for user {user_id}"
+            )
+
             # 返回成功结果
             return {
-                'status': 'SUCCESS',
-                'message': '音频和字幕合成完成',
-                'audio_url': audio_segment.file.url,
-                'subtitle_url': audio_segment.subtitle_file.url if audio_segment.subtitle_file else None,
-                'audio_id': audio_segment.id,
-                'audio_duration': actual_duration_seconds,
-                'remaining_points': user_quota.points,
-                'subtitle_generated': bool(audio_segment.subtitle_file),
-                'synthesis_method': synthesis_result.get('method', 'unknown')
+                "status": "SUCCESS",
+                "message": "音频和字幕合成完成",
+                "audio_url": audio_segment.file.url,
+                "subtitle_url": audio_segment.subtitle_file.url
+                if audio_segment.subtitle_file
+                else None,
+                "audio_id": audio_segment.id,
+                "audio_duration": actual_duration_seconds,
+                "remaining_points": user_quota.points,
+                "subtitle_generated": bool(audio_segment.subtitle_file),
+                "synthesis_method": synthesis_result.get("method", "unknown"),
             }
-            
+
         finally:
             # 清理临时文件
             for path in [audio_path, subtitle_path]:
                 if os.path.exists(path):
                     os.remove(path)
-    
+
     except Exception as e:
         logger.error(f"Audio synthesis task failed for user {user_id}: {str(e)}")
         # 记录异常的操作
         OperationRecord.objects.create(
             user_id=user_id,
-            operation_type='audio_create',
-            operation_object=f'Book ID: {book_id} - {title or page_display_name}',
-            operation_detail=f'音频合成任务异常：{str(e)}',
-            status='failed',
+            operation_type="audio_create",
+            operation_object=f"Book ID: {book_id} - {title or page_display_name}",
+            operation_detail=f"音频合成任务异常：{str(e)}",
+            status="failed",
             metadata={
-                'book_id': book_id,
-                'estimated_duration': estimated_duration_seconds if 'estimated_duration_seconds' in locals() else 0,
-                'text_length': len(text),
-                'voice_name': voice_name,
-                'error_reason': 'task_exception',
-                'exception_message': str(e)
+                "book_id": book_id,
+                "estimated_duration": estimated_duration_seconds
+                if "estimated_duration_seconds" in locals()
+                else 0,
+                "text_length": len(text),
+                "voice_name": voice_name,
+                "error_reason": "task_exception",
+                "exception_message": str(e),
             },
             ip_address=ip_address,
-            user_agent=user_agent
+            user_agent=user_agent,
         )
-        
+
         # 更新任务状态为失败
         self.update_state(
-            state='FAILURE',
-            meta={
-                'message': f'音频合成失败：{str(e)}',
-                'error': str(e)
-            }
+            state="FAILURE",
+            meta={"message": f"音频合成失败：{str(e)}", "error": str(e)},
         )
-        raise Exception(f'音频合成失败：{str(e)}')
+        raise Exception(f"音频合成失败：{str(e)}")
 
 
 @shared_task(bind=True, ignore_result=True)
 def cleanup_old_audio_files(self):
     """
     清理过期的音频文件的定期任务示例
-    
+
     这是一个可以用于定期维护的任务示例
     """
     logger.info("Starting cleanup of old audio files")
-    
+
     # 这里可以添加清理逻辑
     # 例如：删除超过30天的未发布音频文件
-    
+
     return "Cleanup task completed"
 
 
 @shared_task(bind=True)
-def convert_text_to_dialogue_task(self, user_id, text, title, book_id=None, custom_prompt=None):
+def convert_text_to_dialogue_task(
+    self, user_id, text, title, book_id=None, custom_prompt=None
+):
     """将文本转换为对话脚本的异步任务"""
     try:
         # 更新任务状态
-        self.update_state(state='PROCESSING', meta={'message': '开始处理文本转换...'})
+        self.update_state(state="PROCESSING", meta={"message": "开始处理文本转换..."})
         logger.info(f"Starting text to dialogue conversion for user {user_id}")
-        
+
         # 获取用户对象
         try:
             user = User.objects.get(pk=user_id)
@@ -527,7 +585,7 @@ def convert_text_to_dialogue_task(self, user_id, text, title, book_id=None, cust
             error_msg = f"用户不存在: {user_id}"
             logger.error(error_msg)
             raise Exception(error_msg)
-        
+
         # 获取书籍对象（如果提供）
         book = None
         if book_id:
@@ -535,26 +593,26 @@ def convert_text_to_dialogue_task(self, user_id, text, title, book_id=None, cust
                 book = Books.objects.get(pk=book_id, user=user)
             except Books.DoesNotExist:
                 logger.warning(f"Book not found: {book_id}")
-        
+
         # 更新用户任务状态
         try:
             user_task = UserTask.objects.get(task_id=self.request.id)
-            user_task.status = 'processing'
-            user_task.progress_message = '正在初始化AI服务...'
+            user_task.status = "processing"
+            user_task.progress_message = "正在初始化AI服务..."
             user_task.save()
         except UserTask.DoesNotExist:
             logger.warning(f"UserTask not found for task {self.request.id}")
-        
+
         # 初始化对话服务
         try:
             DialogueService, LLMService = get_dialogue_service()
             llm_service = LLMService()
             dialogue_service = DialogueService(llm_service)
         except Exception as e:
-            error_msg = f'LLM服务初始化失败: {str(e)}'
+            error_msg = f"LLM服务初始化失败: {str(e)}"
             logger.error(error_msg)
             raise Exception(error_msg)
-        
+
         # 文本预处理 - 计算长度和分段
         total_length = len(text)
         logger.info(f"Processing text of length: {total_length}")
@@ -566,47 +624,51 @@ def convert_text_to_dialogue_task(self, user_id, text, title, book_id=None, cust
         total_completion_tokens = 0
         llm_models = set()
         total_chunks = 1
-        
+
         # 更新任务状态
-        self.update_state(state='PROCESSING', meta={'message': '正在分析文本结构...'})
-        if 'user_task' in locals():
-            user_task.progress_message = '正在分析文本结构...'
+        self.update_state(state="PROCESSING", meta={"message": "正在分析文本结构..."})
+        if "user_task" in locals():
+            user_task.progress_message = "正在分析文本结构..."
             user_task.save()
-        
+
         # 分段处理逻辑
         if total_length > 1000:
             # 长文本分段处理
             chunk_size = 1000
             text_chunks = dialogue_service.split_long_text(text, max_length=chunk_size)
             total_chunks = len(text_chunks)
-            
+
             logger.info(f"Split text into {total_chunks} chunks for processing")
             all_segments = []
 
-            media_root = getattr(settings, 'MEDIA_ROOT', '') or tempfile.gettempdir()
-            cache_root = os.path.join(media_root, 'tmp', 'dialogue_chunk_cache')
+            media_root = getattr(settings, "MEDIA_ROOT", "") or tempfile.gettempdir()
+            cache_root = os.path.join(media_root, "tmp", "dialogue_chunk_cache")
             try:
                 os.makedirs(cache_root, exist_ok=True)
             except OSError as cache_dir_error:
-                logger.warning("Failed to create dialogue chunk cache directory %s: %s", cache_root, cache_dir_error)
+                logger.warning(
+                    "Failed to create dialogue chunk cache directory %s: %s",
+                    cache_root,
+                    cache_dir_error,
+                )
 
             cache_hasher = hashlib.md5()
-            cache_hasher.update(str(user_id).encode('utf-8'))
-            cache_hasher.update(text.encode('utf-8'))
-            cache_hasher.update(str(chunk_size).encode('utf-8'))
+            cache_hasher.update(str(user_id).encode("utf-8"))
+            cache_hasher.update(text.encode("utf-8"))
+            cache_hasher.update(str(chunk_size).encode("utf-8"))
             if custom_prompt:
-                cache_hasher.update(custom_prompt.encode('utf-8'))
+                cache_hasher.update(custom_prompt.encode("utf-8"))
             if title:
-                cache_hasher.update(title.encode('utf-8'))
+                cache_hasher.update(title.encode("utf-8"))
             cache_filename = f"{cache_hasher.hexdigest()}.json"
             cache_path = os.path.join(cache_root, cache_filename)
 
             if os.path.exists(cache_path):
                 try:
-                    with open(cache_path, 'r', encoding='utf-8') as cache_file:
+                    with open(cache_path, "r", encoding="utf-8") as cache_file:
                         cache_payload = json.load(cache_file)
-                    if cache_payload.get('chunk_size') == chunk_size:
-                        cached_chunks = cache_payload.get('chunks', []) or []
+                    if cache_payload.get("chunk_size") == chunk_size:
+                        cached_chunks = cache_payload.get("chunks", []) or []
                         logger.info(
                             "Loaded %s cached dialogue chunk(s) from %s",
                             len(cached_chunks),
@@ -615,195 +677,211 @@ def convert_text_to_dialogue_task(self, user_id, text, title, book_id=None, cust
                     else:
                         logger.info(
                             "Ignoring cached dialogue chunks due to chunk_size mismatch (cache: %s, expected: %s)",
-                            cache_payload.get('chunk_size'),
+                            cache_payload.get("chunk_size"),
                             chunk_size,
                         )
                         cached_chunks = []
                 except Exception as cache_error:
-                    logger.warning("Failed to read dialogue chunk cache %s: %s", cache_path, cache_error)
+                    logger.warning(
+                        "Failed to read dialogue chunk cache %s: %s",
+                        cache_path,
+                        cache_error,
+                    )
                     cached_chunks = []
 
             def persist_chunk_cache():
                 if not cache_path:
                     return
                 cache_payload = {
-                    'version': 1,
-                    'chunk_size': chunk_size,
-                    'total_chunks': total_chunks,
-                    'chunks': cached_chunks,
+                    "version": 1,
+                    "chunk_size": chunk_size,
+                    "total_chunks": total_chunks,
+                    "chunks": cached_chunks,
                 }
                 try:
-                    with open(cache_path, 'w', encoding='utf-8') as cache_file:
+                    with open(cache_path, "w", encoding="utf-8") as cache_file:
                         json.dump(cache_payload, cache_file, ensure_ascii=False)
                 except Exception as cache_error:
-                    logger.warning("Failed to write dialogue chunk cache %s: %s", cache_path, cache_error)
-            
+                    logger.warning(
+                        "Failed to write dialogue chunk cache %s: %s",
+                        cache_path,
+                        cache_error,
+                    )
+
             for i, chunk in enumerate(text_chunks):
                 progress_percent = int((i / total_chunks) * 100)
-                progress_message = f'正在处理第 {i+1}/{total_chunks} 段文本...'
-                
+                progress_message = f"正在处理第 {i + 1}/{total_chunks} 段文本..."
+
                 # 更新任务进度
                 self.update_state(
-                    state='PROCESSING', 
+                    state="PROCESSING",
                     meta={
-                        'message': progress_message,
-                        'progress': progress_percent,
-                        'chunk': i + 1,
-                        'total_chunks': total_chunks
-                    }
+                        "message": progress_message,
+                        "progress": progress_percent,
+                        "chunk": i + 1,
+                        "total_chunks": total_chunks,
+                    },
                 )
-                if 'user_task' in locals():
+                if "user_task" in locals():
                     user_task.progress_message = progress_message
-                    user_task.metadata['progress'] = progress_percent
-                    user_task.metadata['chunk'] = i + 1
-                    user_task.metadata['total_chunks'] = total_chunks
+                    user_task.metadata["progress"] = progress_percent
+                    user_task.metadata["chunk"] = i + 1
+                    user_task.metadata["total_chunks"] = total_chunks
                     user_task.save()
 
                 if i < len(cached_chunks):
                     cached_entry = cached_chunks[i]
                     cached_segments = []
                     if isinstance(cached_entry, dict):
-                        cached_segments = cached_entry.get('segments', [])
+                        cached_segments = cached_entry.get("segments", [])
                     elif isinstance(cached_entry, list):
                         cached_segments = cached_entry
                     all_segments.extend(cached_segments or [])
-                    logger.info("Using cached dialogue chunk %s/%s", i + 1, total_chunks)
+                    logger.info(
+                        "Using cached dialogue chunk %s/%s", i + 1, total_chunks
+                    )
                     continue
 
                 # 转换当前段
                 result = dialogue_service.text_to_dialogue(
-                    chunk, 
-                    custom_prompt if custom_prompt else None
+                    chunk, custom_prompt if custom_prompt else None
                 )
 
-                if not result['success']:
-                    raw_response = result.get('raw_response')
+                if not result["success"]:
+                    raw_response = result.get("raw_response")
                     if raw_response:
-                        raw_excerpt = raw_response[:500].replace('\n', ' ')
+                        raw_excerpt = raw_response[:500].replace("\n", " ")
                         logger.error(
                             "LLM raw response for chunk %s/%s: %s",
                             i + 1,
                             total_chunks,
                             raw_excerpt,
                         )
-                        error_msg = f'第{i+1}段转换失败: {result["error"]} | LLM 响应片段: {raw_excerpt}'
+                        error_msg = f"第{i + 1}段转换失败: {result['error']} | LLM 响应片段: {raw_excerpt}"
                     else:
-                        error_msg = f'第{i+1}段转换失败: {result["error"]}'
+                        error_msg = f"第{i + 1}段转换失败: {result['error']}"
                     logger.error(error_msg)
                     raise Exception(error_msg)
-                
-                usage = result.get('usage') or {}
-                prompt_tokens = usage.get('prompt_tokens') or 0
-                completion_tokens = usage.get('completion_tokens') or 0
+
+                usage = result.get("usage") or {}
+                prompt_tokens = usage.get("prompt_tokens") or 0
+                completion_tokens = usage.get("completion_tokens") or 0
                 total_prompt_tokens += prompt_tokens
                 total_completion_tokens += completion_tokens
-                total_llm_tokens += usage.get('total_tokens') or (prompt_tokens + completion_tokens)
-                model_name = result.get('model')
+                total_llm_tokens += usage.get("total_tokens") or (
+                    prompt_tokens + completion_tokens
+                )
+                model_name = result.get("model")
                 if model_name:
                     llm_models.add(model_name)
 
-                chunk_segments = result['dialogue_data'].get('segments', [])
+                chunk_segments = result["dialogue_data"].get("segments", [])
                 all_segments.extend(chunk_segments)
 
-                cached_chunks.append({'segments': chunk_segments})
+                cached_chunks.append({"segments": chunk_segments})
                 persist_chunk_cache()
-            
+
             # 合并所有段落
             dialogue_data = {
-                'title': title,
-                'segments': all_segments,
-                'total_chunks': total_chunks,
-                'original_length': total_length
+                "title": title,
+                "segments": all_segments,
+                "total_chunks": total_chunks,
+                "original_length": total_length,
             }
-            
+
         else:
             # 短文本直接处理
-            self.update_state(state='PROCESSING', meta={'message': '正在转换文本为对话...'})
-            if 'user_task' in locals():
-                user_task.progress_message = '正在转换文本为对话...'
+            self.update_state(
+                state="PROCESSING", meta={"message": "正在转换文本为对话..."}
+            )
+            if "user_task" in locals():
+                user_task.progress_message = "正在转换文本为对话..."
                 user_task.save()
-            
+
             result = dialogue_service.text_to_dialogue(
-                text, 
-                custom_prompt if custom_prompt else None
+                text, custom_prompt if custom_prompt else None
             )
 
-            if not result['success']:
-                raw_response = result.get('raw_response')
+            if not result["success"]:
+                raw_response = result.get("raw_response")
                 if raw_response:
-                    raw_excerpt = raw_response[:500].replace('\n', ' ')
+                    raw_excerpt = raw_response[:500].replace("\n", " ")
                     logger.error("LLM raw response: %s", raw_excerpt)
-                    raise Exception(f"文本转换失败: {result['error']} | LLM 响应片段: {raw_excerpt}")
+                    raise Exception(
+                        f"文本转换失败: {result['error']} | LLM 响应片段: {raw_excerpt}"
+                    )
                 logger.error(f"Text conversion failed: {result['error']}")
                 raise Exception(f"文本转换失败: {result['error']}")
-            
-            usage = result.get('usage') or {}
-            prompt_tokens = usage.get('prompt_tokens') or 0
-            completion_tokens = usage.get('completion_tokens') or 0
+
+            usage = result.get("usage") or {}
+            prompt_tokens = usage.get("prompt_tokens") or 0
+            completion_tokens = usage.get("completion_tokens") or 0
             total_prompt_tokens += prompt_tokens
             total_completion_tokens += completion_tokens
-            total_llm_tokens += usage.get('total_tokens') or (prompt_tokens + completion_tokens)
-            model_name = result.get('model')
+            total_llm_tokens += usage.get("total_tokens") or (
+                prompt_tokens + completion_tokens
+            )
+            model_name = result.get("model")
             if model_name:
                 llm_models.add(model_name)
 
-            dialogue_data = result['dialogue_data']
-            dialogue_data['original_length'] = total_length
-        
+            dialogue_data = result["dialogue_data"]
+            dialogue_data["original_length"] = total_length
+
         # 验证对话数据
-        self.update_state(state='PROCESSING', meta={'message': '正在验证对话数据...'})
-        if 'user_task' in locals():
-            user_task.progress_message = '正在验证对话数据...'
+        self.update_state(state="PROCESSING", meta={"message": "正在验证对话数据..."})
+        if "user_task" in locals():
+            user_task.progress_message = "正在验证对话数据..."
             user_task.save()
-        
+
         validation = dialogue_service.validate_dialogue_data(dialogue_data)
-        if not validation['is_valid']:
-            error_msg = f'对话数据验证失败: {"; ".join(validation["errors"])}'
+        if not validation["is_valid"]:
+            error_msg = f"对话数据验证失败: {'; '.join(validation['errors'])}"
             logger.error(error_msg)
             raise Exception(error_msg)
-        
+
         # 将对话标题强制同步为用户提交的标题，避免后续脚本编辑被生成结果覆盖
-        dialogue_data['title'] = title
+        dialogue_data["title"] = title
 
         # 保存到数据库
-        self.update_state(state='PROCESSING', meta={'message': '正在保存对话脚本...'})
-        if 'user_task' in locals():
-            user_task.progress_message = '正在保存对话脚本...'
+        self.update_state(state="PROCESSING", meta={"message": "正在保存对话脚本..."})
+        if "user_task" in locals():
+            user_task.progress_message = "正在保存对话脚本..."
             user_task.save()
-        
+
         with transaction.atomic():
             script = DialogueScript.objects.create(
                 user=user,
                 book=book,
                 title=title,
                 original_text=text,
-                script_data=dialogue_data
+                script_data=dialogue_data,
             )
-            
+
             # 创建对话片段记录
-            segments = dialogue_data.get('segments', [])
+            segments = dialogue_data.get("segments", [])
             for i, segment_data in enumerate(segments):
                 DialogueSegment.objects.create(
                     script=script,
-                    speaker=segment_data.get('speaker', '未知'),
+                    speaker=segment_data.get("speaker", "未知"),
                     sequence=i + 1,
-                    utterance=segment_data.get('utterance', ''),
-                    dialogue_type=segment_data.get('type', 'dialogue')
+                    utterance=segment_data.get("utterance", ""),
+                    dialogue_type=segment_data.get("type", "dialogue"),
                 )
-            
+
             # 获取说话者列表
             speakers = dialogue_service.get_speakers_from_dialogue(dialogue_data)
-            
+
             # 更新用户任务为成功状态
-            if 'user_task' in locals():
-                user_task.status = 'success'
-                user_task.progress_message = '对话脚本创建完成'
+            if "user_task" in locals():
+                user_task.status = "success"
+                user_task.progress_message = "对话脚本创建完成"
                 user_task.result_data = {
-                    'script_id': script.id,
-                    'title': script.title,
-                    'segments_count': len(segments),
-                    'speakers': speakers,
-                    'original_length': total_length
+                    "script_id": script.id,
+                    "title": script.title,
+                    "segments_count": len(segments),
+                    "speakers": speakers,
+                    "original_length": total_length,
                 }
                 user_task.completed_at = timezone.now()
                 user_task.save()
@@ -812,75 +890,91 @@ def convert_text_to_dialogue_task(self, user_id, text, title, book_id=None, cust
             try:
                 os.remove(cache_path)
             except OSError as cache_cleanup_error:
-                logger.warning("Failed to remove dialogue chunk cache %s: %s", cache_path, cache_cleanup_error)
+                logger.warning(
+                    "Failed to remove dialogue chunk cache %s: %s",
+                    cache_path,
+                    cache_cleanup_error,
+                )
 
-        logger.info(f"Text to dialogue conversion completed for user {user_id}, script {script.id}")
-        
+        logger.info(
+            f"Text to dialogue conversion completed for user {user_id}, script {script.id}"
+        )
+
         llm_models_list = sorted(llm_models)
         llm_metadata = {
-            'prompt_tokens': total_prompt_tokens,
-            'completion_tokens': total_completion_tokens,
-            'total_tokens': total_llm_tokens,
-            'llm_models': llm_models_list,
-            'chunks': total_chunks,
-            'text_length': total_length,
+            "prompt_tokens": total_prompt_tokens,
+            "completion_tokens": total_completion_tokens,
+            "total_tokens": total_llm_tokens,
+            "llm_models": llm_models_list,
+            "chunks": total_chunks,
+            "text_length": total_length,
         }
         deduct_llm_points(
             user=user,
             total_tokens=total_llm_tokens,
-            operation_object='对话脚本生成 LLM',
+            operation_object="对话脚本生成 LLM",
             metadata=llm_metadata,
             ip_address=None,
             user_agent=None,
         )
 
         return {
-            'success': True,
-            'script_id': script.id,
-            'title': script.title,
-            'segments_count': len(segments),
-            'speakers': speakers
+            "success": True,
+            "script_id": script.id,
+            "title": script.title,
+            "segments_count": len(segments),
+            "speakers": speakers,
         }
 
     except Exception as e:
         error_msg = f"文本转换对话失败: {str(e)}"
         logger.error(error_msg)
-        if 'user' in locals():
+        if "user" in locals():
             try:
                 llm_metadata = {
-                    'prompt_tokens': total_prompt_tokens if 'total_prompt_tokens' in locals() else 0,
-                    'completion_tokens': total_completion_tokens if 'total_completion_tokens' in locals() else 0,
-                    'total_tokens': total_llm_tokens if 'total_llm_tokens' in locals() else 0,
-                    'llm_models': sorted(llm_models) if 'llm_models' in locals() else [],
-                    'status': 'failed',
+                    "prompt_tokens": total_prompt_tokens
+                    if "total_prompt_tokens" in locals()
+                    else 0,
+                    "completion_tokens": total_completion_tokens
+                    if "total_completion_tokens" in locals()
+                    else 0,
+                    "total_tokens": total_llm_tokens
+                    if "total_llm_tokens" in locals()
+                    else 0,
+                    "llm_models": sorted(llm_models)
+                    if "llm_models" in locals()
+                    else [],
+                    "status": "failed",
                 }
                 deduct_llm_points(
                     user=user,
-                    total_tokens=total_llm_tokens if 'total_llm_tokens' in locals() else 0,
-                    operation_object='对话脚本生成 LLM',
+                    total_tokens=total_llm_tokens
+                    if "total_llm_tokens" in locals()
+                    else 0,
+                    operation_object="对话脚本生成 LLM",
                     metadata=llm_metadata,
                     ip_address=None,
                     user_agent=None,
                 )
             except Exception:  # pylint: disable=broad-except
-                logger.warning('Failed to record LLM deduction for failed dialogue conversion', exc_info=True)
-        if 'cache_path' in locals() and cache_path and os.path.exists(cache_path):
-            logger.info('保留对话分段缓存文件以便重试: %s', cache_path)
-        
+                logger.warning(
+                    "Failed to record LLM deduction for failed dialogue conversion",
+                    exc_info=True,
+                )
+        if "cache_path" in locals() and cache_path and os.path.exists(cache_path):
+            logger.info("保留对话分段缓存文件以便重试: %s", cache_path)
+
         # 更新用户任务为失败状态
         try:
             user_task = UserTask.objects.get(task_id=self.request.id)
-            user_task.status = 'failure'
+            user_task.status = "failure"
             user_task.error_message = error_msg
             user_task.completed_at = timezone.now()
             user_task.save()
         except UserTask.DoesNotExist:
             pass
-        
-        self.update_state(
-            state='FAILURE',
-            meta={'error': error_msg}
-        )
+
+        self.update_state(state="FAILURE", meta={"error": error_msg})
         raise
 
 
@@ -889,9 +983,11 @@ def generate_dialogue_audio_task(self, script_id, voice_mapping):
     """生成对话音频的异步任务（支持字幕生成和时间戳校对）"""
     try:
         # 更新任务状态
-        self.update_state(state='PROCESSING', meta={'message': '开始生成对话音频和字幕...'})
+        self.update_state(
+            state="PROCESSING", meta={"message": "开始生成对话音频和字幕..."}
+        )
         logger.info(f"Starting dialogue audio generation for script {script_id}")
-        
+
         # 获取对话脚本
         try:
             script = DialogueScript.objects.get(pk=script_id)
@@ -899,124 +995,155 @@ def generate_dialogue_audio_task(self, script_id, voice_mapping):
             error_msg = f"对话脚本不存在: {script_id}"
             logger.error(error_msg)
             raise Exception(error_msg)
-        
+
         # 获取用户和用户配额
         user = script.user
         user_quota, created = UserQuota.objects.get_or_create(user=user)
-        
+
         # 更新用户任务状态
         try:
             user_task = UserTask.objects.get(task_id=self.request.id)
-            user_task.status = 'processing'
-            user_task.progress_message = '正在生成对话音频和字幕...'
+            user_task.status = "processing"
+            user_task.progress_message = "正在生成对话音频和字幕..."
             user_task.save()
         except UserTask.DoesNotExist:
             logger.warning(f"UserTask not found for task {self.request.id}")
-        
+
         # 预估音频时长以检查积分
         try:
             multi_voice_tts = MultiVoiceTTS()
-            estimated_duration = multi_voice_tts.estimate_audio_duration(script.script_data)
+            estimated_duration = multi_voice_tts.estimate_audio_duration(
+                script.script_data
+            )
             logger.info(f"Estimated audio duration: {estimated_duration} seconds")
-            
+
             # 检查用户积分是否充足
             from home.utils import PointsManager
-            required_points = PointsManager.get_audio_generation_points(estimated_duration)
-            
+
+            required_points = PointsManager.get_audio_generation_points(
+                estimated_duration
+            )
+
             if not user_quota.can_consume_points(required_points):
                 error_msg = f"积分不足，需要 {required_points} 积分，当前可用 {user_quota.points} 积分"
                 logger.error(error_msg)
-                
+
                 # 更新用户任务为失败状态
-                if 'user_task' in locals():
-                    user_task.status = 'failure'
+                if "user_task" in locals():
+                    user_task.status = "failure"
                     user_task.error_message = error_msg
                     user_task.save()
-                
+
                 raise Exception(error_msg)
-                
-            logger.info(f"Points check passed: need {required_points}, have {user_quota.points}")
-            
+
+            logger.info(
+                f"Points check passed: need {required_points}, have {user_quota.points}"
+            )
+
         except Exception as e:
             if "积分不足" in str(e):
                 raise e
             logger.warning(f"Failed to estimate duration or check points: {e}")
             # 如果预估失败，继续执行，在实际完成后检查积分
         multi_voice_tts = MultiVoiceTTS()
-        
+
         # 创建临时输出文件
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as audio_file:
             temp_output_path = audio_file.name
-        
+
         with tempfile.NamedTemporaryFile(suffix=".srt", delete=False) as subtitle_file:
             temp_subtitle_path = subtitle_file.name
-        
+
         try:
             # 更新任务状态
-            self.update_state(state='PROCESSING', meta={'message': '正在合成多角色音频和字幕...'})
-            
+            self.update_state(
+                state="PROCESSING", meta={"message": "正在合成多角色音频和字幕..."}
+            )
+
             # 使用改进的方法生成对话音频和字幕（已包含时间戳校对）
             synthesis_result = multi_voice_tts.synthesize_dialogue_with_subtitles_v2(
                 dialogue_data=script.script_data,
                 voice_mapping=voice_mapping,
                 output_file=temp_output_path,
-                subtitle_file=temp_subtitle_path
+                subtitle_file=temp_subtitle_path,
             )
-            
-            if not synthesis_result['success']:
+
+            if not synthesis_result["success"]:
                 error_msg = f"对话音频合成失败: {synthesis_result['error']}"
                 logger.error(error_msg)
-                
+
                 # 更新用户任务为失败状态
-                if 'user_task' in locals():
-                    user_task.status = 'failure'
+                if "user_task" in locals():
+                    user_task.status = "failure"
                     user_task.error_message = error_msg
                     user_task.save()
-                
+
                 raise Exception(error_msg)
-            
+
             # 更新任务状态
-            self.update_state(state='PROCESSING', meta={'message': '音频和字幕生成完成，正在保存...'})
-            
+            self.update_state(
+                state="PROCESSING", meta={"message": "音频和字幕生成完成，正在保存..."}
+            )
+
             # 保存音频文件到对话脚本
             filename = f"dialogue_{script_id}_{int(time.time())}.wav"
-            
+
             with open(temp_output_path, "rb") as f:
                 script.audio_file.save(filename, ContentFile(f.read()))
-            
+
             # 保存字幕文件到对话脚本
             try:
                 logger.info(f"Checking subtitle file: {temp_subtitle_path}")
-                logger.info(f"Subtitle file exists: {os.path.exists(temp_subtitle_path)}")
-                
+                logger.info(
+                    f"Subtitle file exists: {os.path.exists(temp_subtitle_path)}"
+                )
+
                 if os.path.exists(temp_subtitle_path):
-                    logger.info(f"Subtitle file size: {os.path.getsize(temp_subtitle_path)}")
-                
-                with open(temp_subtitle_path, "r", encoding='utf-8') as f:
+                    logger.info(
+                        f"Subtitle file size: {os.path.getsize(temp_subtitle_path)}"
+                    )
+
+                with open(temp_subtitle_path, "r", encoding="utf-8") as f:
                     srt_content = f.read()
-                
-                logger.info(f"Read subtitle content, length: {len(srt_content) if srt_content else 0}")
+
+                logger.info(
+                    f"Read subtitle content, length: {len(srt_content) if srt_content else 0}"
+                )
                 if srt_content:
-                    logger.info(f"Subtitle content preview: {srt_content[:200] if srt_content else 'None'}")
-                
+                    logger.info(
+                        f"Subtitle content preview: {srt_content[:200] if srt_content else 'None'}"
+                    )
+
                 if srt_content and srt_content.strip():
-                    subtitle_filename = f"dialogue_subtitle_{script_id}_{int(time.time())}.srt"
+                    subtitle_filename = (
+                        f"dialogue_subtitle_{script_id}_{int(time.time())}.srt"
+                    )
                     logger.info(f"Saving subtitle file: {subtitle_filename}")
-                    script.subtitle_file.save(subtitle_filename, ContentFile(srt_content.encode('utf-8')))
+                    script.subtitle_file.save(
+                        subtitle_filename, ContentFile(srt_content.encode("utf-8"))
+                    )
                     # 重要：保存后需要刷新实例以确保字段正确更新
-                    script.save(update_fields=['subtitle_file'])
+                    script.save(update_fields=["subtitle_file"])
                     script.refresh_from_db()
-                    logger.info(f"Subtitle file saved: {script.subtitle_file.url if script.subtitle_file else 'None'}")
-                    logger.info(f"Subtitle file name: {script.subtitle_file.name if script.subtitle_file else 'None'}")
+                    logger.info(
+                        f"Subtitle file saved: {script.subtitle_file.url if script.subtitle_file else 'None'}"
+                    )
+                    logger.info(
+                        f"Subtitle file name: {script.subtitle_file.name if script.subtitle_file else 'None'}"
+                    )
                 else:
                     logger.warning("No subtitle content to save or content is empty")
                     # 检查临时文件内容
                     if os.path.exists(temp_subtitle_path):
                         with open(temp_subtitle_path, "rb") as f:
                             raw_content = f.read()
-                            logger.warning(f"Raw subtitle file content (bytes): {raw_content[:200] if raw_content else 'None'}")
+                            logger.warning(
+                                f"Raw subtitle file content (bytes): {raw_content[:200] if raw_content else 'None'}"
+                            )
             except Exception as e:
-                logger.error(f"Error reading or saving subtitle file: {e}", exc_info=True)
+                logger.error(
+                    f"Error reading or saving subtitle file: {e}", exc_info=True
+                )
 
             # 获取音频时长
             try:
@@ -1024,7 +1151,9 @@ def generate_dialogue_audio_task(self, script_id, voice_mapping):
                 script.audio_duration = audio_duration
             except Exception as e:
                 logger.warning(f"Failed to get audio duration: {e}")
-                script.audio_duration = multi_voice_tts.estimate_audio_duration(script.script_data)
+                script.audio_duration = multi_voice_tts.estimate_audio_duration(
+                    script.script_data
+                )
 
             chapters_data = []
             if srt_content and srt_content.strip():
@@ -1040,71 +1169,85 @@ def generate_dialogue_audio_task(self, script_id, voice_mapping):
             script.chapters = chapters_data
 
             script.save()
-            save_chapters_assets(script, chapters_data, total_duration=script.audio_duration)
-            
+            save_chapters_assets(
+                script, chapters_data, total_duration=script.audio_duration
+            )
+
             # 扣除用户积分
             try:
                 # 刷新用户配额以获取最新数据
                 user_quota.refresh_from_db()
-                
+
                 # 获取实际音频时长并计算所需积分
                 actual_duration_seconds = script.audio_duration
-                required_points = PointsManager.get_audio_generation_points(actual_duration_seconds)
-                
+                required_points = PointsManager.get_audio_generation_points(
+                    actual_duration_seconds
+                )
+
                 # 扣除积分
                 user_quota.consume_points(required_points)
-                
+
                 # 记录成功的音频创建操作
                 OperationRecord.objects.create(
                     user=user,
-                    operation_type='audio_create',
-                    operation_object=f'对话脚本 - {script.title}',
-                    operation_detail=f'成功创建对话音频：{script.title}，时长 {actual_duration_seconds} 秒，消耗积分 {required_points} 分',
-                    status='success',
+                    operation_type="audio_create",
+                    operation_object=f"对话脚本 - {script.title}",
+                    operation_detail=f"成功创建对话音频：{script.title}，时长 {actual_duration_seconds} 秒，消耗积分 {required_points} 分",
+                    status="success",
                     metadata={
-                        'script_id': script_id,
-                        'audio_duration': actual_duration_seconds,
-                        'points_consumed': required_points
-                    }
+                        "script_id": script_id,
+                        "audio_duration": actual_duration_seconds,
+                        "points_consumed": required_points,
+                    },
                 )
-                
-                logger.info(f"Successfully consumed {required_points} points for dialogue audio generation")
-                
+
+                logger.info(
+                    f"Successfully consumed {required_points} points for dialogue audio generation"
+                )
+
             except Exception as e:
-                logger.error(f"Failed to deduct points for dialogue audio: {e}", exc_info=True)
+                logger.error(
+                    f"Failed to deduct points for dialogue audio: {e}", exc_info=True
+                )
                 # 积分扣除失败不影响任务成功状态，但需要记录错误
-            
+
             # 更新用户任务为成功状态
-            if 'user_task' in locals():
-                user_task.status = 'success'
-                user_task.progress_message = '对话音频和字幕生成完成'
+            if "user_task" in locals():
+                user_task.status = "success"
+                user_task.progress_message = "对话音频和字幕生成完成"
                 user_task.result_data = {
-                    'audio_file': script.audio_file.url if script.audio_file else None,
-                    'subtitle_file': script.subtitle_file.url if script.subtitle_file else None,
-                    'audio_duration': script.audio_duration,
-                    'segments_count': synthesis_result.get('segments_count', 0),
-                    'subtitle_entries': synthesis_result.get('subtitle_entries', 0)
+                    "audio_file": script.audio_file.url if script.audio_file else None,
+                    "subtitle_file": script.subtitle_file.url
+                    if script.subtitle_file
+                    else None,
+                    "audio_duration": script.audio_duration,
+                    "segments_count": synthesis_result.get("segments_count", 0),
+                    "subtitle_entries": synthesis_result.get("subtitle_entries", 0),
                 }
                 user_task.completed_at = timezone.now()
                 user_task.save()
-            
-            logger.info(f"Dialogue audio generation with subtitles completed for script {script_id}")
-            
+
+            logger.info(
+                f"Dialogue audio generation with subtitles completed for script {script_id}"
+            )
+
             # 确保返回正确的URL
             audio_file_url = script.audio_file.url if script.audio_file else None
-            subtitle_file_url = script.subtitle_file.url if script.subtitle_file else None
-            
+            subtitle_file_url = (
+                script.subtitle_file.url if script.subtitle_file else None
+            )
+
             logger.info(f"Returning - Audio file: {audio_file_url}")
             logger.info(f"Returning - Subtitle file: {subtitle_file_url}")
-            
+
             return {
-                'success': True,
-                'script_id': script_id,
-                'audio_file': audio_file_url,
-                'subtitle_file': subtitle_file_url,
-                'audio_duration': script.audio_duration
+                "success": True,
+                "script_id": script_id,
+                "audio_file": audio_file_url,
+                "subtitle_file": subtitle_file_url,
+                "audio_duration": script.audio_duration,
             }
-            
+
         finally:
             # 清理临时文件
             for path in [temp_output_path, temp_subtitle_path]:
@@ -1113,59 +1256,58 @@ def generate_dialogue_audio_task(self, script_id, voice_mapping):
                         os.unlink(path)
                     except Exception as e:
                         logger.warning(f"Failed to cleanup temp file {path}: {e}")
-    
+
     except Exception as e:
         error_msg = f"对话音频生成任务失败: {str(e)}"
         logger.error(error_msg)
-        
+
         # 更新用户任务为失败状态
         try:
             user_task = UserTask.objects.get(task_id=self.request.id)
-            user_task.status = 'failure'
+            user_task.status = "failure"
             user_task.error_message = error_msg
             user_task.completed_at = timezone.now()
             user_task.save()
         except UserTask.DoesNotExist:
             pass
-        
-        self.update_state(
-            state='FAILURE',
-            meta={'error': error_msg}
-        )
-        raise 
+
+        self.update_state(state="FAILURE", meta={"error": error_msg})
+        raise
 
 
 @shared_task(bind=True)
-def generate_chapters_task(self, segment_type: str, segment_id: int, force: bool = False):
+def generate_chapters_task(
+    self, segment_type: str, segment_id: int, force: bool = False
+):
     """为指定音频或对话脚本生成章节信息。"""
-    self.update_state(state='PROCESSING', meta={'message': '章节生成任务已启动...'})
+    self.update_state(state="PROCESSING", meta={"message": "章节生成任务已启动..."})
 
     user_task = None
     try:
         user_task = UserTask.objects.get(task_id=self.request.id)
-        user_task.status = 'processing'
-        user_task.progress_message = '正在准备章节生成...'
-        user_task.save(update_fields=['status', 'progress_message', 'updated_at'])
+        user_task.status = "processing"
+        user_task.progress_message = "正在准备章节生成..."
+        user_task.save(update_fields=["status", "progress_message", "updated_at"])
     except UserTask.DoesNotExist:
         user_task = None
 
     try:
         generator = ChapterGenerator()
-        llm_usage_info = {'prompt': 0, 'completion': 0, 'total': 0}
+        llm_usage_info = {"prompt": 0, "completion": 0, "total": 0}
         llm_models = []
 
-        if segment_type == 'audio':
+        if segment_type == "audio":
             segment = AudioSegment.objects.get(pk=segment_id)
             owner = segment.user
-            title_hint = segment.title or (segment.book.name if segment.book else '')
+            title_hint = segment.title or (segment.book.name if segment.book else "")
             existing_chapters = segment.chapters or []
             subtitle_field = segment.subtitle_file
             op_object = f"音频片段 - {segment.title}"
             extra_metadata = {
-                'book_id': segment.book.id if segment.book else None,
-                'book_name': segment.book.name if segment.book else None,
+                "book_id": segment.book.id if segment.book else None,
+                "book_name": segment.book.name if segment.book else None,
             }
-        elif segment_type == 'dialogue':
+        elif segment_type == "dialogue":
             segment = DialogueScript.objects.get(pk=segment_id)
             owner = segment.user
             title_hint = segment.title
@@ -1173,129 +1315,131 @@ def generate_chapters_task(self, segment_type: str, segment_id: int, force: bool
             subtitle_field = segment.subtitle_file
             op_object = f"对话脚本 - {segment.title}"
             extra_metadata = {
-                'script_id': segment.id,
+                "script_id": segment.id,
             }
         else:
-            raise ValueError('未知的segment_type参数')
+            raise ValueError("未知的segment_type参数")
 
         if existing_chapters and not force:
-            message = '已存在章节，未执行生成。'
+            message = "已存在章节，未执行生成。"
             result = {
-                'success': True,
-                'status': 'skipped',
-                'chapters_count': len(existing_chapters),
-                'message': message,
+                "success": True,
+                "status": "skipped",
+                "chapters_count": len(existing_chapters),
+                "message": message,
             }
 
             if user_task:
-                user_task.status = 'success'
+                user_task.status = "success"
                 user_task.progress_message = message
                 user_task.result_data = result
                 user_task.completed_at = timezone.now()
                 user_task.save()
 
-            self.update_state(state='SUCCESS', meta=result)
+            self.update_state(state="SUCCESS", meta=result)
             return result
 
         subtitle_content = _read_subtitle_file(subtitle_field)
         if not subtitle_content.strip():
-            raise ValueError('字幕文件不存在或内容为空，无法生成章节')
+            raise ValueError("字幕文件不存在或内容为空，无法生成章节")
 
-        self.update_state(state='PROCESSING', meta={'message': '正在解析字幕生成章节...'})
+        self.update_state(
+            state="PROCESSING", meta={"message": "正在解析字幕生成章节..."}
+        )
 
         chapters = generator.generate_chapters(subtitle_content, title_hint=title_hint)
-        llm_usage_info = _summarize_llm_usage(getattr(generator, 'last_usage', None))
-        if getattr(generator, 'last_model', None):
+        llm_usage_info = _summarize_llm_usage(getattr(generator, "last_usage", None))
+        if getattr(generator, "last_model", None):
             llm_models.append(generator.last_model)
         chapters_count = len(chapters)
 
         segment.chapters = chapters
-        if hasattr(segment, 'save'):
-            segment.save(update_fields=['chapters', 'updated_at'])
-        total_duration = getattr(segment, 'audio_duration', None)
+        if hasattr(segment, "save"):
+            segment.save(update_fields=["chapters", "updated_at"])
+        total_duration = getattr(segment, "audio_duration", None)
         save_chapters_assets(segment, chapters, total_duration=total_duration)
 
-        message = '章节生成完成' if chapters_count else '生成完成，但未提取到章节'
-        status_flag = 'completed' if chapters_count else 'empty'
+        message = "章节生成完成" if chapters_count else "生成完成，但未提取到章节"
+        status_flag = "completed" if chapters_count else "empty"
 
         llm_models_list = sorted(set(llm_models)) if llm_models else []
 
         metadata = {
-            'segment_type': segment_type,
-            'segment_id': segment_id,
-            'chapters_count': chapters_count,
-            'force': force,
-            'llm_prompt_tokens': llm_usage_info['prompt'],
-            'llm_completion_tokens': llm_usage_info['completion'],
-            'llm_total_tokens': llm_usage_info['total'],
-            'llm_models': llm_models_list,
+            "segment_type": segment_type,
+            "segment_id": segment_id,
+            "chapters_count": chapters_count,
+            "force": force,
+            "llm_prompt_tokens": llm_usage_info["prompt"],
+            "llm_completion_tokens": llm_usage_info["completion"],
+            "llm_total_tokens": llm_usage_info["total"],
+            "llm_models": llm_models_list,
         }
         metadata.update(extra_metadata)
 
         if owner:
             OperationRecord.objects.create(
                 user=owner,
-                operation_type='system_operation',
+                operation_type="system_operation",
                 operation_object=op_object,
                 operation_detail=message,
-                status='success',
+                status="success",
                 metadata=metadata,
             )
 
         deduction_metadata = {
-            'segment_type': segment_type,
-            'segment_id': segment_id,
-            'force': force,
-            'llm_prompt_tokens': llm_usage_info['prompt'],
-            'llm_completion_tokens': llm_usage_info['completion'],
-            'llm_total_tokens': llm_usage_info['total'],
-            'llm_models': llm_models_list,
+            "segment_type": segment_type,
+            "segment_id": segment_id,
+            "force": force,
+            "llm_prompt_tokens": llm_usage_info["prompt"],
+            "llm_completion_tokens": llm_usage_info["completion"],
+            "llm_total_tokens": llm_usage_info["total"],
+            "llm_models": llm_models_list,
         }
-        if owner and llm_usage_info['total'] > 0:
+        if owner and llm_usage_info["total"] > 0:
             deduct_llm_points(
                 user=owner,
-                total_tokens=llm_usage_info['total'],
-                operation_object=f'{op_object} LLM章节生成',
+                total_tokens=llm_usage_info["total"],
+                operation_object=f"{op_object} LLM章节生成",
                 metadata=deduction_metadata,
                 ip_address=None,
                 user_agent=None,
             )
 
         result = {
-            'success': True,
-            'status': status_flag,
-            'chapters_count': chapters_count,
-            'message': message,
+            "success": True,
+            "status": status_flag,
+            "chapters_count": chapters_count,
+            "message": message,
         }
 
         if user_task:
-            user_task.status = 'success'
+            user_task.status = "success"
             user_task.progress_message = message
             user_task.result_data = result
             user_task.completed_at = timezone.now()
             user_task.save()
 
-        self.update_state(state='SUCCESS', meta=result)
+        self.update_state(state="SUCCESS", meta=result)
         return result
 
     except Exception as exc:  # pylint: disable=broad-except
         error_message = str(exc)
-        logger.error('章节生成任务失败: %s', error_message, exc_info=True)
+        logger.error("章节生成任务失败: %s", error_message, exc_info=True)
 
         if user_task:
-            user_task.status = 'failure'
+            user_task.status = "failure"
             user_task.error_message = error_message
-            user_task.progress_message = '章节生成失败'
+            user_task.progress_message = "章节生成失败"
             user_task.completed_at = timezone.now()
             user_task.save()
 
         # 记录失败操作
         try:
-            if segment_type == 'audio':
+            if segment_type == "audio":
                 segment = AudioSegment.objects.get(pk=segment_id)
                 owner = segment.user
                 op_object = f"音频片段 - {segment.title}"
-            elif segment_type == 'dialogue':
+            elif segment_type == "dialogue":
                 segment = DialogueScript.objects.get(pk=segment_id)
                 owner = segment.user
                 op_object = f"对话脚本 - {segment.title}"
@@ -1306,34 +1450,34 @@ def generate_chapters_task(self, segment_type: str, segment_id: int, force: bool
             if owner:
                 llm_models_list = sorted(set(llm_models)) if llm_models else []
                 failure_metadata = {
-                    'segment_type': segment_type,
-                    'segment_id': segment_id,
-                    'force': force,
-                    'error': error_message,
-                    'llm_prompt_tokens': llm_usage_info['prompt'],
-                    'llm_completion_tokens': llm_usage_info['completion'],
-                    'llm_total_tokens': llm_usage_info['total'],
-                    'llm_models': llm_models_list,
+                    "segment_type": segment_type,
+                    "segment_id": segment_id,
+                    "force": force,
+                    "error": error_message,
+                    "llm_prompt_tokens": llm_usage_info["prompt"],
+                    "llm_completion_tokens": llm_usage_info["completion"],
+                    "llm_total_tokens": llm_usage_info["total"],
+                    "llm_models": llm_models_list,
                 }
                 OperationRecord.objects.create(
                     user=owner,
-                    operation_type='system_operation',
+                    operation_type="system_operation",
                     operation_object=op_object,
-                    operation_detail=f'章节生成失败：{error_message}',
-                    status='failed',
+                    operation_detail=f"章节生成失败：{error_message}",
+                    status="failed",
                     metadata=failure_metadata,
                 )
-                if llm_usage_info['total'] > 0:
+                if llm_usage_info["total"] > 0:
                     deduct_llm_points(
                         user=owner,
-                        total_tokens=llm_usage_info['total'],
-                        operation_object=f'{op_object} LLM章节生成',
+                        total_tokens=llm_usage_info["total"],
+                        operation_object=f"{op_object} LLM章节生成",
                         metadata=failure_metadata,
                         ip_address=None,
                         user_agent=None,
                     )
         except Exception:  # pylint: disable=broad-except
-            logger.warning('章节生成失败记录OperationRecord时出错', exc_info=True)
+            logger.warning("章节生成失败记录OperationRecord时出错", exc_info=True)
 
-        self.update_state(state='FAILURE', meta={'error': error_message})
+        self.update_state(state="FAILURE", meta={"error": error_message})
         raise
