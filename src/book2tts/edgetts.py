@@ -37,6 +37,13 @@ class EdgeTTS:
         """
         for attempt in range(retry_count):
             try:
+                print(
+                    f"[synthesize_with_subtitles_v2] Attempt {attempt + 1}/{retry_count}"
+                )
+                print(f"[synthesize_with_subtitles_v2] Text length: {len(text)}")
+                print(f"[synthesize_with_subtitles_v2] Output file: {output_file}")
+                print(f"[synthesize_with_subtitles_v2] Subtitle file: {subtitle_file}")
+
                 communicate = edge_tts.Communicate(
                     text, self.voice_name, rate=self.rate
                 )
@@ -44,8 +51,10 @@ class EdgeTTS:
                 # 方法1：使用 stream() 获取更精确的字幕数据
                 audio_data = b""
                 subtitle_data = []
+                chunk_count = 0
 
                 async for chunk in communicate.stream():
+                    chunk_count += 1
                     if chunk["type"] == "audio":
                         audio_data += chunk["data"]
                     elif chunk["type"] == "WordBoundary":
@@ -58,9 +67,21 @@ class EdgeTTS:
                             }
                         )
 
+                print(
+                    f"[synthesize_with_subtitles_v2] Stream completed: {chunk_count} chunks"
+                )
+                print(
+                    f"[synthesize_with_subtitles_v2] Audio data size: {len(audio_data)}"
+                )
+                print(
+                    f"[synthesize_with_subtitles_v2] Word boundaries: {len(subtitle_data)}"
+                )
+
                 # 保存音频文件
                 with open(output_file, "wb") as f:
                     f.write(audio_data)
+
+                print(f"[synthesize_with_subtitles_v2] Audio file saved: {output_file}")
 
                 # 生成VTT字幕
                 if subtitle_file and subtitle_data:
@@ -69,6 +90,9 @@ class EdgeTTS:
                     )
                     with open(subtitle_file, "w", encoding="utf-8") as f:
                         f.write(vtt_content)
+                    print(
+                        f"[synthesize_with_subtitles_v2] Subtitle file saved: {subtitle_file}"
+                    )
 
                 # 验证生成结果
                 audio_exists = (
@@ -76,6 +100,10 @@ class EdgeTTS:
                 )
                 subtitle_exists = not subtitle_file or (
                     os.path.exists(subtitle_file) and os.path.getsize(subtitle_file) > 0
+                )
+
+                print(
+                    f"[synthesize_with_subtitles_v2] audio_exists={audio_exists}, subtitle_exists={subtitle_exists}"
                 )
 
                 success = audio_exists and subtitle_exists
@@ -98,15 +126,28 @@ class EdgeTTS:
                         error_details.append("字幕文件生成失败或为空")
                     result["error"] = "; ".join(error_details)
 
+                print(
+                    f"[synthesize_with_subtitles_v2] Result: success={success}, audio_generated={audio_exists}"
+                )
                 return result
 
             except Exception as e:
-                print(f"Stream method attempt {attempt + 1} failed: {str(e)}")
+                import traceback
+
+                print(
+                    f"[synthesize_with_subtitles_v2] Exception on attempt {attempt + 1}: {str(e)}"
+                )
+                print(
+                    f"[synthesize_with_subtitles_v2] Traceback:\n{traceback.format_exc()}"
+                )
                 if attempt < retry_count - 1:
                     await asyncio.sleep(1)  # 异步等待
                     continue
 
                 # 如果stream方法失败，回退到传统方法
+                print(
+                    f"[synthesize_with_subtitles_v2] Falling back to _fallback_subtitle_generation"
+                )
                 return await self._fallback_subtitle_generation(
                     text, output_file, subtitle_file
                 )
@@ -418,10 +459,17 @@ class EdgeTTS:
     ) -> Dict[str, Any]:
         """回退方案：使用传统的save方法"""
         try:
+            print(f"[_fallback_subtitle_generation] Starting fallback method")
+            print(f"[_fallback_subtitle_generation] Text length: {len(text)}")
+            print(f"[_fallback_subtitle_generation] Output file: {output_file}")
+            print(f"[_fallback_subtitle_generation] Subtitle file: {subtitle_file}")
+
             communicate = edge_tts.Communicate(text, self.voice_name)
             if subtitle_file:
+                print(f"[_fallback_subtitle_generation] Calling save with subtitle")
                 await communicate.save(output_file, subtitle_file)
             else:
+                print(f"[_fallback_subtitle_generation] Calling save without subtitle")
                 await communicate.save(output_file)
 
             audio_exists = (
@@ -429,6 +477,10 @@ class EdgeTTS:
             )
             subtitle_exists = not subtitle_file or (
                 os.path.exists(subtitle_file) and os.path.getsize(subtitle_file) > 0
+            )
+
+            print(
+                f"[_fallback_subtitle_generation] audio_exists={audio_exists}, subtitle_exists={subtitle_exists}"
             )
 
             success = audio_exists and subtitle_exists
@@ -449,6 +501,9 @@ class EdgeTTS:
                     error_details.append("字幕文件生成失败或为空")
                 result["error"] = "; ".join(error_details)
 
+            print(
+                f"[_fallback_subtitle_generation] Result: success={success}, audio_generated={audio_exists}"
+            )
             return result
 
         except Exception as e:
