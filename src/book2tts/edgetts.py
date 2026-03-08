@@ -18,7 +18,7 @@ class EdgeTTS:
         self,
         text: str,
         output_file: str,
-        subtitle_file: str = None,
+        subtitle_file: Optional[str] = None,
         retry_count: int = 3,
         words_in_cue: int = 10,
     ) -> Dict[str, Any]:
@@ -45,7 +45,7 @@ class EdgeTTS:
                 print(f"[synthesize_with_subtitles_v2] Subtitle file: {subtitle_file}")
 
                 communicate = edge_tts.Communicate(
-                    text, self.voice_name, rate=self.rate
+                    text, self.voice_name, rate=self.rate, boundary="WordBoundary"
                 )
 
                 # 方法1：使用 stream() 获取更精确的字幕数据
@@ -455,7 +455,7 @@ class EdgeTTS:
         return text
 
     async def _fallback_subtitle_generation(
-        self, text: str, output_file: str, subtitle_file: str = None
+        self, text: str, output_file: str, subtitle_file: Optional[str] = None
     ) -> Dict[str, Any]:
         """回退方案：使用传统的save方法"""
         try:
@@ -464,7 +464,9 @@ class EdgeTTS:
             print(f"[_fallback_subtitle_generation] Output file: {output_file}")
             print(f"[_fallback_subtitle_generation] Subtitle file: {subtitle_file}")
 
-            communicate = edge_tts.Communicate(text, self.voice_name)
+            communicate = edge_tts.Communicate(
+                text, self.voice_name, boundary="WordBoundary"
+            )
             if subtitle_file:
                 print(f"[_fallback_subtitle_generation] Calling save with subtitle")
                 await communicate.save(output_file, subtitle_file)
@@ -533,7 +535,7 @@ class EdgeTTS:
         for attempt in range(retry_count):
             try:
                 communicate = edge_tts.Communicate(
-                    text, self.voice_name, rate=self.rate
+                    text, self.voice_name, rate=self.rate, boundary="WordBoundary"
                 )
                 if subtitle_file:
                     await communicate.save(output_file, subtitle_file)
@@ -595,7 +597,7 @@ class EdgeTTS:
         for attempt in range(retry_count):
             try:
                 communicate = edge_tts.Communicate(
-                    text, self.voice_name, rate=self.rate
+                    text, self.voice_name, rate=self.rate, boundary="WordBoundary"
                 )
                 asyncio.run(communicate.save(output_file))
                 return True

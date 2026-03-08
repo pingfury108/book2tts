@@ -253,9 +253,12 @@ def synthesize_audio_task(
             state="PROCESSING", meta={"message": "正在生成音频和字幕文件..."}
         )
 
-        # 创建临时文件（只创建音频文件，不创建字幕文件）
+        # 创建临时文件
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as audio_file:
             audio_path = audio_file.name
+
+        with tempfile.NamedTemporaryFile(suffix=".vtt", delete=False) as subtitle_file:
+            subtitle_path = subtitle_file.name
 
         try:
             # 使用改进的EdgeTTS合成音频和字幕
@@ -273,13 +276,13 @@ def synthesize_audio_task(
             # 只生成音频，不生成字幕
             tts = EdgeTTS(voice_name=voice_name, rate=rate)
 
-            # 根据文本长度选择合成方法（不传递 subtitle_file 参数）
+            # 根据文本长度选择合成方法
             if len(text) > 3000:  # 长文本使用分段合成
                 synthesis_result = loop.run_until_complete(
                     tts.synthesize_long_text_with_subtitles(
                         text=text,
                         output_file=audio_path,
-                        subtitle_file=None,  # 不生成字幕
+                        subtitle_file=subtitle_path,
                         segment_length=2000,
                         words_in_cue=8,
                     )
@@ -289,7 +292,7 @@ def synthesize_audio_task(
                     tts.synthesize_with_subtitles_v2(
                         text=text,
                         output_file=audio_path,
-                        subtitle_file=None,  # 不生成字幕
+                        subtitle_file=subtitle_path,
                         words_in_cue=8,
                     )
                 )
@@ -323,7 +326,7 @@ def synthesize_audio_task(
 
             # 更新任务状态
             self.update_state(
-                state="PROCESSING", meta={"message": "音频生成完成，正在生成字幕..."}
+                state="PROCESSING", meta={"message": "音频生成完成，正在处理字幕..."}
             )
 
             # 获取实际音频时长
@@ -332,9 +335,39 @@ def synthesize_audio_task(
                 f"Audio synthesis completed. Duration: {actual_duration_seconds} seconds"
             )
 
-            # 生成简单的 fallback 字幕（单条字幕覆盖整个文本）
-            srt_content = _generate_simple_subtitle(text, actual_duration_seconds)
-            logger.info(f"Generated simple subtitle length: {len(srt_content)}")
+            # 字幕文件处理
+            vtt_content = ""
+            srt_content = ""
+
+            if os.path.exists(subtitle_path):
+                file_size = os.path.getsize(subtitle_path)
+                logger.info(f"Subtitle file found: {subtitle_path}, size: {file_size}")
+
+                if file_size > 0:
+                    with open(subtitle_path, "r", encoding="utf-8") as f:
+                        vtt_content = f.read()
+                        logger.info(f"VTT content length: {len(vtt_content)}")
+
+                    # 转换为SRT并验证
+                    srt_content = convert_vtt_to_srt(vtt_content) if vtt_content else ""
+                    logger.info(f"SRT content length: {len(srt_content)}")
+
+                    if not srt_content:
+                        logger.warning(
+                            "VTT to SRT conversion resulted in empty content"
+                        )
+                else:
+                    logger.warning("Subtitle file exists but is empty")
+            else:
+                logger.warning(f"Subtitle file not found: {subtitle_path}")
+
+            # 如果字幕仍然为空，生成 fallback 字幕
+            if not srt_content:
+                logger.info(
+                    "No subtitle content found, generating fallback subtitle from text"
+                )
+                srt_content = _generate_fallback_subtitle(text, actual_duration_seconds)
+                logger.info(f"Generated fallback subtitle length: {len(srt_content)}")
 
             # 更新任务状态
             self.update_state(
@@ -472,9 +505,10 @@ def synthesize_audio_task(
             }
 
         finally:
-            # 清理临时文件（只清理音频文件）
-            if os.path.exists(audio_path):
-                os.remove(audio_path)
+            # 清理临时文件
+            for path in [audio_path, subtitle_path]:
+                if os.path.exists(path):
+                    os.remove(path)
 
     except Exception as e:
         logger.error(f"Audio synthesis task failed for user {user_id}: {str(e)}")
