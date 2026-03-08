@@ -37,7 +37,9 @@ class EdgeTTS:
         """
         for attempt in range(retry_count):
             try:
-                communicate = edge_tts.Communicate(text, self.voice_name, rate=self.rate)
+                communicate = edge_tts.Communicate(
+                    text, self.voice_name, rate=self.rate
+                )
 
                 # 方法1：使用 stream() 获取更精确的字幕数据
                 audio_data = b""
@@ -138,6 +140,8 @@ class EdgeTTS:
             if total_segments == 0:
                 return {
                     "success": False,
+                    "audio_generated": False,
+                    "subtitle_generated": False,
                     "error": "没有可处理的文本段落",
                     "method": "long_text_no_segments",
                 }
@@ -159,6 +163,8 @@ class EdgeTTS:
                 if not result["success"]:
                     return {
                         "success": False,
+                        "audio_generated": False,
+                        "subtitle_generated": False,
                         "error": f"段落 {i} 合成失败: {result.get('error', '未知错误')}",
                         "method": "long_text_segment_failed",
                     }
@@ -234,6 +240,8 @@ class EdgeTTS:
         except Exception as e:
             return {
                 "success": False,
+                "audio_generated": False,
+                "subtitle_generated": False,
                 "error": f"长文本合成失败: {str(e)}",
                 "method": "long_text_exception",
             }
@@ -442,7 +450,9 @@ class EdgeTTS:
         """
         for attempt in range(retry_count):
             try:
-                communicate = edge_tts.Communicate(text, self.voice_name, rate=self.rate)
+                communicate = edge_tts.Communicate(
+                    text, self.voice_name, rate=self.rate
+                )
                 if subtitle_file:
                     await communicate.save(output_file, subtitle_file)
                 else:
@@ -502,7 +512,9 @@ class EdgeTTS:
 
         for attempt in range(retry_count):
             try:
-                communicate = edge_tts.Communicate(text, self.voice_name, rate=self.rate)
+                communicate = edge_tts.Communicate(
+                    text, self.voice_name, rate=self.rate
+                )
                 asyncio.run(communicate.save(output_file))
                 return True
             except Exception as e:
