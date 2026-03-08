@@ -78,13 +78,27 @@ class EdgeTTS:
                     os.path.exists(subtitle_file) and os.path.getsize(subtitle_file) > 0
                 )
 
-                return {
-                    "success": audio_exists and subtitle_exists,
+                success = audio_exists and subtitle_exists
+
+                # 构建返回结果，确保失败时包含错误信息
+                result = {
+                    "success": success,
                     "audio_generated": audio_exists,
                     "subtitle_generated": subtitle_exists,
                     "subtitle_entries": len(subtitle_data) if subtitle_data else 0,
                     "method": "stream_based",
                 }
+
+                # 如果失败，添加错误信息
+                if not success:
+                    error_details = []
+                    if not audio_exists:
+                        error_details.append("音频文件生成失败或为空")
+                    if not subtitle_exists:
+                        error_details.append("字幕文件生成失败或为空")
+                    result["error"] = "; ".join(error_details)
+
+                return result
 
             except Exception as e:
                 print(f"Stream method attempt {attempt + 1} failed: {str(e)}")
@@ -417,12 +431,25 @@ class EdgeTTS:
                 os.path.exists(subtitle_file) and os.path.getsize(subtitle_file) > 0
             )
 
-            return {
-                "success": audio_exists and subtitle_exists,
+            success = audio_exists and subtitle_exists
+
+            result = {
+                "success": success,
                 "audio_generated": audio_exists,
                 "subtitle_generated": subtitle_exists,
                 "method": "fallback_save",
             }
+
+            # 如果失败，添加错误信息
+            if not success:
+                error_details = []
+                if not audio_exists:
+                    error_details.append("音频文件生成失败或为空")
+                if not subtitle_exists:
+                    error_details.append("字幕文件生成失败或为空")
+                result["error"] = "; ".join(error_details)
+
+            return result
 
         except Exception as e:
             return {
