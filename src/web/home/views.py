@@ -840,6 +840,21 @@ def create_podcast_feed(title, link, description, language, author_name, image_u
     return fg
 
 
+def robots_txt(request):
+    """返回 robots.txt，声明 sitemap 位置"""
+    sitemap_url = request.build_absolute_uri(reverse("django.contrib.sitemaps.views.sitemap"))
+    content = f"""User-agent: *
+Allow: /
+Disallow: /workbench/
+Disallow: /admin/
+
+Sitemap: {sitemap_url}
+"""
+    response = HttpResponse(content, content_type='text/plain')
+    response['Cache-Control'] = 'public, max-age=86400'
+    return response
+
+
 def ads_txt(request):
     """返回 ads.txt 文件内容"""
     from .models import SiteConfig

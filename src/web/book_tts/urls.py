@@ -9,12 +9,28 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
+from django.contrib.sitemaps.views import sitemap
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth import logout
 from django.shortcuts import render
 from .views import TurnstileLoginView, TurnstileRegisterView
+from home.sitemaps import (
+    StaticViewSitemap,
+    AudioSegmentSitemap,
+    DialogueScriptSitemap,
+    BookSitemap,
+    DiscussionTopicSitemap,
+)
+
+sitemaps = {
+    "static": StaticViewSitemap,
+    "audio": AudioSegmentSitemap,
+    "dialogue": DialogueScriptSitemap,
+    "book": BookSitemap,
+    "discussion": DiscussionTopicSitemap,
+}
 
 # Custom logout view to ensure proper session cleanup
 def logout_view(request):
@@ -27,6 +43,12 @@ def logout_view(request):
 
 urlpatterns = [
     path("", include("home.urls")),
+    path(
+        "sitemap.xml",
+        sitemap,
+        {"sitemaps": sitemaps},
+        name="django.contrib.sitemaps.views.sitemap",
+    ),
     path('workbench/', include('workbench.urls')),
     path("admin/", admin.site.urls),
     path("__reload__/", include("django_browser_reload.urls")),

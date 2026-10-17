@@ -19,6 +19,7 @@
     {% endif %}
     <meta name="format-detection" content="telephone=no">
     <meta name="robots" content="index, follow">
+    <link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
     <meta name="language" content="zh-CN">
     <meta name="revisit-after" content="7 days">
     {% if CSS_VERSION %}

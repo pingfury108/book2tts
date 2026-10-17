@@ -13,6 +13,7 @@ urlpatterns = [
     path("operation-records/", views.operation_records, name="operation_records"),
     path("about/", views.about, name="about"),
     path("ads.txt", views.ads_txt, name="ads_txt"),
+    path("robots.txt", views.robots_txt, name="robots_txt"),
     # 讨论主题相关URL
     path("discussions/", views.discussion_list, name="discussion_list"),
     path("discussions/create/", views.discussion_create, name="discussion_create"),
