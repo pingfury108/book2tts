@@ -47,6 +47,17 @@
                             <span class="font-medium">RSS Token:</span>
                             <span class="font-mono text-sm">{{ user_profile.rss_token|truncatechars:12 }}...</span>
                         </div>
+
+                        {% if user_profile.rss_token %}
+                        <div class="mt-4">
+                            <div class="flex items-center gap-2 bg-base-200 border border-base-300 rounded-xl px-3 py-2">
+                                <i class="fas fa-rss text-accent text-xs"></i>
+                                <span class="text-[11.5px] font-mono text-base-content/60 flex-1 truncate" id="rss-url-text">{{ request.scheme }}://{{ request.get_host }}{% url 'token_audio_rss_feed' token=user_profile.rss_token|stringformat:'s' %}</span>
+                                <button type="button" class="btn btn-ghost btn-xs" onclick="copyRssUrl()">复制</button>
+                            </div>
+                            <p class="text-[11px] text-base-content/40 mt-1.5">你的专属播客 RSS —— 粘贴到任意播客 App 即可订阅自己的作品</p>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -174,6 +185,25 @@
 </dialog>
 
 <script>
+function copyRssUrl() {
+    const el = document.getElementById('rss-url-text');
+    if (!el) return;
+    const text = el.textContent.trim();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+            el.classList.add('text-success');
+            setTimeout(function () { el.classList.remove('text-success'); }, 1200);
+        });
+    } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+    }
+}
+
 function showPointsRules() {
     const modal = document.getElementById('points_rules_modal');
     const content = document.getElementById('points-rules-content');

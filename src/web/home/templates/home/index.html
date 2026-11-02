@@ -13,6 +13,37 @@
   {% endif %}
 
   <div class="max-w-6xl mx-auto px-4 sm:px-6">
+  {% if user.is_authenticated and not display_title and audio_segments.object_list %}
+  {% with first=audio_segments.object_list.0 %}
+  <!-- V2 P2：问候头 + 继续收听 featured 卡 -->
+  <div class="mb-6">
+    <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight">欢迎回来，{{ user.username }}</h1>
+    <p class="text-[13px] text-base-content/50 mt-1.5">继续你的上一章，或者开始一本新书。</p>
+  </div>
+  <div class="card bg-base-100 border border-base-300 shadow-sm mb-6">
+    <div class="flex items-center gap-4 p-4 sm:p-5">
+      <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-gradient-to-br {{ first.book|cover_gradient }} text-white flex items-center justify-center text-xl font-bold flex-shrink-0">
+        {% if first.book %}{{ first.book.name|slice:":1" }}{% else %}<i class="fas fa-headphones"></i>{% endif %}
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="text-[11px] font-bold tracking-widest text-accent-deep">继续收听</div>
+        <div class="text-base sm:text-lg font-extrabold mt-1 truncate">{{ first.title }}</div>
+        <div class="text-xs text-base-content/50 mt-1 truncate">
+          {% if first.book %}《{{ first.book.name }}》 · {% endif %}{{ first.updated_at|date:"Y-m-d H:i" }}
+        </div>
+      </div>
+      <button class="btn btn-circle w-14 h-14 bg-accent hover:bg-accent-focus border-none text-accent-content play-audio-btn flex-shrink-0 shadow-lg shadow-accent/30"
+              data-audio-url="{{ first.file_url }}"
+              data-audio-title="{{ first.title }}"
+              data-subtitle-url="{% if first.subtitle_file %}{{ first.subtitle_file.url }}{% endif %}"
+              data-chapters-url="{% if first.chapters_file and first.chapters_file.url %}{{ first.chapters_file.url }}{% endif %}"
+              {% if first.chapters %}data-chapters-target="home-chapters-{{ first.type }}-{{ first.id }}"{% endif %}>
+        <i class="fas fa-play text-xl ml-1"></i>
+      </button>
+    </div>
+  </div>
+  {% endwith %}
+  {% endif %}
   <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
     <div class="flex flex-col sm:flex-row sm:items-center gap-3">
       <h2 class="text-xl sm:text-2xl font-extrabold tracking-tight">{% if display_title %}{{ display_title }}{% else %}我的音频作品{% endif %}</h2>
@@ -223,10 +254,20 @@
         </div>
       {% endif %}
     {% else %}
-      <div class="alert alert-info shadow-lg">
-        <div>
-          <i class="fas fa-info-circle text-lg"></i>
-          <span>{% if user.is_authenticated %}您还没有发布任何音频片段。{% else %}暂时没有公开音频。{% endif %}</span>
+      <div class="card bg-base-100 border border-base-300 shadow-sm py-16 text-center">
+        <div class="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
+          <i class="fas fa-headphones text-xl"></i>
+        </div>
+        <h3 class="text-base font-bold">{% if user.is_authenticated %}还没有音频作品{% else %}暂时没有公开音频{% endif %}</h3>
+        <p class="text-[13px] text-base-content/50 mt-1.5">
+          {% if user.is_authenticated %}上传一本书，合成你的第一段音频。{% else %}成为第一个公开作品的人。{% endif %}
+        </p>
+        <div class="mt-5">
+          {% if user.is_authenticated %}
+          <a href="{% url 'my_upload' %}" class="btn btn-primary rounded-xl"><i class="fas fa-cloud-upload-alt text-xs"></i> 上传书籍</a>
+          {% else %}
+          <a href="{% url 'register' %}" class="btn btn-primary rounded-xl">免费开始制作</a>
+          {% endif %}
         </div>
       </div>
     {% endif %}

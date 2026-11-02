@@ -181,16 +181,17 @@
                     
                     <!-- 状态和操作按钮 - 优化移动端布局 -->
                     <div class="flex sm:flex-col justify-between sm:justify-start sm:items-end gap-3">
-                        <!-- 状态标签 -->
-                        <div class="badge 
-                            {% if task.status == 'pending' %}badge-warning
-                            {% elif task.status == 'processing' %}badge-info
-                            {% elif task.status == 'success' %}badge-success
-                            {% elif task.status == 'failure' %}badge-error
-                            {% elif task.status == 'revoked' %}badge-neutral
-                            {% else %}badge-ghost{% endif %} text-xs sm:text-sm">
-                            {% if task.status == 'pending' %}等待中
-                            {% elif task.status == 'processing' %}处理中
+                        <!-- 状态标签（V2 Q1 规格：轻量 tag + 运行态脉冲点） -->
+                        <div class="
+                            {% if task.status == 'pending' %}inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-base-200 text-base-content/60 border border-base-300
+                            {% elif task.status == 'processing' %}inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-warning/10 text-warning
+                            {% elif task.status == 'success' %}inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-success/10 text-success
+                            {% elif task.status == 'failure' %}inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-error/10 text-error
+                            {% elif task.status == 'revoked' %}inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-base-200 text-base-content/50 border border-base-300
+                            {% else %}inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-base-200 text-base-content/60 border border-base-300{% endif %}">
+                            {% if task.status == 'processing' %}<span class="w-1.5 h-1.5 rounded-full bg-warning animate-pulse"></span>{% endif %}
+                            {% if task.status == 'pending' %}排队中
+                            {% elif task.status == 'processing' %}生成中
                             {% elif task.status == 'success' %}已完成
                             {% elif task.status == 'failure' %}失败
                             {% elif task.status == 'revoked' %}已取消

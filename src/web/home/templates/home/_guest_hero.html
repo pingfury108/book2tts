@@ -1,25 +1,25 @@
 {% load static %}
 <div class="max-w-6xl mx-auto px-4 sm:px-6 pt-8 sm:pt-14 pb-2">
-  <div class="grid lg:grid-cols-[1.05fr_.95fr] gap-12 items-center">
+  <div class="grid lg:grid-cols-[1.02fr_.98fr] gap-12 items-center">
     <!-- 左：价值主张 + 单一主 CTA（左对齐） -->
     <div>
       <span class="inline-flex items-center gap-2 text-[13px] font-medium text-base-content/60 border border-base-300 bg-base-100 rounded-full px-3.5 py-1.5">
         <span class="w-[7px] h-[7px] rounded-full bg-accent"></span>
-        在线 TTS · 有声书 · 播客 RSS
+        EPUB / PDF → 有声书 → 播客 RSS
       </span>
-      <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight leading-[1.25] mt-5">
-        把你的书，<br />变成<span class="px-1 bg-orange-200/60 dark:bg-orange-400/25 rounded">可以听</span>的书。
+      <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight leading-[1.22] mt-5">
+        把一本书，<br />变成<span class="relative inline-block"><span class="relative z-10">一档节目</span><span class="absolute left-0 right-0 bottom-1 h-3.5 bg-orange-300/60 dark:bg-orange-400/30 rounded -z-0" style="z-index:0"></span></span>。
       </h1>
       <p class="text-base sm:text-lg leading-loose text-base-content/60 max-w-xl mt-4">
-        上传 EPUB 或 PDF，自动分章、多音色朗读，生成属于你的有声书；一键产出播客 RSS，在任意播客 App 里收听。
+        上传即自动分章、多音色朗读；成书即成台——生成标准播客 RSS，在任意播客 App 追更你自己的有声书。
       </p>
-      <div class="flex flex-wrap items-center gap-4 sm:gap-6 mt-7">
+      <div class="flex flex-wrap items-center gap-5 sm:gap-6 mt-7">
         <a href="{% url 'register' %}" class="btn btn-primary rounded-xl px-7 shadow-lg shadow-primary/25">免费开始制作</a>
         <a href="{% url 'explore' %}" class="btn btn-link text-primary font-semibold no-underline hover:underline px-1 gap-2">
           先听听公开作品 <i class="fas fa-arrow-right text-sm"></i>
         </a>
       </div>
-      <p class="text-[13px] text-base-content/50 mt-5">免费注册 · 支持中文多音色 · 章节与 SRT 字幕自动生成</p>
+      <p class="text-[13px] text-base-content/50 mt-5">免费注册 · 中文多音色 · 章节与 SRT 字幕自动生成</p>
     </div>
 
     <!-- 右：封面拼贴 + 悬浮播放 chip -->
@@ -71,5 +71,45 @@
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- V2 P1：三步流程 -->
+<div class="max-w-6xl mx-auto px-4 sm:px-6 pt-6 pb-8">
+  <div class="grid sm:grid-cols-3 gap-4">
+    <div class="card bg-base-100 border border-base-300 shadow-sm p-5">
+      <div class="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-3">
+        <i class="fas fa-cloud-upload-alt text-sm"></i>
+      </div>
+      <h3 class="text-base font-bold">1 · 上传书籍</h3>
+      <p class="text-[13px] text-base-content/60 leading-relaxed mt-1.5">拖入 EPUB / PDF，扫描件自动 OCR；目录章节一键解析。</p>
+    </div>
+    <div class="card bg-base-100 border border-base-300 shadow-sm p-5">
+      <div class="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-3">
+        <i class="fas fa-font text-sm"></i>
+      </div>
+      <h3 class="text-base font-bold">2 · 工坊精修</h3>
+      <p class="text-[13px] text-base-content/60 leading-relaxed mt-1.5">原文排版、LLM 翻译润色、多角色对话脚本与音色分配。</p>
+    </div>
+    <div class="card bg-base-100 border border-base-300 shadow-sm p-5">
+      <div class="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-3">
+        <i class="fas fa-wave-square text-sm"></i>
+      </div>
+      <h3 class="text-base font-bold">3 · 合成发布</h3>
+      <p class="text-[13px] text-base-content/60 leading-relaxed mt-1.5">多音色合成 + 字幕章节，一键生成播客 RSS 订阅。</p>
+    </div>
+  </div>
+</div>
+
+<!-- V2 P1：CTA 收束带 -->
+<div class="max-w-6xl mx-auto px-4 sm:px-6 pb-10">
+  <div class="rounded-2xl bg-neutral text-neutral-content px-6 sm:px-8 py-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+    <div class="flex-1">
+      <div class="text-lg font-extrabold">现在上传第一本书</div>
+      <div class="text-[13px] opacity-70 mt-1">免费额度足够合成一整章</div>
+    </div>
+    <a href="{% url 'register' %}" class="btn bg-accent hover:bg-accent-focus border-none text-accent-content rounded-xl">
+      免费开始 <i class="fas fa-arrow-right text-xs"></i>
+    </a>
   </div>
 </div>

@@ -1,4 +1,5 @@
 {% load custom_filters %}
+{% load static %}
 <!-- 响应式容器 -->
 <div class="container mx-auto px-2 sm:px-4 lg:px-6 xl:px-8">
     <!-- 顶部导航 - 完整响应式设计 -->
@@ -11,21 +12,22 @@
             </a>
         </div>
 
-        <!-- 书籍标题 -->
-        <div class="flex justify-center order-3 sm:order-2">
-            <h2 class="text-lg sm:text-xl font-bold bg-base-200 text-base-content
-                       px-3 py-2 sm:px-4 sm:py-2 rounded-lg text-center w-full sm:w-auto">
-                <i class="fas fa-book text-primary/60 text-lg"></i> {{ book_name }}
-            </h2>
-        </div>
-
-        <!-- 音频统计 -->
-        <div class="flex justify-end order-2 sm:order-3">
-            <div class="badge badge-sm sm:badge-md badge-outline">
-                <span class="text-xs sm:text-sm">{{ total_segments }} 个音频</span>
+        <!-- 书籍 Hero：封面 + 书名 + 统计 + 播客 RSS -->
+        <div class="flex items-center gap-4 order-3 sm:order-2 min-w-0">
+            <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br {{ book_cover_gradient|default:"from-violet-500 to-violet-700" }} text-white
+                        flex items-center justify-center text-lg font-bold flex-shrink-0">
+                {{ book_name|slice:":1" }}
+            </div>
+            <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                    <h2 class="text-base sm:text-lg font-extrabold tracking-tight truncate">《{{ book_name }}》</h2>
+                    {% if total_segments %}
+                    <span class="tag ok" style="font-size:11px">{{ total_segments }} 集</span>
+                    {% endif %}
+                </div>
+                <div class="text-xs text-base-content/50 mt-1">有声书成品 · 点集收听</div>
             </div>
         </div>
-    </div>
 
     <!-- 分页统计信息 - 响应式卡片布局 -->
     {% if paginator.count > 0 %}

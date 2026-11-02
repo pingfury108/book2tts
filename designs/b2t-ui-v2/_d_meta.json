@@ -1,0 +1,18 @@
+{
+  "type": "design",
+  "designSystems": [],
+  "primaryDesignSystem": null,
+  "assets": {
+    "B2T V2 全面重设计": {
+      "versions": [
+        {
+          "path": "B2T V2 全面重设计.html",
+          "createdAt": "2026-11-02T10:50:19.798Z",
+          "status": "needs-review"
+        }
+      ]
+    }
+  },
+  "createdAt": "2026-11-02T10:50:19.799Z",
+  "updatedAt": "2026-11-02T11:54:21.554Z"
+}

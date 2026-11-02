@@ -1,0 +1,162 @@
+<!--
+  Book2TTS · V2 全面重设计（结构 / 布局 / 交互）
+  ================================================
+
+  设计假设与推理（junior designer → manager）
+  - V1 已交付：token 化 + 全站页面覆盖。V2 的任务不是"再美化一遍"，
+    而是重排信息架构、统一交互语言、把产品从"功能堆叠"推进到"双核心叙事"：
+    工坊（创作）× 声音库（内容资产）。
+
+  结构（IA）提案 —— 画板 S1
+  - 一级导航从 5 项重组为「工坊 / 声音库 / 探索 / 社区 / 关于」，
+    创作与资产两大心智分开，探索与社区合并为"对外"心智
+  - 制作台三栏编辑器是产品中枢，IA 上明确为「工坊」的默认落点
+  - 全局层新增：常驻迷你播放器（可展开为播放页）、全局搜索、明暗主题
+
+  交互语言（画板内以 ⚡ 标注）
+  - 空格键播放/暂停（全局播放器常驻态）
+  - 任务实时进度：入队后轮询 check_task_status，进度写 UserTask
+  - 迷你播放条点击展开为完整播放页（含字幕/章节）
+  - 表单 on_commit 后入队，防重复提交
+  - hover 才出现的次要操作（段落编辑/删除），降低视觉噪音
+
+  本轮画板（7 块）：S1 结构 / S2 设计系统V2 / P1 落地页 / P2 作品流 /
+  P3 播放详情 / P4 制作台 / P5 脚本编辑器
+  下一批：社区+帖子详情、个人中心、登录注册、移动端 3 屏、队列实时态
+-->
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Book2TTS V2 · 全面重设计</title>
+<style>
+  :root {
+    --bg: #f6f5f2;
+    --surface: #ffffff;
+    --paper: #f2ede4;
+    --ink: #191622;
+    --ink-2: #4d4956;
+    --ink-3: #837e8f;
+    --line: rgba(25,22,34,.08);
+    --line-2: rgba(25,22,34,.16);
+    --brand: #6d28d9;
+    --brand-deep: #5b21b6;
+    --brand-tint: #efe9fd;
+    --accent: #e65302;
+    --accent-deep: #c2410c;
+    --accent-tint: #fdeee3;
+    --ok: #1a7f4b;
+    --warn: #b45309;
+    --err: #d13438;
+    --r: 14px;
+    --r-lg: 20px;
+    --shadow-card: 0 1px 2px rgba(25,22,34,.04), 0 6px 20px rgba(25,22,34,.06);
+    --shadow-pop: 0 12px 34px rgba(25,22,34,.16);
+    --font: -apple-system, "SF Pro Text", "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); color: var(--ink); background: #eceae5; }
+  a { text-decoration: none; color: inherit; }
+  button { font-family: inherit; cursor: pointer; }
+
+  /* ---- 顶栏 V2：4+1 分区 ---- */
+  .nav { display: flex; align-items: center; gap: 22px; height: 60px; padding: 0 32px;
+         background: var(--surface); border-bottom: 1px solid var(--line); }
+  .brand { display: flex; align-items: center; gap: 9px; font-size: 16px; font-weight: 800; letter-spacing: -.2px; }
+  .brand img { width: 26px; height: 26px; border-radius: 8px; }
+  .nav-item { font-size: 14px; font-weight: 600; color: var(--ink-2); padding: 7px 13px; border-radius: 10px;
+              display: flex; align-items: center; gap: 5px; }
+  .nav-item.active { color: #fff; background: var(--ink); }
+  .nav-item .caret { font-size: 9px; opacity: .55; }
+  .nav-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .icon-btn { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+              color: var(--ink-2); background: transparent; border: none; }
+  .search-pill { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-3);
+                 border: 1px solid var(--line-2); border-radius: 999px; padding: 6px 14px; background: var(--bg); }
+  .search-pill .kbd { font-size: 10.5px; border: 1px solid var(--line-2); border-bottom-width: 2px; border-radius: 5px; padding: 0 5px; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--brand-tint); color: var(--brand-deep);
+            display: flex; align-items: center; justify-content: center; font-size: 12.5px; font-weight: 700; }
+
+  /* ---- 按钮 ---- */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; font-weight: 600;
+         border: none; border-radius: 12px; font-size: 14px; padding: 10px 18px; background: transparent; color: var(--ink); }
+  .btn-primary { background: var(--brand); color: #fff; box-shadow: 0 5px 16px rgba(109,40,217,.28); }
+  .btn-primary:hover { background: var(--brand-deep); }
+  .btn-primary.sm, .btn.sm { font-size: 12.5px; padding: 7px 14px; border-radius: 10px; }
+  .btn-accent { background: var(--accent); color: #fff; box-shadow: 0 4px 14px rgba(230,83,2,.32); }
+  .btn-ghost { color: var(--ink-2); border: 1.5px solid var(--line-2); }
+  .btn-text { color: var(--brand-deep); font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 5px; }
+  .play { border-radius: 50%; background: var(--accent); color: #fff; border: none; display: inline-flex;
+          align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(230,83,2,.32); flex-shrink: 0; }
+  .play.lg { width: 56px; height: 56px; } .play.md { width: 44px; height: 44px; } .play.sm { width: 32px; height: 32px; box-shadow: none; }
+  .ghost-ico { width: 30px; height: 30px; border-radius: 9px; display: inline-flex; align-items: center;
+               justify-content: center; color: var(--ink-3); border: none; background: transparent; }
+
+  /* ---- 通用组件 ---- */
+  .badge { font-size: 11px; font-weight: 600; color: var(--ink-2); border: 1px solid var(--line-2);
+           background: var(--bg); padding: 2px 9px; border-radius: 999px; display: inline-block; }
+  .tag { font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 999px; }
+  .tag.ok { background: #e5f4ea; color: var(--ok); } .tag.warn { background: #fdf0dd; color: var(--warn); }
+  .tag.err { background: #fdeaea; color: var(--err); } .tag.info { background: var(--brand-tint); color: var(--brand-deep); }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow-card); }
+
+  /* ---- S1 结构图 ---- */
+  .ia { padding: 30px 36px; display: grid; grid-template-columns: 1fr 1fr; gap: 26px; }
+  .ia-col h3 { font-size: 13px; font-weight: 700; color: var(--ink-3); letter-spacing: 1.5px; margin-bottom: 14px; }
+  .tree { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px 18px; font-size: 12.5px; }
+  .tree b.old { color: var(--err); font-weight: 700; }
+  .tree b.new { color: var(--ok); font-weight: 700; }
+  .tnode { padding: 3px 0 3px 14px; color: var(--ink-2); position: relative; }
+  .tnode::before { content: ""; position: absolute; left: 2px; top: 11px; width: 8px; height: 1px; background: var(--line-2); }
+  .troot { font-weight: 700; color: var(--ink); padding: 4px 0; }
+  .troot.v2 { background: var(--brand-tint); color: var(--brand-deep); border-radius: 8px; padding: 5px 10px; margin: 6px 0 2px; display: inline-block; }
+  .tsub { color: var(--ink-3); font-size: 11px; margin-left: 6px; }
+  .journey { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 26px; }
+  .jbar { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px 18px; }
+  .jbar h4 { font-size: 12px; font-weight: 700; color: var(--ink-3); letter-spacing: 1.5px; margin-bottom: 12px; }
+  .jsteps { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .jstep { font-size: 12px; font-weight: 600; color: var(--ink-2); background: var(--bg); border: 1px solid var(--line-2);
+           border-radius: 999px; padding: 5px 12px; }
+  .jstep.hot { background: var(--accent-tint); border-color: transparent; color: var(--accent-deep); }
+  .jstep.brand { background: var(--brand-tint); border-color: transparent; color: var(--brand-deep); }
+  .jarrow { color: var(--ink-3); font-size: 11px; }
+
+  /* ---- P1 落地页 ---- */
+  .hero2 { max-width: 1200px; margin: 0 auto; padding: 58px 40px 40px;
+           display: grid; grid-template-columns: 1.02fr .98fr; gap: 44px; align-items: center; }
+  .hero2 h1 { font-size: 46px; font-weight: 800; line-height: 1.22; letter-spacing: -1px; }
+  .hl2 { position: relative; display: inline-block; }
+  .hl2::after { content: ""; position: absolute; left: -2px; right: -2px; bottom: 4px; height: 14px;
+                background: #f6c894; border-radius: 4px; z-index: -1; opacity: .75; }
+  .steps3 { max-width: 1200px; margin: 0 auto; padding: 10px 40px 34px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .stepc { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 22px; }
+  .stepc .n { width: 30px; height: 30px; border-radius: 10px; background: var(--brand-tint); color: var(--brand-deep);
+              font-weight: 800; font-size: 13px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+  .stepc h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+  .stepc p { font-size: 13px; color: var(--ink-2); line-height: 1.75; }
+  .cta-band { max-width: 1200px; margin: 0 auto 40px; padding: 26px 34px; background: var(--ink); border-radius: var(--r-lg);
+              display: flex; align-items: center; gap: 20px; color: #fff; }
+
+  /* ---- S2 设计系统 ---- */
+  .ds2 { padding: 30px 36px; }
+  .ds2-grid { display: grid; grid-template-columns: 1.1fr 1fr 1.1fr; gap: 30px; margin-top: 22px; }
+
+  /* ---- 迷你播放条 ---- */
+  .mini { display: flex; align-items: center; gap: 14px; background: var(--surface); border-top: 1px solid var(--line);
+          padding: 10px 24px; }
+  .expand-hint { font-size: 11px; color: var(--ink-3); display: flex; align-items: center; gap: 5px; }
+  .bolt { color: var(--accent-deep); font-weight: 800; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="boards.jsx"></script>
+<script type="text/babel">
+  ReactDOM.createRoot(document.getElementById('root')).render(<B2TV2 />);
+</script>
+</body>
+</html>

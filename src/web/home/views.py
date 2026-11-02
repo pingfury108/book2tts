@@ -1142,3 +1142,62 @@ def discussion_pin(request, topic_id):
 
     # 重定向回主题列表页
     return redirect('discussion_list')
+
+
+def global_search(request):
+    """⌘K 全局搜索：作品 / 书籍 / 社区帖（JSON，供顶栏搜索弹层使用）"""
+    from django.http import JsonResponse
+    from django.db.models import Q
+    from workbench.models import AudioSegment, DialogueScript as DialogueScriptModel, Books as BooksModel
+    from .models import DiscussionTopic
+
+    q = (request.GET.get("q") or "").strip()
+    if len(q) < 1:
+        return JsonResponse({"groups": []})
+
+    def _row(title, subtitle, url, kind):
+        return {"title": title[:70], "subtitle": subtitle, "url": url, "kind": kind}
+
+    groups = []
+
+    # 我的作品（登录用户含草稿；访客仅公开）
+    seg_qs = AudioSegment.objects.filter(
+        Q(title__icontains=q) | Q(text__icontains=q)
+    ).select_related("book").order_by("-updated_at")
+    if not request.user.is_authenticated:
+        seg_qs = seg_qs.filter(published=True)
+    else:
+        seg_qs = seg_qs.filter(Q(published=True) | Q(book__user=request.user))
+    works = [
+        _row(s.title,
+             (s.book.name if s.book else "对话脚本") + " · " + timezone.localtime(s.updated_at).strftime("%m-%d %H:%M"),
+             reverse("audio_detail", kwargs={"segment_type": "audio_segment", "segment_id": s.id}),
+             "work")
+        for s in seg_qs[:4]
+    ]
+    if works:
+        groups.append({"group": "我的作品", "items": works})
+
+    # 书籍（仅本人）
+    if request.user.is_authenticated:
+        books = BooksModel.objects.filter(
+            Q(name__icontains=q), user=request.user
+        ).order_by("-updated_at")[:3]
+        items = [_row(b.name, "书籍 · 工坊", reverse("book_audio_list", kwargs={"book_id": b.id}), "book")
+                 for b in books]
+        if items:
+            groups.append({"group": "书籍", "items": items})
+
+    # 社区帖
+    topics = DiscussionTopic.objects.filter(
+        Q(title__icontains=q) | Q(content__icontains=q)
+    ).order_by("-updated_at")[:3]
+    t_items = [
+        _row(t.title, f"{t.get_category_display()} · {t.reply_count} 回复",
+             reverse("discussion_topic_detail", kwargs={"topic_id": t.id}), "topic")
+        for t in topics
+    ]
+    if t_items:
+        groups.append({"group": "社区", "items": t_items})
+
+    return JsonResponse({"groups": groups})

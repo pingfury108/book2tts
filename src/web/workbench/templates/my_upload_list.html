@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load custom_filters %}
 
 {% block title %}我的书籍 - Book2TTS{% endblock %}
 
@@ -48,10 +49,13 @@
     {% endif %}
 
     {% if books %}
-    <ul class="w-full">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
         {% for book in books %}
-        <li class="mb-3 p-3 border-b hover:bg-base-200 transition-colors duration-200 rounded-md">
-            <div class="flex flex-row justify-between items-center w-full">
+        <div class="card bg-base-100 border border-base-300 shadow-sm p-3 flex flex-row gap-3 items-center">
+            <div class="w-14 h-[4.6rem] rounded-lg bg-gradient-to-br {{ book|cover_gradient }} text-white flex-shrink-0 flex items-center justify-center text-base font-bold">
+                {{ book.name|slice:":1" }}
+            </div>
+            <div class="flex flex-row justify-between items-center w-full min-w-0">
                 <!-- 显示模式 -->
                 <div id="view-mode-{{ book.id }}" class="flex flex-row justify-between items-center w-full">
                     <a class="flex-grow flex items-center gap-2 min-w-0" href="{% url 'index' book_id=book.id %}">
@@ -65,11 +69,11 @@
                               onclick="togglePdfType('{{ book.id }}', '{{ book.pdf_type }}')"
                               title="点击修改PDF类型">
                             {% if book.pdf_type == 'scanned' %}
-                                📷 扫描版
+                                扫描版
                             {% elif book.pdf_type == 'text' %}  
-                                📄 文本版
+                                文本版
                             {% else %}
-                                ❓ 未检测
+                                未检测
                             {% endif %}
                         </span>
                         {% endif %}
@@ -114,9 +118,9 @@
                     </form>
                 </div>
             </div>
-        </li>
+        </div>
         {% endfor %}
-    </ul>
+    </div>
     
     <!-- 分页导航 -->
     {% if paginator.num_pages > 1 %}
@@ -584,9 +588,9 @@ function togglePdfType(bookId, currentType) {
                     currentType === 'scanned' ? 'unknown' : 'text';
     
     const typeDisplayMap = {
-        'text': '📄 文本版',
-        'scanned': '📷 扫描版', 
-        'unknown': '❓ 未检测'
+        'text': '文本版',
+        'scanned': '扫描版', 
+        'unknown': '未检测'
     };
     
     const modalHTML = `
@@ -601,15 +605,15 @@ function togglePdfType(bookId, currentType) {
                 <div class="flex flex-col gap-2">
                     <button class="btn btn-outline ${currentType === 'text' ? 'btn-active' : ''}" 
                             onclick="updatePdfType('${bookId}', 'text')">
-                        📄 文本版 - 可直接提取文本的PDF
+                        文本版 - 可直接提取文本的PDF
                     </button>
                     <button class="btn btn-outline ${currentType === 'scanned' ? 'btn-active' : ''}" 
                             onclick="updatePdfType('${bookId}', 'scanned')">
-                        📷 扫描版 - 需要OCR识别的扫描PDF
+                        扫描版 - 需要OCR识别的扫描PDF
                     </button>
                     <button class="btn btn-outline ${currentType === 'unknown' ? 'btn-active' : ''}" 
                             onclick="updatePdfType('${bookId}', 'unknown')">
-                        ❓ 未检测 - 让系统重新检测
+                        未检测 - 让系统重新检测
                     </button>
                 </div>
                 <div class="modal-action">
@@ -680,9 +684,9 @@ function updatePdfType(bookId, newType) {
             const badge = document.getElementById(`pdf-type-badge-${bookId}`);
             if (badge) {
                 const typeDisplayMap = {
-                    'text': '📄 文本版',
-                    'scanned': '📷 扫描版',
-                    'unknown': '❓ 未检测'
+                    'text': '文本版',
+                    'scanned': '扫描版',
+                    'unknown': '未检测'
                 };
                 badge.textContent = typeDisplayMap[newType];
                 badge.onclick = function() { togglePdfType(bookId, newType); };

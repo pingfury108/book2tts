@@ -14,7 +14,7 @@
         </a>
     </div>
     {% if page_obj.object_list %}
-        <div class="bg-base-100 shadow-md rounded-lg overflow-hidden">
+        <div class="bg-base-100 border border-base-300 shadow-sm rounded-xl overflow-hidden">
             <!-- 移动端卡片视图 -->
             <div class="md:hidden space-y-4 p-4">
                 {% for script in scripts %}
@@ -124,7 +124,7 @@
                             <td class="px-6 py-4 whitespace-nowrap">
                                 {% if script.audio_file %}
                                     {% if script.published %}
-                                        <span class="badge badge-success badge-sm">
+                                        <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-success/10 text-success">
                                             已发布
                                         </span>
                                     {% else %}
@@ -207,8 +207,8 @@
             <p class="mt-1 text-sm text-base-content/70">开始创建您的第一个对话脚本</p>
             <div class="mt-6">
                 <a href="{% url 'dialogue_create' %}" 
-                   class="btn btn-primary">
-                    <i class="fas fa-plus mr-2"></i>
+                   class="btn btn-primary rounded-xl">
+                    <i class="fas fa-plus text-xs"></i>
                     创建对话脚本
                 </a>
             </div>

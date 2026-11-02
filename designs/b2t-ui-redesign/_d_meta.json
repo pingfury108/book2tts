@@ -1,0 +1,18 @@
+{
+  "type": "design",
+  "designSystems": [],
+  "primaryDesignSystem": null,
+  "assets": {
+    "B2T UI Redesign": {
+      "versions": [
+        {
+          "path": "B2T UI Redesign.html",
+          "createdAt": "2026-11-02T04:14:16.757Z",
+          "status": "needs-review"
+        }
+      ]
+    }
+  },
+  "createdAt": "2026-11-02T04:14:16.758Z",
+  "updatedAt": "2026-11-02T07:03:04.276Z"
+}

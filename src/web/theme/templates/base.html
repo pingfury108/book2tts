@@ -74,24 +74,23 @@
                 </div>
                 <ul tabindex="0"
                     class="menu menu-sm dropdown-content bg-base-100 rounded-box z-50 mt-3 w-56 p-2 shadow-lg border border-base-300">
-                    <li><a href="{% url 'index' %}">制作</a></li>
-                    <li><a href="{% url 'home' %}">我的作品</a></li>
                     <li>
-                        <a>书库</a>
+                        <a>工坊</a>
                         <ul class="p-2">
                             <li><a href="{% url 'my_upload' %}">我的书籍</a></li>
-                            <li><a href="{% url 'aggregated_audio_segments' %}">有声书成品</a></li>
                             <li><a href="{% url 'task_queue' %}">生成队列</a></li>
+                        </ul>
+                    </li>
+                    <li>
+                        <a>声音库</a>
+                        <ul class="p-2">
+                            <li><a href="{% url 'home' %}">我的作品</a></li>
+                            <li><a href="{% url 'aggregated_audio_segments' %}">有声书成品</a></li>
                             <li><a href="{% url 'dialogue_list' %}">对话脚本</a></li>
                         </ul>
                     </li>
-                    <li>
-                        <a>发现</a>
-                        <ul class="p-2">
-                            <li><a href="{% url 'explore' %}">探索</a></li>
-                            <li><a href="{% url 'discussion_list' %}">讨论区</a></li>
-                        </ul>
-                    </li>
+                    <li><a href="{% url 'explore' %}">探索</a></li>
+                    <li><a href="{% url 'discussion_list' %}">社区</a></li>
                     <li><a href="{% url 'about' %}">关于</a></li>
                 </ul>
             </div>
@@ -102,35 +101,41 @@
         </div>
         <div class="navbar-center hidden lg:flex">
             <ul class="menu menu-horizontal px-1 gap-1 text-[15px] font-medium">
-                <li><a href="{% url 'index' %}"
-                        class="{% if request.resolver_match.url_name == 'index' %}menu-active{% endif %}">制作</a></li>
-                <li><a href="{% url 'home' %}"
-                        class="{% if request.resolver_match.url_name == 'home' or request.resolver_match.url_name == 'book_audio_list' %}menu-active{% endif %}">作品</a></li>
+                <li>
+                    <details data-nav-details="studio">
+                        <summary class="{% if request.resolver_match.url_name == 'my_upload' or request.resolver_match.url_name == 'task_queue' or request.resolver_match.url_name == 'index' %}text-primary font-semibold{% endif %}">工坊</summary>
+                        <ul class="p-2 z-50 relative w-40 mt-1 shadow-lg rounded-box border border-base-300 bg-base-100">
+                            <li><a href="{% url 'my_upload' %}">我的书籍</a></li>
+                            <li><a href="{% url 'task_queue' %}">生成队列</a></li>
+                        </ul>
+                    </details>
+                </li>
                 <li>
                     <details data-nav-details="library">
-                        <summary class="{% if request.resolver_match.url_name == 'my_upload' or request.resolver_match.url_name == 'aggregated_audio_segments' or request.resolver_match.url_name == 'task_queue' or request.resolver_match.url_name == 'dialogue_list' %}text-primary font-semibold{% endif %}">书库</summary>
+                        <summary class="{% if request.resolver_match.url_name == 'home' or request.resolver_match.url_name == 'book_audio_list' or request.resolver_match.url_name == 'aggregated_audio_segments' or request.resolver_match.url_name == 'dialogue_list' %}text-primary font-semibold{% endif %}">声音库</summary>
                         <ul class="p-2 z-50 relative w-44 mt-1 shadow-lg rounded-box border border-base-300 bg-base-100">
-                            <li><a href="{% url 'my_upload' %}">我的书籍</a></li>
+                            <li><a href="{% url 'home' %}">我的作品</a></li>
                             <li><a href="{% url 'aggregated_audio_segments' %}">有声书成品</a></li>
-                            <li><a href="{% url 'task_queue' %}">生成队列</a></li>
                             <li><a href="{% url 'dialogue_list' %}">对话脚本</a></li>
                         </ul>
                     </details>
                 </li>
-                <li>
-                    <details data-nav-details="discover">
-                        <summary class="{% if request.resolver_match.url_name == 'explore' or request.resolver_match.url_name == 'discussion_list' or request.resolver_match.url_name == 'discussion_topic_detail' %}text-primary font-semibold{% endif %}">发现</summary>
-                        <ul class="p-2 z-50 relative w-40 mt-1 shadow-lg rounded-box border border-base-300 bg-base-100">
-                            <li><a href="{% url 'explore' %}">探索</a></li>
-                            <li><a href="{% url 'discussion_list' %}">讨论区</a></li>
-                        </ul>
-                    </details>
-                </li>
+                <li><a href="{% url 'explore' %}"
+                        class="{% if request.resolver_match.url_name == 'explore' %}menu-active{% endif %}">探索</a></li>
+                <li><a href="{% url 'discussion_list' %}"
+                        class="{% if request.resolver_match.url_name == 'discussion_list' or request.resolver_match.url_name == 'discussion_topic_detail' %}menu-active{% endif %}">社区</a></li>
                 <li><a href="{% url 'about' %}"
                         class="{% if request.resolver_match.url_name == 'about' %}menu-active{% endif %}">关于</a></li>
             </ul>
         </div>
         <div class="navbar-end gap-2">
+            <button id="global-search-btn"
+                    class="btn btn-ghost btn-sm rounded-full gap-2 font-normal text-base-content/60 border border-base-300 normal-case"
+                    title="全局搜索 (⌘K)">
+                <i class="fas fa-search text-xs"></i>
+                <span class="hidden sm:inline">搜索…</span>
+                <span class="hidden md:inline text-[10px] border border-base-300 rounded px-1 py-px">⌘K</span>
+            </button>
             <button id="theme-toggle"
                     class="btn btn-ghost btn-circle"
                     aria-label="切换主题"
@@ -256,6 +261,131 @@
             <audio id="global-audio" preload="metadata"></audio>
         </div>
     </div>
+
+    <!-- ⌘K 全局搜索弹层 -->
+    <div id="global-search-modal" class="hidden fixed inset-0 z-[70] bg-black/45" style="backdrop-filter: blur(2px);">
+        <div class="max-w-xl mx-auto mt-20 bg-base-100 border border-base-300 rounded-2xl shadow-2xl overflow-hidden">
+            <div class="flex items-center gap-3 px-4 py-3 border-b border-base-300 text-base-content/60">
+                <i class="fas fa-search text-sm"></i>
+                <input id="global-search-input" type="text" placeholder="搜索作品 / 书籍 / 社区帖…" autocomplete="off"
+                       class="flex-1 bg-transparent outline-none text-sm placeholder:text-base-content/40">
+                <span class="text-[10px] border border-base-300 rounded px-1.5 py-0.5 text-base-content/50">ESC</span>
+            </div>
+            <div id="global-search-results" class="max-h-80 overflow-y-auto p-2 text-sm"></div>
+            <div class="px-4 py-2 border-t border-base-300 text-[11px] text-base-content/50 flex gap-4">
+                <span>↑↓ 选择</span><span>↵ 打开</span><span>esc 关闭</span>
+                <span class="ml-auto">作品 / 书籍 / 社区帖</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+      (function () {
+        var modal = document.getElementById('global-search-modal');
+        var btn = document.getElementById('global-search-btn');
+        var input = document.getElementById('global-search-input');
+        var resultsBox = document.getElementById('global-search-results');
+        var results = [];
+        var activeIndex = -1;
+        var debounceTimer = null;
+
+        function openModal() {
+          modal.classList.remove('hidden');
+          input.value = '';
+          resultsBox.innerHTML = '<div class="px-3 py-6 text-center text-base-content/40">输入关键词开始搜索</div>';
+          setTimeout(function () { input.focus(); }, 30);
+        }
+
+        function closeModal() {
+          modal.classList.add('hidden');
+        }
+
+        function escapeHtml(s) {
+          return (s || '').replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+          });
+        }
+
+        function render() {
+          if (!results.length) {
+            resultsBox.innerHTML = '<div class="px-3 py-6 text-center text-base-content/40">没有匹配的结果</div>';
+            return;
+          }
+          var html = '';
+          results.forEach(function (group) {
+            html += '<div class="px-3 pt-2 pb-1 text-[10.5px] font-bold tracking-widest text-base-content/40">'
+              + escapeHtml(group.group) + '</div>';
+            group.items.forEach(function (item) {
+              results.push(item);
+              var idx = results.length - 1;
+              html += '<a href="' + item.url + '" data-idx="' + idx + '" '
+                + 'class="search-hit flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-base-200">'
+                + '<span class="flex-1 min-w-0"><span class="block truncate font-medium text-base-content">'
+                + escapeHtml(item.title) + '</span>'
+                + '<span class="block truncate text-xs text-base-content/50">' + escapeHtml(item.subtitle) + '</span></span>'
+                + '<span class="text-[10px] text-base-content/40">' + escapeHtml(item.kind === 'work' ? '作品'
+                  : item.kind === 'book' ? '书籍' : '社区') + '</span></a>';
+            });
+          });
+          resultsBox.innerHTML = html;
+          activeIndex = -1;
+        }
+
+        function doSearch() {
+          var q = input.value.trim();
+          if (!q) {
+            results = [];
+            resultsBox.innerHTML = '<div class="px-3 py-6 text-center text-base-content/40">输入关键词开始搜索</div>';
+            return;
+          }
+          fetch('/search/json/?q=' + encodeURIComponent(q))
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+              results = [];
+              (data.groups || []).forEach(function (g) {
+                results.push({ group: g.group });
+                g.items.forEach(function (it) { results.push(it); });
+              });
+              render();
+            })
+            .catch(function () {
+              resultsBox.innerHTML = '<div class="px-3 py-6 text-center text-error">搜索失败，请稍后重试</div>';
+            });
+        }
+
+        btn.addEventListener('click', openModal);
+        modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+        input.addEventListener('input', function () {
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(doSearch, 250);
+        });
+        input.addEventListener('keydown', function (e) {
+          var hits = resultsBox.querySelectorAll('.search-hit');
+          if (e.key === 'Escape') { closeModal(); }
+          else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (!hits.length) return;
+            activeIndex = e.key === 'ArrowDown'
+              ? Math.min(activeIndex + 1, hits.length - 1)
+              : Math.max(activeIndex - 1, 0);
+            hits.forEach(function (h, i) {
+              h.classList.toggle('bg-base-200', i === activeIndex);
+            });
+            if (hits[activeIndex]) hits[activeIndex].scrollIntoView({ block: 'nearest' });
+          } else if (e.key === 'Enter' && hits[activeIndex]) {
+            window.location.href = hits[activeIndex].getAttribute('href');
+          }
+        });
+        document.addEventListener('keydown', function (e) {
+          if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+            e.preventDefault();
+            modal.classList.contains('hidden') ? openModal() : closeModal();
+          } else if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+            closeModal();
+          }
+        });
+      })();
+    </script>
 
     <footer class="footer footer-center text-base-content/60 text-sm border-t border-base-300 py-5 mt-8">
         <aside>

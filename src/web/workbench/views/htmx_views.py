@@ -76,9 +76,12 @@ def book_details_htmx(request, book_id):
         segments.append(segment_data)
     
     # Return only the specific book's details with pagination info
+    from workbench.templatetags.custom_filters import COVER_GRADIENTS
+
     context = {
         "book_name": target_book.name,
         "book_id": target_book.id,
+        "book_cover_gradient": COVER_GRADIENTS[target_book.id % len(COVER_GRADIENTS)],
         "segments": segments,
         "page_obj": segments_page,
         "paginator": paginator,
