@@ -18,3 +18,9 @@ class WorkbenchConfig(AppConfig):
             # This is a bit of a hack since settings are generally immutable after startup
             # In a production environment, you should add this directly to the settings file
             settings.MIDDLEWARE.append(middleware_path)
+
+        # 在 web 进程内启动后台任务线程（B2T_TASK_WORKER=0 关闭；
+        # 若拆分为独立 worker 进程/容器部署，也用该开关关掉）
+        from .task_worker import start_task_worker
+
+        start_task_worker()

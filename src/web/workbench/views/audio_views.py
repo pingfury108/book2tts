@@ -581,7 +581,7 @@ def synthesize_audio(request):
     
     try:
         # 启动异步任务
-        task = synthesize_audio_task.delay(
+        task = synthesize_audio_task.enqueue(
             user_id=request.user.id,
             text=text,
             voice_name=voice_name,
@@ -653,13 +653,10 @@ def synthesize_audio(request):
 @login_required
 @require_http_methods(["GET"])
 def check_task_status(request, task_id):
-    """检查Celery任务状态"""
-    from celery.result import AsyncResult
-    
+    """检查后台任务状态（Django Tasks + UserTask）"""
+    from django.tasks import default_task_backend, TaskResultStatus
+
     try:
-        # 获取任务结果
-        task_result = AsyncResult(task_id)
-        
         # 获取对应的UserTask记录
         try:
             user_task = UserTask.objects.get(task_id=task_id, user=request.user)
@@ -668,75 +665,81 @@ def check_task_status(request, task_id):
                 'status': 'error',
                 'message': '任务不存在或无权限访问'
             }, status=404)
-        
-        if task_result.state == 'PENDING':
-            # 任务还在等待执行
-            user_task.status = 'pending'
-            user_task.progress_message = '任务等待执行中...'
-            response = {
-                'status': 'pending',
-                'message': '任务等待执行中...'
-            }
-        elif task_result.state == 'PROCESSING':
-            # 任务正在执行
-            progress_msg = task_result.info.get('message', '正在处理...')
-            user_task.status = 'processing'
-            user_task.progress_message = progress_msg
-            response = {
-                'status': 'processing',
-                'message': progress_msg
-            }
-        elif task_result.state == 'SUCCESS':
-            # 任务成功完成
-            result = task_result.info
-            user_task.status = 'success'
-            user_task.progress_message = result.get('message', '音频合成完成')
-            user_task.result_data = result
-            user_task.completed_at = timezone.now()
-            response = {
-                'status': 'success',
-                'message': result.get('message', '音频合成完成'),
-                'audio_url': result.get('audio_url'),
-                'audio_id': result.get('audio_id'),
-                'audio_duration': result.get('audio_duration'),
-                'remaining_quota': result.get('remaining_quota'),
-                'subtitle_url': result.get('subtitle_url')
-            }
-        elif task_result.state == 'FAILURE':
-            # 任务失败
-            error_info = task_result.info
-            if hasattr(error_info, 'get') and callable(getattr(error_info, 'get')):
-                # error_info 是字典
-                error_msg = error_info.get('message', '音频合成失败')
-                error_detail = error_info.get('error', str(error_info))
-            else:
-                # error_info 是异常对象或其他类型
-                error_msg = '音频合成失败'
-                error_detail = str(error_info) if error_info else '未知错误'
-            
-            user_task.status = 'failure'
-            user_task.error_message = error_detail
-            user_task.progress_message = error_msg
-            user_task.completed_at = timezone.now()
+
+        # 任务运行中会直接更新 UserTask；此处仅用后端结果同步终态（如 worker 崩溃未及写入）
+        try:
+            backend_result = default_task_backend.get_result(task_id)
+        except Exception:
+            backend_result = None
+
+        response = None
+        if backend_result is not None and backend_result.status == TaskResultStatus.FAILED:
+            if user_task.status not in ('failure', 'success'):
+                user_task.status = 'failure'
+                user_task.error_message = user_task.error_message or '任务执行失败'
+                user_task.progress_message = user_task.error_message
+                user_task.completed_at = user_task.completed_at or timezone.now()
             response = {
                 'status': 'failure',
-                'message': error_msg,
-                'error': error_detail
+                'message': user_task.progress_message or '任务执行失败',
+                'error': user_task.error_message or '任务执行失败',
             }
-        else:
-            # 其他状态
-            user_task.status = task_result.state.lower()
-            user_task.progress_message = f'任务状态：{task_result.state}'
+        elif backend_result is not None and backend_result.status == TaskResultStatus.SUCCESSFUL:
+            if user_task.status != 'success':
+                user_task.status = 'success'
+                user_task.completed_at = user_task.completed_at or timezone.now()
+            return_value = None
+            # Django 6.1 核心 TaskResult 用 return_value 属性（无 get_return_value 方法）
+            getter = getattr(backend_result, 'get_return_value', None)
+            if callable(getter):
+                try:
+                    return_value = getter()
+                except Exception:
+                    return_value = None
+            if return_value is None:
+                try:
+                    return_value = backend_result.return_value
+                except Exception:
+                    return_value = None
+            if isinstance(return_value, dict) and return_value:
+                # 剔除 status 键，避免覆盖响应状态（任务返回里的 'SUCCESS' 是大写）
+                user_task.result_data = {
+                    **(user_task.result_data or {}),
+                    **{k: v for k, v in return_value.items() if k != 'status'},
+                }
             response = {
-                'status': task_result.state.lower(),
-                'message': f'任务状态：{task_result.state}'
+                'status': 'success',
+                'message': user_task.progress_message or '任务完成',
+                **(user_task.result_data or {}),
             }
-        
+
+        if response is None:
+            # 无终态：以 UserTask 为准（pending/processing 及任务内自报的进度）
+            status = user_task.status if user_task.status in ('pending', 'processing') else 'processing'
+            if user_task.status == 'success':
+                response = {
+                    'status': 'success',
+                    'message': user_task.progress_message or '任务完成',
+                    **(user_task.result_data or {}),
+                }
+            elif user_task.status == 'failure':
+                response = {
+                    'status': 'failure',
+                    'message': user_task.error_message or '任务失败',
+                    'error': user_task.error_message or '任务失败',
+                }
+            else:
+                user_task.status = status
+                response = {
+                    'status': status,
+                    'message': user_task.progress_message or '任务等待执行中...',
+                }
+
         # 保存UserTask更新
         user_task.save()
-        
+
         return JsonResponse(response)
-    
+
     except Exception as e:
         print(f"Error checking task status: {str(e)}")
         return JsonResponse({
@@ -764,7 +767,7 @@ def generate_audio_chapters(request, segment_id):
     if not segment.subtitle_file or not segment.subtitle_file.name:
         return JsonResponse({'success': False, 'error': '该音频暂无字幕文件，无法生成章节'}, status=400)
 
-    task_result = generate_chapters_task.delay('audio', segment.id, force)
+    task_result = generate_chapters_task.enqueue('audio', segment.id, force)
 
     UserTask.objects.create(
         user=request.user,
@@ -1061,10 +1064,15 @@ def cancel_task(request, task_id):
         
         # 只能取消未完成的任务
         if user_task.status in ['pending', 'processing']:
-            from celery import current_app
-            
-            # 取消Celery任务
-            current_app.control.revoke(task_id, terminate=True)
+            # 尚未被领取（READY）的任务直接置为失败，db_worker 会跳过；
+            # 已在执行中的任务无法中断，仅标记取消（与原 celery terminate 行为等效）
+            from django.tasks import TaskResultStatus
+            from django_tasks_db.models import DBTaskResult
+
+            DBTaskResult.objects.filter(id=task_id, status=TaskResultStatus.READY).update(
+                status=TaskResultStatus.FAILED,
+                exception_class_path='builtins.CancelledError',
+            )
             
             # 更新任务状态
             user_task.status = 'revoked'

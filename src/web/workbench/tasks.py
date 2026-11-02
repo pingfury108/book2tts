@@ -4,14 +4,14 @@ import tempfile
 import asyncio
 import json
 import hashlib
+from types import SimpleNamespace
 from typing import Any, Dict, Optional
-from celery import shared_task
-from celery.utils.log import get_task_logger
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.contrib.auth.models import User
 from django.db import transaction
 from django.utils import timezone
+from django.tasks import TaskContext, task
 
 from .models import Books, AudioSegment, DialogueScript, UserTask, DialogueSegment
 from book2tts.edgetts import EdgeTTS
@@ -42,7 +42,44 @@ def get_dialogue_service():
 
 
 # Get a logger instance for the tasks
-logger = get_task_logger(__name__)
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class _TaskProgress:
+    """celery→django-tasks 迁移垫片。
+
+    把原 celery 的 self.request.id / self.update_state(state, meta)
+    映射到 UserTask 的状态与进度字段，任务内部代码无需大规模改动。
+    """
+
+    STATUS_MAP = {"PROCESSING": "processing", "SUCCESS": "success", "FAILURE": "failure"}
+
+    def __init__(self, task_id: str):
+        self.request = SimpleNamespace(id=task_id)
+
+    def update_state(self, state: str = "PROCESSING", meta: Optional[Dict[str, Any]] = None):
+        meta = meta or {}
+        try:
+            user_task = UserTask.objects.get(task_id=self.request.id)
+        except UserTask.DoesNotExist:
+            return
+        mapped = self.STATUS_MAP.get(state)
+        if mapped:
+            user_task.status = mapped
+        if meta.get("message"):
+            user_task.progress_message = meta["message"]
+        if meta.get("error"):
+            user_task.error_message = meta["error"]
+        if "progress" in meta:
+            user_task.metadata = {**(user_task.metadata or {}), **{
+                k: meta[k] for k in ("progress", "chunk", "total_chunks") if k in meta
+            }}
+        if state == "SUCCESS":
+            user_task.result_data = meta or user_task.result_data
+            user_task.completed_at = timezone.now()
+        user_task.save()
 
 
 def _summarize_llm_usage(usage: Optional[Dict[str, Any]]) -> Dict[str, int]:
@@ -152,7 +189,7 @@ def start_audio_synthesis_on_commit(user_id, text, voice_name, book_id, **kwargs
     """
 
     def _start_task():
-        return synthesize_audio_task.delay(
+        return synthesize_audio_task.enqueue(
             user_id=user_id, text=text, voice_name=voice_name, book_id=book_id, **kwargs
         )
 
@@ -166,9 +203,9 @@ def start_audio_synthesis_on_commit(user_id, text, voice_name, book_id, **kwargs
     )
 
 
-@shared_task(bind=True)
+@task(takes_context=True)
 def synthesize_audio_task(
-    self,
+    context: TaskContext,
     user_id,
     text,
     voice_name,
@@ -182,6 +219,7 @@ def synthesize_audio_task(
     user_agent="",
 ):
     """异步音频合成任务（支持字幕生成）"""
+    self = _TaskProgress(context.task_result.id)
     try:
         # 更新任务状态为开始处理
         self.update_state(
@@ -541,8 +579,8 @@ def synthesize_audio_task(
         raise Exception(f"音频合成失败：{str(e)}")
 
 
-@shared_task(bind=True, ignore_result=True)
-def cleanup_old_audio_files(self):
+@task
+def cleanup_old_audio_files():
     """
     清理过期的音频文件的定期任务示例
 
@@ -556,11 +594,12 @@ def cleanup_old_audio_files(self):
     return "Cleanup task completed"
 
 
-@shared_task(bind=True)
+@task(takes_context=True)
 def convert_text_to_dialogue_task(
-    self, user_id, text, title, book_id=None, custom_prompt=None
+    context: TaskContext, user_id, text, title, book_id=None, custom_prompt=None
 ):
     """将文本转换为对话脚本的异步任务"""
+    self = _TaskProgress(context.task_result.id)
     try:
         # 更新任务状态
         self.update_state(state="PROCESSING", meta={"message": "开始处理文本转换..."})
@@ -966,9 +1005,10 @@ def convert_text_to_dialogue_task(
         raise
 
 
-@shared_task(bind=True)
-def generate_dialogue_audio_task(self, script_id, voice_mapping):
+@task(takes_context=True)
+def generate_dialogue_audio_task(context: TaskContext, script_id, voice_mapping):
     """生成对话音频的异步任务（支持字幕生成和时间戳校对）"""
+    self = _TaskProgress(context.task_result.id)
     try:
         # 更新任务状态
         self.update_state(
@@ -1263,11 +1303,12 @@ def generate_dialogue_audio_task(self, script_id, voice_mapping):
         raise
 
 
-@shared_task(bind=True)
+@task(takes_context=True)
 def generate_chapters_task(
-    self, segment_type: str, segment_id: int, force: bool = False
+    context: TaskContext, segment_type: str, segment_id: int, force: bool = False
 ):
     """为指定音频或对话脚本生成章节信息。"""
+    self = _TaskProgress(context.task_result.id)
     self.update_state(state="PROCESSING", meta={"message": "章节生成任务已启动..."})
 
     user_task = None

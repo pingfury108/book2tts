@@ -163,7 +163,7 @@ def dialogue_convert_text(request):
         # 创建异步任务
         from ..tasks import convert_text_to_dialogue_task
         
-        task_result = convert_text_to_dialogue_task.delay(
+        task_result = convert_text_to_dialogue_task.enqueue(
             user_id=request.user.id,
             text=text,
             title=title,
@@ -311,7 +311,7 @@ def dialogue_generate_audio(request, script_id):
         # 创建异步任务
         from ..tasks import generate_dialogue_audio_task
 
-        task_result = generate_dialogue_audio_task.delay(
+        task_result = generate_dialogue_audio_task.enqueue(
             script_id=script.id,
             voice_mapping=voice_mapping
         )
@@ -360,7 +360,7 @@ def dialogue_generate_chapters(request, script_id):
 
     from ..tasks import generate_chapters_task
 
-    task_result = generate_chapters_task.delay('dialogue', script.id, force)
+    task_result = generate_chapters_task.enqueue('dialogue', script.id, force)
 
     UserTask.objects.create(
         user=request.user,
