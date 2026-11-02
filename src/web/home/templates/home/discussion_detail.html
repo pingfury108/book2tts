@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static custom_filters %}
 
 {% block title %}{{ display_title }}{% endblock %}
 
@@ -13,21 +13,21 @@
                 返回列表
             </a>
             <div>
-                <h1 class="text-2xl font-bold text-base-content">{{ topic.title }}</h1>
-                <div class="flex items-center gap-2 mt-1">
+                <h1 class="text-2xl font-extrabold tracking-tight">{{ topic.title }}</h1>
+                <div class="flex items-center gap-2 mt-1.5">
                     {% if topic.is_pinned %}
-                    <span class="badge badge-primary badge-sm">
-                        <i class="fas fa-thumbtack mr-1"></i>
+                    <span class="badge badge-sm border-primary/30 bg-primary/10 text-primary font-semibold">
+                        <i class="fas fa-thumbtack text-[10px] mr-0.5"></i>
                         置顶
                     </span>
                     {% endif %}
                     {% if topic.is_closed %}
-                    <span class="badge badge-error badge-sm">
-                        <i class="fas fa-lock mr-1"></i>
+                    <span class="badge badge-sm border-base-300 bg-base-200 text-base-content/50">
+                        <i class="fas fa-lock text-[10px] mr-0.5"></i>
                         已关闭
                     </span>
                     {% endif %}
-                    <span class="badge badge-outline badge-sm">
+                    <span class="badge badge-sm border-base-300 text-base-content/60 font-medium">
                         {{ topic.get_category_display }}
                     </span>
                 </div>
@@ -82,28 +82,12 @@
     {% endif %}
 
     <!-- 主题信息 -->
-    <div class="flex flex-wrap items-center gap-4 text-sm text-base-content/60 mb-6 p-4 bg-base-200 rounded-lg">
-        <div class="flex items-center gap-2">
-            <span>{{ topic.author.username }}</span>
-        </div>
-        <span>•</span>
-        <span>{{ topic.created_at|date:"Y-m-d H:i" }}</span>
-        <span>•</span>
-        <span class="badge badge-outline">{{ topic.get_category_display }}</span>
-        <span>•</span>
-        <span class="flex items-center gap-1">
-            <i class="fas fa-eye"></i>
-            {{ topic.view_count }} 次查看
-        </span>
-        <span>•</span>
-        <span class="flex items-center gap-1">
-            <i class="fas fa-comment"></i>
-            {{ topic.reply_count }} 条回复
-        </span>
-    </div>
+    <p class="text-sm text-base-content/50 mb-6">
+        {{ topic.author.username }} · {{ topic.created_at|date:"Y-m-d H:i" }} · {{ topic.view_count }} 次查看 · {{ topic.reply_count }} 条回复
+    </p>
 
     <!-- 主题内容 -->
-    <div class="card bg-base-100 shadow mb-6">
+    <div class="card bg-base-100 border border-base-300 shadow-sm mb-6">
         <div class="card-body p-4">
             <div class="prose max-w-none text-sm">
                 {{ topic.content|linebreaks }}
@@ -113,21 +97,22 @@
 
     <!-- 留言列表 -->
     <div class="mb-6">
-        <h2 class="text-lg font-semibold mb-3">
-            留言（{{ comments|length }}）
-        </h2>
+        <h2 class="text-base font-bold mb-3">留言 <span class="text-xs font-medium text-base-content/40">{{ comments|length }}</span></h2>
 
         {% if comments %}
         <div class="space-y-4">
             {% for comment in comments %}
-            <div class="card bg-base-100 shadow" id="comment-{{ comment.id }}">
+            <div class="card bg-base-100 border border-base-300 shadow-sm" id="comment-{{ comment.id }}">
                 <div class="card-body p-4">
                     <!-- 留言头部 -->
                     <div class="flex justify-between items-start mb-3">
-                        <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-full bg-gradient-to-br {{ comment.author|cover_gradient }} text-white flex items-center justify-center text-xs font-bold shrink-0">
+                                {{ comment.author.username|slice:":1"|upper }}
+                            </div>
                             <div>
                                 <div class="font-semibold text-sm">{{ comment.author.username }}</div>
-                                <div class="text-xs text-base-content/60">
+                                <div class="text-xs text-base-content/50">
                                     {{ comment.created_at|date:"Y-m-d H:i" }}
                                 </div>
                             </div>
@@ -163,7 +148,7 @@
                                 required
                             ></textarea>
                             <div class="flex gap-2">
-                                <button type="submit" class="btn btn-primary btn-sm">
+                                <button type="submit" class="btn btn-primary btn-sm rounded-lg">
                                     <i class="fas fa-paper-plane mr-1"></i>
                                     回复
                                 </button>
@@ -207,7 +192,7 @@
 
     <!-- 发表留言表单 -->
     {% if not topic.is_closed and user.is_authenticated %}
-    <div class="card bg-base-100 shadow">
+    <div class="card bg-base-100 border border-base-300 shadow-sm">
         <div class="card-body p-4">
             <h3 class="card-title mb-3">发表留言</h3>
             <form method="post">
@@ -219,7 +204,7 @@
                     required
                 ></textarea>
                 <div class="card-actions justify-end mt-3">
-                    <button type="submit" class="btn btn-primary btn-sm">
+                    <button type="submit" class="btn btn-primary btn-sm rounded-lg">
                         <i class="fas fa-paper-plane mr-1"></i>
                         发表留言
                     </button>

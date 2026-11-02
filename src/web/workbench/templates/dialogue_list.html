@@ -3,13 +3,17 @@
 
 {% block content %}
 <div class="container mx-auto px-4 py-8 text-base-content">
-    {% if page_obj.object_list %}
-        <div class="flex justify-end mb-6">
-            <a href="{% url 'dialogue_create' %}" 
-               class="btn btn-primary">
-                <i class="fas fa-plus mr-2"></i>创建对话脚本
-            </a>
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
+        <div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">对话脚本</h1>
+            <p class="text-sm text-base-content/50 mt-1">多音色对话作品，生成后可转音频</p>
         </div>
+        <a href="{% url 'dialogue_create' %}" 
+           class="btn btn-primary rounded-xl shrink-0">
+            <i class="fas fa-plus text-xs"></i>创建对话脚本
+        </a>
+    </div>
+    {% if page_obj.object_list %}
         <div class="bg-base-100 shadow-md rounded-lg overflow-hidden">
             <!-- 移动端卡片视图 -->
             <div class="md:hidden space-y-4 p-4">
@@ -151,14 +155,14 @@
                                             {% csrf_token %}
                                             <button type="button" 
                                                     onclick="publishScript({{ script.id }})"
-                                                    class="text-green-600 hover:text-green-900 bg-transparent border-none cursor-pointer underline">
+                                                    class="text-success hover:text-success-focus bg-transparent border-none cursor-pointer underline">
                                                 发布
                                             </button>
                                         </form>
                                     {% endif %}
                                     <button type="button" 
                                             onclick="deleteScript({{ script.id }}, '{{ script.title|escapejs }}')" 
-                                            class="text-red-600 hover:text-red-900 bg-transparent border-none cursor-pointer underline">
+                                            class="text-error hover:text-error-focus bg-transparent border-none cursor-pointer underline">
                                         删除
                                     </button>
                                 </div>

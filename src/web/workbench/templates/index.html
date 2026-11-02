@@ -11,8 +11,15 @@
   </div>
 </div>
 
-<div class="flex p-2 w-full h-screen bg-base-100" id="workbench-root">
-    <div class="grow h-full w-1/5 overflow-hidden rounded-lg flex flex-col pb-2">
+<div class="flex flex-col w-full h-screen bg-base-200" id="workbench-root">
+    <!-- 顶栏 -->
+    <div class="flex items-center gap-3 px-4 py-2.5 bg-base-100 border-b border-base-300 flex-shrink-0">
+        <span class="text-[15px] font-extrabold tracking-tight">《{{ title }}》</span>
+        <span class="text-xs text-base-content/40">制作台</span>
+        <span class="ml-auto text-xs text-base-content/40">内容更改实时保存</span>
+    </div>
+    <div class="flex flex-1 gap-2 p-2 min-h-0">
+    <div class="grow h-full w-1/5 overflow-hidden rounded-xl border border-base-300 bg-base-100 flex flex-col">
       <div class="container text-center p-2">
         <div role="tablist" class="tabs tabs-bordered">
           <a role="tab" class="tab tab-active" id="tab_toc"
@@ -34,39 +41,39 @@
         <div class="container pt-2 flex-grow overflow-y-auto" id="toc" hx-get="{% url 'toc' book_id=book_id %}" hx-trigger="load">
         </div>
     </div>
-    <div class="divider divider-horizontal"></div>
-    <div class="grow h-full w-3/5 overflow-hidden rounded-lg shadow-lg">
+    <div class="grow h-full w-3/5 overflow-hidden rounded-xl border border-base-300 bg-base-100 shadow-sm">
         <div class="container p-2 flex flex-col h-full" id="context">
-            <div class="mb-2 p-2 rounded-lg">
-                <div class="flex justify-between items-center">
-                    <div class="flex gap-2 items-center">
-                        <div class="badge badge-primary p-3 text-sm">章节内容</div>
-                        <div class="badge badge-outline p-3 text-xs" id="word-count-badge">0 字</div>
+            <div class="mb-2 px-2 pt-1">
+                <div class="flex justify-between items-center gap-2">
+                    <div class="flex gap-2 items-center min-w-0">
+                        <span class="inline-flex items-center gap-1.5 text-[13px] font-semibold text-base-content whitespace-nowrap">
+                            <span class="w-1.5 h-1.5 rounded-full bg-accent"></span>章节内容
+                        </span>
+                        <span class="text-[11px] text-base-content/50 border border-base-300 rounded-full px-2 py-0.5 whitespace-nowrap" id="word-count-badge">0 字</span>
                         <!-- 页面图片查看按钮 - 只在扫描版PDF时显示 -->
-                        <button class="btn btn-xs btn-outline" id="view-page-image-btn" style="display: none;" title="查看页面原图">
+                        <button class="btn btn-xs btn-ghost rounded-lg" id="view-page-image-btn" style="display: none;" title="查看页面原图">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-4.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
                             </svg>
                             查看原图
                         </button>
-                        <button class="btn btn-xs btn-outline" id="view-original-btn" title="查看原始内容">
+                        <button class="btn btn-xs btn-ghost rounded-lg" id="view-original-btn" title="查看原始内容">
                             <i class="fas fa-eye"></i>
                             查看原文
                         </button>
                     </div>
                     <div class="flex gap-2">
-                        <button class="btn btn-xs btn-outline" id="format-text-btn">自动排版</button>
-                        <button class="btn btn-xs btn-outline" id="translate-text-btn">翻译</button>
-                        <button class="btn btn-xs btn-outline" id="increase-font-btn">放大字体</button>
-                        <button class="btn btn-xs btn-outline" id="decrease-font-btn">缩小字体</button>
+                        <button class="btn btn-xs btn-ghost rounded-lg" id="format-text-btn">自动排版</button>
+                        <button class="btn btn-xs btn-ghost rounded-lg" id="translate-text-btn">翻译</button>
+                        <button class="btn btn-xs btn-ghost rounded-lg" id="increase-font-btn">放大字体</button>
+                        <button class="btn btn-xs btn-ghost rounded-lg" id="decrease-font-btn">缩小字体</button>
                     </div>
                 </div>
             </div>
             <textarea class="textarea textarea-bordered flex-grow w-full bg-base-100 font-serif" id="src-text" name="texts" placeholder="选择左侧目录或页面以加载内容..." style="font-size: 16px; line-height: 1.6; min-height: 0;"></textarea>
         </div>
     </div>
-    <div class="divider divider-horizontal"></div>
-    <div class="grow h-full w-1/5 overflow-hidden rounded-lg shadow-lg">
+    <div class="grow h-full w-1/5 overflow-hidden rounded-xl border border-base-300 bg-base-100 shadow-sm">
         <div class="flex flex-col h-full">
             <div class="px-2 pt-2">
                 <div role="tablist" class="tabs tabs-bordered" id="right-panel-tabs">
@@ -76,7 +83,7 @@
             </div>
             <div class="flex-1 overflow-y-auto p-2">
                 <div id="production-panel" class="space-y-3 right-panel-tab">
-                    <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow duration-200">
+                    <div class="card bg-base-100 border border-base-300 shadow-sm">
                         <div class="card-body p-4">
                             <div class="flex flex-col gap-1">
                                 <div>
@@ -85,16 +92,16 @@
                             </div>
                         </div>
                     </div>
-                    <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow duration-200">
+                    <div class="card bg-base-100 border border-base-300 shadow-sm">
                         <div class="card-body p-4">
                             <div class="space-y-2" id="page-audio-status">
-                                <div class="text-sm text-gray-500 text-center">
+                                <div class="text-sm text-base-content/40 text-center">
                                     选择页面查看音频生成状态
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow duration-200">
+                    <div class="card bg-base-100 border border-base-300 shadow-sm">
                         <div class="card-body p-4">
                             <div class="space-y-3">
                                 <div class="relative" id="voice-dropdown">
@@ -167,7 +174,7 @@
                     </div>
                 </div>
                 <div id="account-panel" class="space-y-3 right-panel-tab hidden">
-                    <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow duration-200">
+                    <div class="card bg-base-100 border border-base-300 shadow-sm">
                         <div class="card-body p-4">
                             <div class="space-y-2" id="quota-info"
                                  hx-get="{% url 'get_user_quota' %}"
@@ -183,7 +190,7 @@
                     </div>
 
                     <!-- 购买联系信息 -->
-                    <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow duration-200">
+                    <div class="card bg-base-100 border border-base-300 shadow-sm">
                         <div class="card-body p-4">
                             <div class="space-y-3">
                                 <div class="text-sm text-base-content/80">
@@ -207,6 +214,7 @@
                 </div>
             </div>
         </div>
+    </div>
     </div>
 </div>
 
@@ -2197,7 +2205,7 @@ function handleViewPageImage() {
         };
         
         const caption = document.createElement('p');
-        caption.className = 'text-sm text-gray-600 mt-2';
+        caption.className = 'text-sm text-base-content/60 mt-2';
         caption.textContent = `第${result.pageId}页`;
         
         imageWrapper.appendChild(img);
@@ -2209,7 +2217,7 @@ function handleViewPageImage() {
         errorDiv.innerHTML = `
           <i class="fas fa-exclamation-triangle text-error text-2xl mb-2"></i>
           <p class="text-error text-sm">第${result.pageId}页加载失败</p>
-          <p class="text-xs text-gray-500">${result.error}</p>
+          <p class="text-xs text-base-content/40">${result.error}</p>
         `;
         imageWrapper.appendChild(errorDiv);
       }
@@ -2485,9 +2493,9 @@ function openImageFullscreen(imageData, title) {
     <div class="modal-box max-w-full max-h-full w-full h-full p-0 bg-black">
       <div class="relative w-full h-full flex items-center justify-center">
         <img src="${imageData}" alt="${title}" class="max-w-full max-h-full object-contain" />
-        <button class="btn btn-circle btn-ghost absolute top-4 right-4 text-white bg-black bg-opacity-50"
+        <button class="btn btn-circle btn-ghost absolute top-4 right-4 text-white bg-black/50"
                 onclick="this.closest('.modal').remove()">✕</button>
-        <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-white bg-black bg-opacity-50 px-4 py-2 rounded">
+        <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-white bg-black/50 px-4 py-2 rounded">
           ${title}
         </div>
       </div>
@@ -2641,7 +2649,7 @@ function displayAudioStatus(data) {
     
     if (status.has_audio) {
       statusHtml += `
-        <div class="cursor-pointer hover:bg-success hover:bg-opacity-20 transition-colors duration-200 p-2 bg-success bg-opacity-10 rounded border border-success border-opacity-20"
+        <div class="cursor-pointer hover:bg-success/20 transition-colors duration-200 p-2 bg-success/10 rounded border border-success/20"
              onclick="jumpToAudioDetail(${status.audio_id})" title="点击查看音频详情">
           <div class="flex items-center justify-between">
             <div class="flex items-center min-w-0">
@@ -2650,21 +2658,21 @@ function displayAudioStatus(data) {
                 <div class="text-xs font-medium text-success truncate">
                   ${status.title || '第' + pageId + '页音频'}
                 </div>
-                <div class="text-xs text-gray-500">
+                <div class="text-xs text-base-content/40">
                   ${status.created_at}
                   ${status.published ? '<span class="ml-1 badge badge-xs badge-info">已发布</span>' : ''}
                 </div>
               </div>
             </div>
-            <i class="fas fa-external-link-alt text-gray-400 text-xs ml-2"></i>
+            <i class="fas fa-external-link-alt text-base-content/40 text-xs ml-2"></i>
           </div>
         </div>
       `;
     } else {
       statusHtml += `
         <div class="flex items-center text-xs p-2 bg-base-200 rounded border border-base-300 w-full overflow-hidden">
-          <i class="fas fa-volume-mute text-gray-400 mr-2 flex-shrink-0"></i>
-          <span class="text-gray-600 truncate" title="第${pageId}页 - 未生成音频">第${pageId}页 - 未生成音频</span>
+          <i class="fas fa-volume-mute text-base-content/40 mr-2 flex-shrink-0"></i>
+          <span class="text-base-content/60 truncate" title="第${pageId}页 - 未生成音频">第${pageId}页 - 未生成音频</span>
         </div>
       `;
     }
@@ -2673,7 +2681,7 @@ function displayAudioStatus(data) {
   // 如果页面数量超过显示限制，显示省略提示
   if (pageIds.length > maxDisplay) {
     statusHtml += `
-      <div class="text-xs text-gray-500 text-center mt-2 p-1">
+      <div class="text-xs text-base-content/40 text-center mt-2 p-1">
         <i class="fas fa-ellipsis-h mr-1"></i>
         还有 ${pageIds.length - maxDisplay} 页未显示
       </div>
@@ -2702,7 +2710,7 @@ function updateAudioStatusDisplay(message) {
   if (!statusContainer) return;
   
   statusContainer.innerHTML = `
-    <div class="text-sm text-gray-500 text-center">
+    <div class="text-sm text-base-content/40 text-center">
       ${message}
     </div>
   `;

@@ -4,7 +4,7 @@
 {% block title %}{{ display_title }}{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-6">
+<div class="max-w-2xl mx-auto px-4 sm:px-6 py-6">
     <!-- 页面标题和导航 -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div class="flex items-center gap-4">
@@ -12,7 +12,7 @@
                 <i class="fas fa-arrow-left mr-2"></i>
                 返回详情
             </a>
-            <h1 class="text-2xl font-bold text-base-content">{{ display_title }}</h1>
+            <h1 class="text-2xl font-extrabold tracking-tight">{{ display_title }}</h1>
         </div>
     </div>
 
@@ -25,7 +25,7 @@
     {% endif %}
 
     <!-- 编辑表单 -->
-    <div class="card bg-base-100 shadow">
+    <div class="card bg-base-100 border border-base-300 shadow-sm">
         <div class="card-body">
             <form method="post">
                 {% csrf_token %}

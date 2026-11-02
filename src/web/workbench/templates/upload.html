@@ -4,34 +4,41 @@
 
 {% block content %}
 
-<div class="h-96 flex items-center justify-center p-3">
-    <div class="form-control m-1 gap-4 w-full max-w-xs">
-        <!-- 错误信息显示 -->
-        {% if form.errors %}
-        <div class="alert alert-error">
-            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-                {% for field, errors in form.errors.items %}
-                    {% for error in errors %}
-                        <div>{{ error }}</div>
-                    {% endfor %}
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-
-        <form method="post" enctype="multipart/form-data" class="form-control gap-1">
-            {% csrf_token %}
-            <input type="file" class="file-input file-input-bordered file-input-primary w-full" accept=".pdf,.epub"
-                name="file" />
-            <div class="text-xs text-gray-500 text-center">
-                只支持 PDF 和 EPUB 格式，最大 100MB
-            </div>
-            <button type="submit" class="btn w-full btn-outline btn-primary">上传</button>
-        </form>
+<div class="max-w-xl mx-auto px-4 sm:px-6 py-10">
+    <!-- 页头 -->
+    <div class="text-center mb-8">
+        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">上传书籍</h1>
+        <p class="text-sm text-base-content/50 mt-1.5">支持 PDF / EPUB，扫描件将自动走 OCR 识别</p>
     </div>
+
+    <!-- 错误信息显示 -->
+    {% if form.errors %}
+    <div class="alert alert-error mb-6 rounded-xl">
+        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div>
+            {% for field, errors in form.errors.items %}
+                {% for error in errors %}
+                    <div>{{ error }}</div>
+                {% endfor %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 拖放式上传卡片 -->
+    <form method="post" enctype="multipart/form-data"
+          class="bg-base-100 border-2 border-dashed border-base-300 hover:border-primary rounded-2xl p-8 sm:p-10 text-center transition-colors">
+        {% csrf_token %}
+        <div class="w-14 h-14 mx-auto rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4">
+            <i class="fas fa-cloud-upload-alt text-2xl"></i>
+        </div>
+        <input type="file" class="file-input file-input-bordered file-input-primary w-full max-w-xs" accept=".pdf,.epub"
+            name="file" />
+        <p class="text-xs text-base-content/50 mt-3">只支持 PDF 和 EPUB 格式，最大 100MB</p>
+        <button type="submit" class="btn btn-primary rounded-xl mt-6 px-8">开始上传</button>
+    </form>
 </div>
 
 {% endblock %}

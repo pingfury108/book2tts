@@ -1,12 +1,16 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}登录 - Book2TTS{% endblock %}
 
 {% block content %}
-<div class="flex justify-center items-center h-full mt-10">
-  <div class="card w-96 bg-base-100 shadow-xl">
+<div class="flex flex-col items-center mt-10 sm:mt-16 px-4">
+  <img src="{% static 'images/logo.png' %}" alt="Book2TTS" class="w-14 h-14 rounded-2xl shadow-lg shadow-primary/20 mb-4" />
+  <h1 class="text-2xl font-extrabold tracking-tight">登录 Book2TTS</h1>
+  <p class="text-sm text-base-content/50 mt-1.5 mb-6">继续你的有声书制作</p>
+  <div class="card w-full max-w-sm bg-base-100 border border-base-300 shadow-sm">
     <div class="card-body">
-      <h2 class="card-title justify-center mb-4">登录</h2>
+      <h2 class="sr-only">登录</h2>
       
       <form method="post" id="login-form">
         {% csrf_token %}
@@ -63,7 +67,7 @@
         </div>
       </form>
       
-      <div class="divider">OR</div>
+      <div class="divider text-xs text-base-content/40">OR</div>
       
       <div class="text-center">
         <a href="{% url 'register' %}" class="btn btn-ghost btn-sm">没有账号？去注册</a>

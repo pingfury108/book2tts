@@ -15,7 +15,7 @@
         <div class="flex justify-center order-3 sm:order-2">
             <h2 class="text-lg sm:text-xl font-bold bg-base-200 text-base-content
                        px-3 py-2 sm:px-4 sm:py-2 rounded-lg text-center w-full sm:w-auto">
-                📚 {{ book_name }}
+                <i class="fas fa-book text-primary/60 text-lg"></i> {{ book_name }}
             </h2>
         </div>
 
@@ -152,9 +152,9 @@
 
                 // 添加高亮效果
                 targetElement.style.transition = 'all 0.3s ease';
-                targetElement.style.backgroundColor = 'rgba(59, 130, 246, 0.1)'; // 蓝色背景
-                targetElement.style.borderColor = 'rgba(59, 130, 246, 0.3)';
-                targetElement.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.2)';
+                targetElement.style.backgroundColor = 'rgba(234, 88, 12, 0.08)'; // accent 背景
+                targetElement.style.borderColor = 'rgba(234, 88, 12, 0.3)';
+                targetElement.style.boxShadow = '0 0 0 2px rgba(234, 88, 12, 0.15)';
 
                 // 3秒后移除高亮效果
                 setTimeout(() => {
@@ -306,7 +306,7 @@
     <!-- 音频片段列表 - 响应式网格布局 -->
     <div class="grid grid-cols-1 gap-3 sm:gap-4 lg:gap-6">
         {% for segment in segments %}
-        <div class="card shadow-md hover:shadow-lg transition-all duration-200" data-segment-id="{{ segment.id }}"
+        <div class="card bg-base-100 border border-base-300 shadow-sm transition-all duration-200" data-segment-id="{{ segment.id }}"
             id="audio-{{ segment.id }}">
             <!-- 折叠组件 - 响应式标题区域 -->
             <div class="collapse">
@@ -323,11 +323,11 @@
                     <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-6 items-center pr-8">
                         <!-- 标题 -->
                         <div class="lg:col-span-9">
-                            <h3 class="text-lg sm:text-xl font-bold text-base-content leading-tight break-words">
+                            <h3 class="text-base sm:text-lg font-bold text-base-content leading-tight break-words pr-2">
                                 {% if segment.type == 'dialogue_script' %}
-                                🎭 {{ segment.title }}
+                                <i class="fas fa-comments text-primary/50 mr-1.5"></i>{{ segment.title }}
                                 {% else %}
-                                🔖 {{ segment.title }}
+                                <i class="fas fa-headphones text-primary/50 mr-1.5"></i>{{ segment.title }}
                                 {% endif %}
                             </h3>
                             {% if segment.type == 'dialogue_script' and segment.speakers %}
@@ -340,16 +340,14 @@
                             onclick="event.stopPropagation()">
                             <!-- 下载按钮 -->
                             {% if segment.file_url %}
-                            <a href="{% url 'download_audio' segment_type=segment.type segment_id=segment.id %}" class="btn btn-circle btn-xs sm:btn-sm lg:btn-md btn-primary touch-manipulation flex-shrink-0
-                                      hover:scale-110 transition-transform duration-200" title="下载音频（保存为：{{ segment.title }}.wav）">
+                            <a href="{% url 'download_audio' segment_type=segment.type segment_id=segment.id %}" class="btn btn-ghost btn-sm rounded-lg text-base-content/60 hover:text-primary touch-manipulation flex-shrink-0" title="下载音频（保存为：{{ segment.title }}.wav）">
                                 <i class="fas fa-download h-4 w-4 "></i>
                             </a>
                             {% endif %}
 
                             <!-- 字幕下载按钮 -->
                             {% if segment.subtitle_file %}
-                            <a href="{% url 'download_subtitle' segment_type=segment.type segment_id=segment.id %}" class="btn btn-circle btn-xs sm:btn-sm lg:btn-md btn-info touch-manipulation flex-shrink-0
-                                      hover:scale-110 transition-transform duration-200" title="下载字幕（保存为：{{ segment.title }}.srt）">
+                            <a href="{% url 'download_subtitle' segment_type=segment.type segment_id=segment.id %}" class="btn btn-ghost btn-sm rounded-lg text-base-content/60 hover:text-primary touch-manipulation flex-shrink-0" title="下载字幕（保存为：{{ segment.title }}.srt）">
                                 <i class="fas fa-closed-captioning h-4 w-4"></i>
                             </a>
                             {% endif %}
@@ -358,21 +356,19 @@
                             {% if segment.type == 'dialogue_script' %}
                             <!-- 对话脚本的发布按钮 - 目前只显示状态，不提供切换功能 -->
                             {% if segment.published %}
-                            <span class="px-2 py-1 text-xs bg-green-100 text-green-600 rounded-full">已发布</span>
+                            <span class="px-2 py-1 text-xs bg-success/10 text-success rounded-full">已发布</span>
                             {% else %}
-                            <span class="px-2 py-1 text-xs bg-blue-100 text-blue-600 rounded-full">已生成</span>
+                            <span class="px-2 py-1 text-xs bg-info/10 text-info rounded-full">已生成</span>
                             {% endif %}
                             {% else %}
                             <!-- 传统音频片段的发布切换按钮 -->
                             {% if segment.published %}
-                            <button class="btn btn-circle btn-xs sm:btn-sm lg:btn-md btn-warning touch-manipulation flex-shrink-0
-                                           hover:scale-110 transition-transform duration-200" title="取消发布"
+                            <button class="btn btn-ghost btn-sm rounded-lg text-warning hover:text-warning-focus touch-manipulation flex-shrink-0" title="取消发布"
                                 onclick="handleSegmentPublishClick('{{ segment.id }}', this)">
-                                <i class="fas fa-times h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5"></i>
+                                <i class="fas fa-times h-3 w-3 sm:h-4 sm:w-4"></i>
                             </button>
                             {% else %}
-                            <button class="btn btn-circle btn-xs sm:btn-sm lg:btn-md btn-success touch-manipulation flex-shrink-0
-                                           hover:scale-110 transition-transform duration-200" title="发布"
+                            <button class="btn btn-ghost btn-sm rounded-lg text-success hover:text-success-focus touch-manipulation flex-shrink-0" title="发布"
                                 onclick="handleSegmentPublishClick('{{ segment.id }}', this)">
                                 <i class="fas fa-check h-4 w-4"></i>
                             </button>
@@ -382,14 +378,12 @@
                             <!-- 删除按钮 - 根据类型使用不同的删除逻辑 -->
                             {% if segment.type == 'dialogue_script' %}
                             <!-- 对话脚本删除：跳转到对话脚本详情页面 -->
-                            <a href="{% url 'dialogue_detail' segment.id %}" class="btn btn-circle btn-xs sm:btn-sm lg:btn-md btn-info touch-manipulation flex-shrink-0
-                                          hover:scale-110 transition-transform duration-200" title="编辑对话脚本">
+                            <a href="{% url 'dialogue_detail' segment.id %}" class="btn btn-ghost btn-sm rounded-lg text-base-content/60 hover:text-primary touch-manipulation flex-shrink-0" title="编辑对话脚本">
                                 <i class="fas fa-edit h-4 w-4 "></i>
                             </a>
                             {% else %}
                             <!-- 传统音频片段删除 -->
-                            <button class="btn btn-circle btn-xs sm:btn-sm lg:btn-md btn-error touch-manipulation flex-shrink-0
-                                           hover:scale-110 transition-transform duration-200" title="删除音频"
+                            <button class="btn btn-ghost btn-sm rounded-lg text-error hover:text-error-focus touch-manipulation flex-shrink-0" title="删除音频"
                                 hx-delete="/workbench/audio/delete/{{ segment.id }}/"
                                 hx-confirm="确定要删除音频片段 '{{ segment.title }}' 吗？此操作无法撤销。"
                                 hx-target="[data-segment-id='{{ segment.id }}']" hx-swap="outerHTML" hx-trigger="click">
@@ -509,7 +503,7 @@
                                         {% for chapter in segment.chapters %}
                                         <li class="p-2 rounded-lg border border-base-200">
                                             <div class="flex items-center justify-between text-xs sm:text-sm font-medium">
-                                                <span class="badge badge-outline badge-primary">{{ chapter.start_seconds|format_seconds }}</span>
+                                                <span class="badge badge-outline border-base-300 text-base-content/60">{{ chapter.start_seconds|format_seconds }}</span>
                                                 <span class="flex-1 ml-2 truncate">{{ chapter.title }}</span>
                                             </div>
                                             {% if chapter.summary %}

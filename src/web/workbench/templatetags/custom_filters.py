@@ -76,3 +76,26 @@ def extract_div_tags(ads_script):
         return '\n'.join(div_matches)
 
     return ''
+
+
+# 6 色 muted 封面调色板（对应 designs/b2t-ui-redesign 设计系统 F 画板），
+# 按对象 id 取色，替代原先"全紫"的封面/徽章用色
+COVER_GRADIENTS = [
+    "from-violet-500 to-violet-700",
+    "from-sky-500 to-sky-700",
+    "from-emerald-500 to-emerald-700",
+    "from-amber-500 to-amber-600",
+    "from-rose-500 to-rose-700",
+    "from-indigo-500 to-indigo-700",
+]
+
+
+@register.filter
+def cover_gradient(obj):
+    """按对象 id 从封面调色板取一对 Tailwind 渐变 class，如 'from-sky-500 to-sky-700'。"""
+    if obj is None or getattr(obj, "id", None) is None:
+        return COVER_GRADIENTS[0]
+    try:
+        return COVER_GRADIENTS[obj.id % len(COVER_GRADIENTS)]
+    except (TypeError, ValueError):
+        return COVER_GRADIENTS[0]

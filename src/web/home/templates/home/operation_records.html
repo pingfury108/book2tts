@@ -3,21 +3,18 @@
 {% block title %}操作记录 - Book2TTS{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-6">
-    <div class="max-w-6xl mx-auto">
+<div class="max-w-5xl mx-auto px-4 sm:px-6 py-6">
         <!-- 页面标题 -->
         <div class="mb-6 flex items-center justify-between">
             <div>
-                <h1 class="text-3xl font-bold text-base-content">操作记录</h1>
-                <p class="text-base-content/70 mt-2">查看您的详细操作历史记录</p>
+                <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">操作记录</h1>
+                <p class="text-sm text-base-content/50 mt-1.5">账户的全部重要操作历史</p>
             </div>
-            <a href="{% url 'profile' %}" class="btn btn-outline">
-                返回个人资料
-            </a>
+            <a href="{% url 'profile' %}" class="btn btn-ghost btn-sm">返回个人资料</a>
         </div>
 
         <!-- 操作记录列表 -->
-        <div class="card bg-base-100 shadow-xl">
+        <div class="card bg-base-100 border border-base-300 shadow-sm">
             <div class="card-body">
                 {% if records %}
                 <div class="overflow-x-auto">
@@ -112,7 +109,7 @@
                 {% else %}
                 <!-- 空状态 -->
                 <div class="text-center py-12">
-                    <div class="text-6xl mb-4">📋</div>
+                    <i class="fas fa-clipboard-list text-6xl text-base-content/20 mb-4"></i>
                     <h3 class="text-xl font-semibold mb-2">暂无操作记录</h3>
                     <p class="text-base-content/70">
                         您还没有任何操作记录。开始使用系统功能后，操作记录将会出现在这里。

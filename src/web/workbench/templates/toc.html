@@ -2,14 +2,14 @@
 <!-- TOC navigation component - optimized for jQuery loading into #src-text with multi-select support -->
 <div class="toc-container h-full flex flex-col">
   <!-- Fixed control bar at the top -->
-  <div class="flex justify-between items-center p-2 border-b border-base-300 bg-base-100 flex-shrink-0">
-    <div class="text-sm text-base-content/70">
+  <div class="flex items-center gap-2 p-2 border-b border-base-300 bg-base-100 flex-shrink-0">
+    <div class="text-xs text-base-content/60 whitespace-nowrap flex-shrink-0">
       <span id="selection-count">选择 0 项</span>
     </div>
-    <div class="flex gap-1">
-      <button id="select-all-btn" class="btn btn-xs btn-ghost">全选</button>
-      <button id="clear-selection-btn" class="btn btn-xs btn-ghost">清除</button>
-      <button id="load-selected-btn" class="btn btn-xs btn-primary" disabled>加载选中</button>
+    <div class="flex gap-1 ml-auto">
+      <button id="select-all-btn" class="btn btn-xs btn-ghost whitespace-nowrap">全选</button>
+      <button id="clear-selection-btn" class="btn btn-xs btn-ghost whitespace-nowrap">清除</button>
+      <button id="load-selected-btn" class="btn btn-xs btn-primary whitespace-nowrap" disabled>加载选中</button>
     </div>
   </div>
   

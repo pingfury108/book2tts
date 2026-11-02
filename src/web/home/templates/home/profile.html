@@ -3,18 +3,18 @@
 {% block title %}个人资料 - Book2TTS{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-6">
+<div class="max-w-4xl mx-auto px-4 sm:px-6 py-6">
     <div class="w-full mx-auto">
         <!-- 页面标题 -->
         <div class="mb-6">
-            <h1 class="text-3xl font-bold text-base-content">个人资料</h1>
-            <p class="text-base-content/70 mt-2">查看您的账户信息和使用情况</p>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">个人资料</h1>
+            <p class="text-sm text-base-content/50 mt-1.5">账户信息、积分与使用统计</p>
         </div>
 
         <!-- 用户基本信息 -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- 用户信息卡片 -->
-            <div class="card bg-base-100 shadow-xl">
+            <div class="card bg-base-100 border border-base-300 shadow-sm">
                 <div class="card-body">
                     <h2 class="card-title flex items-center gap-2">
                         <div class="avatar placeholder">
@@ -52,29 +52,29 @@
             </div>
 
             <!-- 数据统计卡片 -->
-            <div class="card bg-base-100 shadow-xl">
+            <div class="card bg-base-100 border border-base-300 shadow-sm">
                 <div class="card-body">
-                    <h2 class="card-title">📊 数据统计</h2>
+                    <h2 class="card-title">数据统计</h2>
                     
                     <div class="grid grid-cols-2 gap-4">
                         <div class="stat bg-base-200 rounded-lg p-4">
                             <div class="stat-title">书籍总数</div>
-                            <div class="stat-value text-primary">{{ total_books }}</div>
+                            <div class="stat-value text-xl sm:text-2xl">{{ total_books }}</div>
                         </div>
                         
                         <div class="stat bg-base-200 rounded-lg p-4">
                             <div class="stat-title">音频总数</div>
-                            <div class="stat-value text-secondary">{{ total_audio_segments }}</div>
+                            <div class="stat-value text-xl sm:text-2xl">{{ total_audio_segments }}</div>
                         </div>
                         
                         <div class="stat bg-base-200 rounded-lg p-4">
                             <div class="stat-title">已发布</div>
-                            <div class="stat-value text-accent">{{ published_audio_segments }}</div>
+                            <div class="stat-value text-xl sm:text-2xl">{{ published_audio_segments }}</div>
                         </div>
                         
                         <div class="stat bg-base-200 rounded-lg p-4">
                             <div class="stat-title">未发布</div>
-                            <div class="stat-value text-neutral">{{ unpublished_audio_segments }}</div>
+                            <div class="stat-value text-xl sm:text-2xl">{{ unpublished_audio_segments }}</div>
                         </div>
                     </div>
                 </div>
@@ -83,9 +83,9 @@
 
         <!-- 配额信息 -->
         <div class="mt-6">
-            <div class="card bg-base-100 shadow-xl">
+            <div class="card bg-base-100 border border-base-300 shadow-sm">
                 <div class="card-body">
-                    <h2 class="card-title">⚡ 积分信息</h2>
+                    <h2 class="card-title">积分信息</h2>
                     
                     <!-- 积分显示 -->
                     <div class="bg-base-200 rounded-lg p-4">
@@ -138,11 +138,11 @@
 
         <!-- 操作记录 -->
         <div class="mt-6">
-            <div class="card bg-base-100 shadow-xl">
+            <div class="card bg-base-100 border border-base-300 shadow-sm">
                 <div class="card-body">
                     <div class="flex items-center justify-between">
-                        <h2 class="card-title">📋 操作记录</h2>
-                        <a href="{% url 'operation_records' %}" class="btn btn-primary">
+                        <h2 class="card-title">操作记录</h2>
+                        <a href="{% url 'operation_records' %}" class="btn btn-outline btn-primary btn-sm rounded-lg">
                             查看详细记录
                         </a>
                     </div>
@@ -162,7 +162,7 @@
         <form method="dialog">
             <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
         </form>
-        <h3 class="font-bold text-lg mb-4">⚡ 积分扣除规则</h3>
+        <h3 class="font-bold text-lg mb-4">积分扣除规则</h3>
         
         <div class="space-y-4" id="points-rules-content">
             <div class="loading loading-spinner loading-md mx-auto"></div>

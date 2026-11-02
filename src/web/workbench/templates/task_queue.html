@@ -5,8 +5,11 @@
 {% block content %}
 <div class="container mx-auto px-4 py-6">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold">任务队列</h1>
-        <div class="text-sm text-gray-600">
+        <div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">任务队列</h1>
+            <p class="text-sm text-base-content/50 mt-1">生成任务的实时状态</p>
+        </div>
+        <div class="text-sm text-base-content/50">
             共 {{ stats.total }} 个任务
         </div>
     </div>
@@ -15,7 +18,7 @@
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div class="stat bg-base-200 rounded-lg p-4">
             <div class="stat-title">总任务数</div>
-            <div class="stat-value text-primary">{{ stats.total }}</div>
+            <div class="stat-value text-xl sm:text-2xl">{{ stats.total }}</div>
         </div>
         <div class="stat bg-base-200 rounded-lg p-4">
             <div class="stat-title">进行中</div>
@@ -73,12 +76,12 @@
     <!-- 任务列表 -->
     <div class="space-y-4">
         {% for task in tasks %}
-        <div class="card bg-base-100 shadow-md border" data-task-id="{{ task.task_id }}">
+        <div class="card bg-base-100 border border-base-300 shadow-sm" data-task-id="{{ task.task_id }}">
             <div class="card-body">
                 <!-- 移动端：上下布局，桌面端：左右布局 -->
                 <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                     <div class="flex-1">
-                        <h3 class="card-title text-lg">
+                        <h3 class="card-title text-base font-bold">
                             {% if task.book %}
                                 <span class="text-primary">{{ task.book.name }}</span>
                                 {% if task.title %} - {{ task.title }}{% endif %}
@@ -87,7 +90,7 @@
                             {% endif %}
                         </h3>
                         
-                        <div class="text-sm text-gray-600 mt-2">
+                        <div class="text-sm text-base-content/60 mt-2">
                             <!-- 移动端：垂直布局，桌面端：水平布局 -->
                             <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
                                 <span class="break-all sm:break-normal">任务ID: {{ task.task_id }}</span>
@@ -140,25 +143,25 @@
                         
                         <!-- 错误信息 -->
                         {% if task.error_message %}
-                        <div class="mt-3 p-3 bg-error bg-opacity-10 border border-error rounded text-sm">
+                        <div class="mt-3 p-3 bg-error/10 border border-error/30 rounded-lg text-sm">
                             <strong class="text-error">错误:</strong> {{ task.error_message }}
                         </div>
                         {% endif %}
                         
                         <!-- 结果信息 -->
                         {% if task.result_data and task.status == 'success' %}
-                        <div class="mt-3 p-3 bg-success bg-opacity-10 border border-success rounded text-sm">
+                        <div class="mt-3 p-3 bg-success/10 border border-success/30 rounded-lg text-sm">
                             <strong class="text-success">结果:</strong>
                             <div class="mt-1">
                                 {% if task.result_data.audio_url %}
                                     <button 
-                                        class="btn btn-sm btn-primary play-audio-btn" 
+                                        class="btn btn-sm rounded-lg bg-accent hover:bg-accent-focus border-none text-accent-content play-audio-btn" 
                                         data-audio-url="{{ task.result_data.audio_url }}"
                                         data-audio-title="{{ task.title|default:task.book.name }}"
                                         data-chapters-url="{% if task.result_data.chapters_url %}{{ task.result_data.chapters_url }}{% endif %}"
                                         {% if task.result_data.chapters %}data-chapters-target="task-queue-chapters-{{ task.id }}"{% endif %}
                                     >
-                                        🎵 播放音频
+                                        <i class="fas fa-play mr-1"></i>播放音频
                                     </button>
                                     {% if task.result_data.chapters %}
                                         {% with task_id_str=task.id|stringformat:'s' %}
@@ -229,9 +232,9 @@
         </div>
         {% empty %}
         <div class="text-center py-12">
-            <div class="text-6xl mb-4">📋</div>
+            <i class="fas fa-clipboard-list text-6xl text-base-content/20 mb-4"></i>
             <h3 class="text-xl font-medium mb-2">暂无任务</h3>
-            <p class="text-gray-600">
+            <p class="text-base-content/60">
                 {% if current_status == 'all' %}
                     您还没有创建任何任务
                 {% elif current_status == 'processing' %}

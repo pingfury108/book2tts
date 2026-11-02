@@ -16,13 +16,17 @@
 <div id="main-content" class="container mx-auto p-4">
     <!-- Initial Book List View -->
     <div id="book-list-view">
+        <div class="mb-6">
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">有声书成品</h1>
+            <p class="text-sm text-base-content/50 mt-1">已完成的有声书，按书籍分组</p>
+        </div>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for book_name, book_data in books_with_ids.items %}
-            <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer text-base-content"
+            <div class="card bg-base-100 border border-base-300 shadow-sm hover:shadow-2xl transition-all duration-300 cursor-pointer text-base-content"
                 hx-get="/workbench/audio/book-details/{{ book_data.book_id }}/" hx-target="#main-content" hx-swap="innerHTML"
                 hx-trigger="click">
                 <div class="card-body">
-                    <h2 class="card-title text-xl font-bold text-base-content">📚 {{ book_name }}</h2>
+                    <h2 class="card-title text-xl font-bold text-base-content"><i class="fas fa-book text-primary/60 text-lg"></i> {{ book_name }}</h2>
                     <div class="flex justify-between items-center mt-2 text-base-content/80">
                         <div class="badge badge-outline badge-lg">{{ book_data.segments|length }} 个音频</div>
                         <button class="btn btn-sm btn-circle btn-ghost">
@@ -157,9 +161,9 @@
             
             // 添加高亮效果
             targetElement.style.transition = 'all 0.3s ease';
-            targetElement.style.backgroundColor = 'rgba(59, 130, 246, 0.1)'; // 蓝色背景
-            targetElement.style.borderColor = 'rgba(59, 130, 246, 0.3)';
-            targetElement.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.2)';
+            targetElement.style.backgroundColor = 'rgba(234, 88, 12, 0.08)'; // accent 背景
+            targetElement.style.borderColor = 'rgba(234, 88, 12, 0.3)';
+            targetElement.style.boxShadow = '0 0 0 2px rgba(234, 88, 12, 0.15)';
             
             // 3秒后移除高亮效果
             setTimeout(() => {

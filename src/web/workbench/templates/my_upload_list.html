@@ -5,6 +5,10 @@
 {% block content %}
 
 <div class="container mx-auto p-4 max-w-3xl">
+    <div class="mb-6">
+        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">我的书籍</h1>
+        <p class="text-sm text-base-content/50 mt-1">已上传的书籍与处理状态</p>
+    </div>
     <!-- 分页统计信息 -->
     {% if paginator.count > 0 %}
     <div class="card bg-base-100 shadow-sm mb-6">

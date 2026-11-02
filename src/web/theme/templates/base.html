@@ -1,6 +1,6 @@
 {% load static tailwind_tags %}
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="zh-CN" data-theme="light">
 
 <head>
     <title>{% block title %}Book2TTS - 文本转语音和有声书制作平台{% endblock %}</title>
@@ -73,43 +73,61 @@
                     </svg>
                 </div>
                 <ul tabindex="0"
-                    class="menu menu-sm dropdown-content bg-base-100 rounded-box z-50 mt-3 w-52 p-2 shadow">
+                    class="menu menu-sm dropdown-content bg-base-100 rounded-box z-50 mt-3 w-56 p-2 shadow-lg border border-base-300">
                     <li><a href="{% url 'index' %}">制作</a></li>
-                    <li><a href="{% url 'my_upload' %}">我的书籍</a></li>
-                    <li><a href="{% url 'home' %}">我的公开音频</a></li>
+                    <li><a href="{% url 'home' %}">我的作品</a></li>
                     <li>
-                        <a>有声书</a>
+                        <a>书库</a>
                         <ul class="p-2">
-                            <li><a href="{% url 'aggregated_audio_segments' %}">成品</a></li>
-                            <li><a href="{% url 'task_queue' %}">队列</a></li>
+                            <li><a href="{% url 'my_upload' %}">我的书籍</a></li>
+                            <li><a href="{% url 'aggregated_audio_segments' %}">有声书成品</a></li>
+                            <li><a href="{% url 'task_queue' %}">生成队列</a></li>
                             <li><a href="{% url 'dialogue_list' %}">对话脚本</a></li>
                         </ul>
                     </li>
-                    <li><a href="{% url 'explore' %}">探索</a></li>
-                    <li><a href="{% url 'discussion_list' %}">讨论区</a></li>
+                    <li>
+                        <a>发现</a>
+                        <ul class="p-2">
+                            <li><a href="{% url 'explore' %}">探索</a></li>
+                            <li><a href="{% url 'discussion_list' %}">讨论区</a></li>
+                        </ul>
+                    </li>
                     <li><a href="{% url 'about' %}">关于</a></li>
                 </ul>
             </div>
-            <a class="btn btn-ghost text-xl" href="/">Book2TTS</a>
+            <a class="btn btn-ghost px-2 gap-2" href="/">
+                <img src="{% static 'images/logo.png' %}" alt="Book2TTS" class="w-7 h-7 rounded-lg" />
+                <span class="text-lg font-extrabold tracking-tight">Book2TTS</span>
+            </a>
         </div>
         <div class="navbar-center hidden lg:flex">
-            <ul class="menu menu-horizontal px-1">
-                <li><a href="{% url 'index' %}">制作</a></li>
-                <li><a href="{% url 'my_upload' %}">我的书籍</a></li>
-                <li><a href="{% url 'home' %}">我的公开音频</a></li>
+            <ul class="menu menu-horizontal px-1 gap-1 text-[15px] font-medium">
+                <li><a href="{% url 'index' %}"
+                        class="{% if request.resolver_match.url_name == 'index' %}menu-active{% endif %}">制作</a></li>
+                <li><a href="{% url 'home' %}"
+                        class="{% if request.resolver_match.url_name == 'home' or request.resolver_match.url_name == 'book_audio_list' %}menu-active{% endif %}">作品</a></li>
                 <li>
-                    <details data-nav-details="audiobook">
-                        <summary>有声书</summary>
-                        <ul class="p-2 z-50 relative">
-                            <li><a href="{% url 'aggregated_audio_segments' %}">成品</a></li>
-                            <li><a href="{% url 'task_queue' %}">队列</a></li>
+                    <details data-nav-details="library">
+                        <summary class="{% if request.resolver_match.url_name == 'my_upload' or request.resolver_match.url_name == 'aggregated_audio_segments' or request.resolver_match.url_name == 'task_queue' or request.resolver_match.url_name == 'dialogue_list' %}text-primary font-semibold{% endif %}">书库</summary>
+                        <ul class="p-2 z-50 relative w-44 mt-1 shadow-lg rounded-box border border-base-300 bg-base-100">
+                            <li><a href="{% url 'my_upload' %}">我的书籍</a></li>
+                            <li><a href="{% url 'aggregated_audio_segments' %}">有声书成品</a></li>
+                            <li><a href="{% url 'task_queue' %}">生成队列</a></li>
                             <li><a href="{% url 'dialogue_list' %}">对话脚本</a></li>
                         </ul>
                     </details>
                 </li>
-                <li><a href="{% url 'explore' %}">探索</a></li>
-                <li><a href="{% url 'discussion_list' %}">讨论区</a></li>
-                <li><a href="{% url 'about' %}">关于</a></li>
+                <li>
+                    <details data-nav-details="discover">
+                        <summary class="{% if request.resolver_match.url_name == 'explore' or request.resolver_match.url_name == 'discussion_list' or request.resolver_match.url_name == 'discussion_topic_detail' %}text-primary font-semibold{% endif %}">发现</summary>
+                        <ul class="p-2 z-50 relative w-40 mt-1 shadow-lg rounded-box border border-base-300 bg-base-100">
+                            <li><a href="{% url 'explore' %}">探索</a></li>
+                            <li><a href="{% url 'discussion_list' %}">讨论区</a></li>
+                        </ul>
+                    </details>
+                </li>
+                <li><a href="{% url 'about' %}"
+                        class="{% if request.resolver_match.url_name == 'about' %}menu-active{% endif %}">关于</a></li>
             </ul>
         </div>
         <div class="navbar-end gap-2">
@@ -127,7 +145,7 @@
                             <span class="text-lg font-bold">{{ user.username|slice:":2"|upper }}</span>
                         </div>
                         {% else %}
-                        <div class="bg-gray-300 text-gray-600 flex items-center justify-center h-full w-full">
+                        <div class="bg-base-300 text-base-content/60 flex items-center justify-center h-full w-full">
                             <span class="text-lg font-bold">?</span>
                         </div>
                         {% endif %}
@@ -180,7 +198,7 @@
             <!-- 播放器控制区域 -->
             <div class="flex items-center gap-2 sm:gap-3">
                 <!-- 播放/暂停按钮 -->
-                <button id="global-play-btn" class="btn btn-circle btn-sm sm:btn-md btn-primary flex-shrink-0">
+                <button id="global-play-btn" class="btn btn-circle btn-sm sm:btn-md bg-accent hover:bg-accent-focus border-none text-accent-content flex-shrink-0 shadow-md shadow-accent/30">
                     <i class="fas fa-play text-sm"></i>
                 </button>
 
@@ -191,7 +209,7 @@
                         title="章节列表">
                         <i class="fas fa-list-ul text-sm"></i>
                         <span id="global-chapter-availability"
-                            class="hidden absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-primary shadow-md"></span>
+                            class="hidden absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-accent shadow-md"></span>
                     </button>
 
                     <!-- 章节列表面板 -->
@@ -222,14 +240,14 @@
 
                 <!-- 进度条 - 扩展到左侧占用更多空间 -->
                 <div class="flex-1 mx-3 sm:mx-4">
-                    <input type="range" id="progress-slider" class="range range-primary range-xs sm:range-sm w-full"
+                    <input type="range" id="progress-slider" class="range range-accent range-xs sm:range-sm w-full"
                         min="0" max="100" value="0" step="0.1">
                 </div>
 
                 <!-- 音量控制 - 移动到右侧紧凑排列 -->
                 <div class="hidden sm:flex items-center gap-1 flex-shrink-0">
                     <i class="fas fa-volume-up text-base-content/60 text-xs"></i>
-                    <input type="range" id="volume-slider" class="range range-primary range-xs w-12" min="0" max="100"
+                    <input type="range" id="volume-slider" class="range range-accent range-xs w-12" min="0" max="100"
                         value="80">
                 </div>
             </div>
@@ -239,7 +257,7 @@
         </div>
     </div>
 
-    <footer class="footer footer-center text-base-content">
+    <footer class="footer footer-center text-base-content/60 text-sm border-t border-base-300 py-5 mt-8">
         <aside>
             <p>Copyright © {% now "Y" %} pingfury - All rights reserved</p>
         </aside>
@@ -321,26 +339,30 @@
 
     <script>
       document.addEventListener('DOMContentLoaded', function() {
-        const details = document.querySelector('[data-nav-details="audiobook"]');
-        if (!details) {
+        const detailsList = document.querySelectorAll('[data-nav-details]');
+        if (!detailsList.length) {
           return;
         }
 
         document.addEventListener('click', function(event) {
-          if (!details.open) {
-            return;
-          }
-          if (details.contains(event.target)) {
-            return;
-          }
-          details.open = false;
+          detailsList.forEach(function(details) {
+            if (!details.open) {
+              return;
+            }
+            if (details.contains(event.target)) {
+              return;
+            }
+            details.open = false;
+          });
         });
 
-        details.addEventListener('keydown', function(event) {
-          if (event.key === 'Escape' && details.open) {
-            details.open = false;
-            event.preventDefault();
-          }
+        detailsList.forEach(function(details) {
+          details.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape' && details.open) {
+              details.open = false;
+              event.preventDefault();
+            }
+          });
         });
       });
     </script>

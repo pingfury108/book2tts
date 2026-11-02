@@ -4,11 +4,11 @@
 {% block content %}
 <div class="container mx-auto px-4 py-8 max-w-4xl text-base-content">
     <div class="mb-6">
-        <h1 class="text-3xl font-bold">创建对话脚本</h1>
-        <p class="text-base-content/70 mt-2">使用AI将文本内容转换为对话形式的脚本</p>
+        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">创建对话脚本</h1>
+        <p class="text-sm text-base-content/50 mt-1.5">使用AI将文本内容转换为对话形式的脚本</p>
     </div>
 
-    <div class="bg-base-100 shadow-md rounded-lg p-6">
+    <div class="bg-base-100 border border-base-300 shadow-sm rounded-2xl p-6">
         <form id="dialogue-form">
             <div class="mb-6">
                 <label for="title" class="block text-sm font-medium text-base-content mb-2">
@@ -34,7 +34,7 @@
 
             <div class="mb-6">
                 <label for="text" class="block text-sm font-medium text-base-content mb-2">
-                    原始文本内容 <span class="text-red-500">*</span>
+                    原始文本内容 <span class="text-error">*</span>
                 </label>
                 <textarea id="text" name="text" rows="12" 
                           class="textarea textarea-bordered w-full"
