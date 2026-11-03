@@ -57,7 +57,7 @@ def format_text_stream(user, texts, ip_address=None, user_agent=None):
     """Stream formatted text using SSE with proper event handling"""
     try:
         # Initialize LLM service
-        from book2tts.ui import LLMService
+        from book2tts.llm_service import LLMService
         llm_service = LLMService()
         
         # System prompt for text formatting
@@ -223,7 +223,7 @@ def translate_text_stream(user, texts, target_language, ip_address=None, user_ag
     """Stream translated text using SSE with proper event handling and caching"""
     try:
         # Initialize LLM service
-        from book2tts.ui import LLMService
+        from book2tts.llm_service import LLMService
         from ..models import TranslationCache
 
         llm_service = LLMService()
