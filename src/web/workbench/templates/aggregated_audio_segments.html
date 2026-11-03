@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load custom_filters %}
 
 {% block title %}我的音频库 - Book2TTS{% endblock %}
 
@@ -22,31 +23,31 @@
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for book_name, book_data in books_with_ids.items %}
-            <div class="card bg-base-100 border border-base-300 shadow-sm hover:shadow-2xl transition-all duration-300 cursor-pointer text-base-content"
+            <div class="card bg-base-100 border border-base-300 shadow-sm hover:shadow-lg hover:border-primary/30 transition-all duration-200 cursor-pointer text-base-content p-3.5"
                 hx-get="/workbench/audio/book-details/{{ book_data.book_id }}/" hx-target="#main-content" hx-swap="innerHTML"
                 hx-trigger="click">
-                <div class="card-body">
-                    <h2 class="card-title text-xl font-bold text-base-content"><i class="fas fa-book text-primary/60 text-lg"></i> {{ book_name }}</h2>
-                    <div class="flex justify-between items-center mt-2 text-base-content/80">
-                        <div class="badge badge-outline badge-lg">{{ book_data.segments|length }} 个音频</div>
-                        <button class="btn btn-sm btn-circle btn-ghost">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M9 5l7 7-7 7" />
-                            </svg>
-                        </button>
+                <div class="flex items-center gap-3.5">
+                    <div class="w-14 h-[4.6rem] rounded-xl bg-gradient-to-br {{ book_data.book_id|cover_gradient }} text-white flex-shrink-0 flex items-center justify-center text-lg font-bold shadow-sm">
+                        {{ book_name|slice:":1" }}
                     </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm font-bold leading-snug line-clamp-2">{{ book_name }}</div>
+                        <div class="flex items-center gap-1.5 mt-2">
+                            <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-base-200 border border-base-300 text-base-content/60">{{ book_data.segments|length }} 集</span>
+                            <span class="text-[11px] text-base-content/40">有声书成品</span>
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-right text-base-content/30 text-xs flex-shrink-0"></i>
                 </div>
             </div>
             {% empty %}
-            <div class="col-span-full alert alert-info shadow-lg">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                    class="stroke-current shrink-0 w-6 h-6">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <span>您还没有任何音频片段。请先从书籍中创建音频。</span>
+            <div class="col-span-full card bg-base-100 border border-base-300 shadow-sm py-14 text-center">
+                <div class="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-book text-lg"></i>
+                </div>
+                <h3 class="text-sm font-bold">还没有有声书成品</h3>
+                <p class="text-[12.5px] text-base-content/50 mt-1.5">先从书籍中合成音频，成品会自动出现在这里。</p>
+                <div class="mt-4"><a href="{% url 'my_upload' %}" class="btn btn-primary btn-sm rounded-lg">上传书籍</a></div>
             </div>
             {% endfor %}
         </div>

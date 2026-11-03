@@ -92,10 +92,13 @@ COVER_GRADIENTS = [
 
 @register.filter
 def cover_gradient(obj):
-    """按对象 id 从封面调色板取一对 Tailwind 渐变 class，如 'from-sky-500 to-sky-700'。"""
-    if obj is None or getattr(obj, "id", None) is None:
+    """按 id（对象或整数）取封面渐变色，如 'from-sky-500 to-sky-700'。"""
+    if obj is None:
+        return COVER_GRADIENTS[0]
+    raw = obj if isinstance(obj, int) else getattr(obj, "id", None)
+    if raw is None:
         return COVER_GRADIENTS[0]
     try:
-        return COVER_GRADIENTS[obj.id % len(COVER_GRADIENTS)]
+        return COVER_GRADIENTS[int(raw) % len(COVER_GRADIENTS)]
     except (TypeError, ValueError):
         return COVER_GRADIENTS[0]

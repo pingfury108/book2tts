@@ -13,7 +13,7 @@
   {% endif %}
 
   <div class="max-w-6xl mx-auto px-4 sm:px-6">
-  {% if user.is_authenticated and not display_title and audio_segments.object_list %}
+  {% if user.is_authenticated and not book and audio_segments.object_list %}
   {% with first=audio_segments.object_list.0 %}
   <!-- V2 P2：问候头 + 继续收听 featured 卡 -->
   <div class="mb-6">
@@ -124,12 +124,12 @@
                 </div>
                 
                 <!-- 中间内容区 -->
-                <div class="flex-grow sm:mx-4 w-full sm:w-auto">
+                <div class="flex-grow sm:mx-4 w-full sm:w-auto min-w-0">
                   <!-- 标题行 -->
                   <div class="mb-2">
                     <div class="flex items-center gap-2 mb-1">
                       {% if segment.book %}
-                      <a href="{% url 'book_audio_list' segment.book.id %}" class="badge badge-outline border-base-300 bg-base-200 text-base-content/60 text-[11px] font-semibold px-3 py-1 hover:border-primary hover:text-primary transition-colors">{{ segment.book.name }}</a>
+                      <a href="{% url 'book_audio_list' segment.book.id %}" class="inline-block max-w-full truncate badge badge-outline border-base-300 bg-base-200 text-base-content/60 text-[11px] font-semibold px-3 py-1 hover:border-primary hover:text-primary transition-colors" title="{{ segment.book.name }}">{{ segment.book.name }}</a>
                       {% endif %}
                     </div>
                     <h3 class="text-lg sm:text-xl font-bold text-base-content leading-tight">{{ segment.title }}</h3>
@@ -192,12 +192,12 @@
                     <div class="w-12 h-12 rounded-xl bg-gradient-to-br {{ segment.book|cover_gradient }} flex items-center justify-center text-white flex-shrink-0">
                       {% if segment.book %}<span class="text-lg font-bold">{{ segment.book.name|slice:":1" }}</span>{% else %}<i class="fas fa-headphones text-lg"></i>{% endif %}
                     </div>
-                    <div class="flex flex-col">
+                    <div class="flex flex-col min-w-0 flex-1">
                       {% if segment.book %}
                         <a href="{% url 'book_audio_list' segment.book.id %}"
                            class="badge badge-outline border-base-300 bg-base-200 text-base-content/60 text-[11px] sm:text-xs font-semibold inline-flex items-center shrink-0 px-3 hover:border-primary hover:text-primary transition-colors"
                            title="{{ segment.book.name }}">
-                          <span class="block py-0.5 max-w-[9rem] sm:max-w-[12rem] overflow-hidden text-ellipsis whitespace-nowrap text-left leading-tight">
+                          <span class="block py-0.5 max-w-full sm:max-w-[12rem] overflow-hidden text-ellipsis whitespace-nowrap text-left leading-tight">
                             {{ segment.book.name }}
                           </span>
                         </a>

@@ -1600,3 +1600,41 @@ def check_page_audio_status(request, book_id):
     
     except Exception as e:
         return JsonResponse({"status": "error", "message": f"检查音频状态失败: {str(e)}"}, status=500) 
+
+
+@login_required
+@csrf_exempt
+@require_http_methods(["POST"])
+def update_book_category(request, book_id):
+    """更新书籍分类（用于探索页筛选）"""
+    book = get_object_or_404(Books, pk=book_id)
+
+    if book.user != request.user:
+        return JsonResponse({"status": "error", "message": "无权操作该书籍"}, status=403)
+
+    try:
+        import json
+
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+            new_category = data.get("category")
+        else:
+            new_category = request.POST.get("category")
+
+        valid_categories = [choice[0] for choice in Books.CATEGORY_CHOICES]
+        if new_category not in valid_categories:
+            return JsonResponse(
+                {"status": "error", "message": f"无效分类，可选：{valid_categories}"},
+                status=400,
+            )
+
+        book.category = new_category
+        book.save(update_fields=['category', 'updated_at'])
+
+        return JsonResponse({
+            "status": "success",
+            "category": new_category,
+            "display_name": dict(Books.CATEGORY_CHOICES)[new_category],
+        })
+    except json.JSONDecodeError:
+        return JsonResponse({"status": "error", "message": "无效的 JSON 数据"}, status=400)

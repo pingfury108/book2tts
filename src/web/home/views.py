@@ -749,9 +749,10 @@ def operation_records(request):
 
 
 def explore(request):
-    """探索页面 - 显示所有已发布的公开音频，支持搜索"""
+    """探索页面 - 显示所有已发布的公开音频，支持搜索与分类筛选"""
     # 搜索功能
     search_query = request.GET.get('q', '').strip()
+    category_filter = request.GET.get('category', '').strip()
 
     # 使用数据库搜索获取音频内容
     all_audio_items = get_unified_audio_content(
@@ -759,6 +760,16 @@ def explore(request):
         search_query=search_query,
         sort_by_publish_time=True
     )
+
+    # 按书籍分类筛选
+    if category_filter:
+        all_audio_items = [
+            item for item in all_audio_items
+            if item.get('book') and getattr(item['book'], 'category', None) == category_filter
+        ]
+
+    from workbench.models import Books as BooksModel
+    category_choices = BooksModel.CATEGORY_CHOICES
 
     # 分页配置
     display_title = '探索音频作品'
@@ -798,6 +809,8 @@ def explore(request):
         'page_size': page_size,
         'page_size_options': page_size_options,
         'search_query': search_query,
+        'category_choices': category_choices,
+        'category_filter': category_filter,
     }
 
     return render(request, "home/explore.html", context)

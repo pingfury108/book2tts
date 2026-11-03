@@ -101,9 +101,10 @@
         </div>
         <div class="navbar-center hidden lg:flex">
             <ul class="menu menu-horizontal px-1 gap-1 text-[15px] font-medium">
+                {% if user.is_authenticated %}
                 <li>
                     <details data-nav-details="studio">
-                        <summary class="{% if request.resolver_match.url_name == 'my_upload' or request.resolver_match.url_name == 'task_queue' or request.resolver_match.url_name == 'index' %}text-primary font-semibold{% endif %}">工坊</summary>
+                        <summary class="list-none [&::-webkit-details-marker]:hidden cursor-pointer {% if request.resolver_match.url_name == 'my_upload' or request.resolver_match.url_name == 'task_queue' or request.resolver_match.url_name == 'index' %}text-primary font-semibold{% endif %}">工坊</summary>
                         <ul class="p-2 z-50 relative w-40 mt-1 shadow-lg rounded-box border border-base-300 bg-base-100">
                             <li><a href="{% url 'my_upload' %}">我的书籍</a></li>
                             <li><a href="{% url 'task_queue' %}">生成队列</a></li>
@@ -112,7 +113,7 @@
                 </li>
                 <li>
                     <details data-nav-details="library">
-                        <summary class="{% if request.resolver_match.url_name == 'home' or request.resolver_match.url_name == 'book_audio_list' or request.resolver_match.url_name == 'aggregated_audio_segments' or request.resolver_match.url_name == 'dialogue_list' %}text-primary font-semibold{% endif %}">声音库</summary>
+                        <summary class="list-none [&::-webkit-details-marker]:hidden cursor-pointer {% if request.resolver_match.url_name == 'home' or request.resolver_match.url_name == 'book_audio_list' or request.resolver_match.url_name == 'aggregated_audio_segments' or request.resolver_match.url_name == 'dialogue_list' %}text-primary font-semibold{% endif %}">声音库</summary>
                         <ul class="p-2 z-50 relative w-44 mt-1 shadow-lg rounded-box border border-base-300 bg-base-100">
                             <li><a href="{% url 'home' %}">我的作品</a></li>
                             <li><a href="{% url 'aggregated_audio_segments' %}">有声书成品</a></li>
@@ -120,6 +121,7 @@
                         </ul>
                     </details>
                 </li>
+                {% endif %}
                 <li><a href="{% url 'explore' %}"
                         class="{% if request.resolver_match.url_name == 'explore' %}menu-active{% endif %}">探索</a></li>
                 <li><a href="{% url 'discussion_list' %}"
@@ -142,37 +144,31 @@
                     title="切换主题">
                 <i class="fas fa-sun" id="theme-toggle-icon"></i>
             </button>
+            {% if user.is_authenticated %}
             <div class="dropdown dropdown-end">
                 <div tabindex="0" role="button" class="btn btn-ghost btn-circle avatar">
-                    <div class="w-10 rounded-full">
-                        {% if user.is_authenticated %}
+                    <div class="w-9 rounded-full">
                         <div class="bg-primary text-primary-content flex items-center justify-center h-full w-full">
-                            <span class="text-lg font-bold">{{ user.username|slice:":2"|upper }}</span>
+                            <span class="text-sm font-bold">{{ user.username|slice:":2"|upper }}</span>
                         </div>
-                        {% else %}
-                        <div class="bg-base-300 text-base-content/60 flex items-center justify-center h-full w-full">
-                            <span class="text-lg font-bold">?</span>
-                        </div>
-                        {% endif %}
                     </div>
                 </div>
                 <ul tabindex="0"
-                    class="menu menu-sm dropdown-content bg-base-100 rounded-box z-50 mt-3 w-52 p-2 shadow">
-                    {% if user.is_authenticated %}
+                    class="menu menu-sm dropdown-content bg-base-100 rounded-card z-50 mt-3 w-52 p-2 shadow-lg border border-base-300">
                     <li>
                         <a href="{% url 'profile' %}" class="justify-between">
-                            个人资料
-                            <span class="badge">{{ user.username }}</span>
+                            个人中心
+                            <span class="badge badge-sm">{{ user.username }}</span>
                         </a>
                     </li>
-                    <li><a>设置</a></li>
+                    <li><a href="{% url 'operation_records' %}">操作记录</a></li>
                     <li><a href="{% url 'logout' %}">登出</a></li>
-                    {% else %}
-                    <li><a href="{% url 'login' %}">登录</a></li>
-                    <li><a href="{% url 'register' %}">注册</a></li>
-                    {% endif %}
                 </ul>
             </div>
+            {% else %}
+            <a href="{% url 'login' %}" class="btn btn-ghost btn-sm rounded-lg font-semibold hidden sm:inline-flex">登录</a>
+            <a href="{% url 'register' %}" class="btn btn-primary btn-sm rounded-lg">免费注册</a>
+            {% endif %}
         </div>
     </div>
 
@@ -285,7 +281,6 @@
         var btn = document.getElementById('global-search-btn');
         var input = document.getElementById('global-search-input');
         var resultsBox = document.getElementById('global-search-results');
-        var results = [];
         var activeIndex = -1;
         var debounceTimer = null;
 
@@ -306,50 +301,48 @@
           });
         }
 
-        function render() {
-          if (!results.length) {
-            resultsBox.innerHTML = '<div class="px-3 py-6 text-center text-base-content/40">没有匹配的结果</div>';
-            return;
-          }
+        var KIND_LABEL = { work: '作品', book: '书籍', topic: '社区' };
+
+        function render(groups) {
+          var total = 0;
           var html = '';
-          results.forEach(function (group) {
+          groups.forEach(function (g) {
+            if (!g.items || !g.items.length) return;
+            total += g.items.length;
             html += '<div class="px-3 pt-2 pb-1 text-[10.5px] font-bold tracking-widest text-base-content/40">'
-              + escapeHtml(group.group) + '</div>';
-            group.items.forEach(function (item) {
-              results.push(item);
-              var idx = results.length - 1;
-              html += '<a href="' + item.url + '" data-idx="' + idx + '" '
+              + escapeHtml(g.group) + '</div>';
+            g.items.forEach(function (item) {
+              html += '<a href="' + item.url + '" '
                 + 'class="search-hit flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-base-200">'
                 + '<span class="flex-1 min-w-0"><span class="block truncate font-medium text-base-content">'
                 + escapeHtml(item.title) + '</span>'
                 + '<span class="block truncate text-xs text-base-content/50">' + escapeHtml(item.subtitle) + '</span></span>'
-                + '<span class="text-[10px] text-base-content/40">' + escapeHtml(item.kind === 'work' ? '作品'
-                  : item.kind === 'book' ? '书籍' : '社区') + '</span></a>';
+                + '<span class="text-[10px] text-base-content/40 shrink-0">'
+                + escapeHtml(KIND_LABEL[item.kind] || '') + '</span></a>';
             });
           });
-          resultsBox.innerHTML = html;
+          resultsBox.innerHTML = total
+            ? html
+            : '<div class="px-3 py-6 text-center text-base-content/40">没有匹配的结果</div>';
           activeIndex = -1;
         }
 
         function doSearch() {
           var q = input.value.trim();
           if (!q) {
-            results = [];
+            render([]);
             resultsBox.innerHTML = '<div class="px-3 py-6 text-center text-base-content/40">输入关键词开始搜索</div>';
             return;
           }
           fetch('/search/json/?q=' + encodeURIComponent(q))
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-              results = [];
-              (data.groups || []).forEach(function (g) {
-                results.push({ group: g.group });
-                g.items.forEach(function (it) { results.push(it); });
-              });
-              render();
+            .then(function (r) {
+              if (!r.ok) throw new Error('HTTP ' + r.status);
+              return r.json();
             })
-            .catch(function () {
-              resultsBox.innerHTML = '<div class="px-3 py-6 text-center text-error">搜索失败，请稍后重试</div>';
+            .then(function (data) { render(data.groups || []); })
+            .catch(function (err) {
+              resultsBox.innerHTML = '<div class="px-3 py-6 text-center text-error">搜索失败：'
+                + escapeHtml(err.message) + '</div>';
             });
         }
 

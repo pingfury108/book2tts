@@ -24,7 +24,18 @@
         class="input input-bordered w-full rounded-xl pl-10 bg-base-100"
       >
       <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-base-content/40 text-sm pointer-events-none"></i>
+      {% if category_filter %}<input type="hidden" name="category" value="{{ category_filter }}">{% endif %}
     </form>
+  </div>
+
+  <!-- 分类筛选 chips -->
+  <div class="flex flex-wrap items-center gap-2 mb-5">
+    <a href="{% url 'explore' %}{% if search_query %}?q={{ search_query|urlencode }}{% endif %}"
+       class="btn btn-sm rounded-full {% if not category_filter %}btn-primary{% else %}btn-ghost{% endif %}">全部</a>
+    {% for value, label in category_choices %}
+    <a href="?category={{ value }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}"
+       class="btn btn-sm rounded-full {% if category_filter == value %}btn-primary{% else %}btn-ghost{% endif %}">{{ label }}</a>
+    {% endfor %}
   </div>
 
   <!-- 音频列表区域 -->
@@ -104,10 +115,14 @@
         {% endfor %}
       </div>
     {% else %}
-      <div class="alert alert-info shadow-lg">
-        <div>
-          <i class="fas fa-info-circle text-lg"></i>
-          <span>{% if search_query %}没有找到匹配的音频内容。{% else %}暂时没有公开音频。{% endif %}</span>
+      <div class="card bg-base-100 border border-base-300 shadow-sm py-16 text-center">
+        <div class="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
+          <i class="fas fa-compass text-xl"></i>
+        </div>
+        <h3 class="text-base font-bold">{% if search_query %}没有找到匹配的作品{% else %}暂时还没有公开作品{% endif %}</h3>
+        <p class="text-[13px] text-base-content/50 mt-1.5">{% if search_query %}换个关键词试试。{% else %}成为第一个公开作品的人。{% endif %}</p>
+        <div class="mt-5">
+          <a href="{% url 'home' %}" class="btn btn-primary rounded-xl text-sm">返回全部</a>
         </div>
       </div>
     {% endif %}

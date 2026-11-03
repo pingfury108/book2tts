@@ -14,164 +14,42 @@
         </a>
     </div>
     {% if page_obj.object_list %}
-        <div class="bg-base-100 border border-base-300 shadow-sm rounded-xl overflow-hidden">
-            <!-- 移动端卡片视图 -->
-            <div class="md:hidden space-y-4 p-4">
+        <div class="flex flex-col gap-2.5">
                 {% for script in scripts %}
-                <div class="border border-base-200 rounded-lg p-4 bg-base-100 shadow-sm">
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0">
-                            <h2 class="text-lg font-semibold text-base-content truncate">{{ script.title }}</h2>
-                            <div class="mt-1 text-sm text-base-content/70">
-                                {% if script.book %}
-                                    <span class="block truncate">关联书籍：{{ script.book.name }}</span>
-                                {% else %}
-                                    <span class="block text-base-content/60">无关联书籍</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div class="flex-shrink-0">
+                <div class="card bg-base-100 border border-base-300 shadow-sm p-3.5 flex flex-row items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="text-sm font-bold truncate">{{ script.title }}</span>
                             {% if script.audio_file %}
                                 {% if script.published %}
-                                    <span class="badge badge-success badge-sm">已发布</span>
+                                <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-success/10 text-success flex-shrink-0">已发布</span>
                                 {% else %}
-                                    <span class="badge badge-primary badge-sm">已生成</span>
+                                <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary flex-shrink-0">已生成</span>
                                 {% endif %}
                             {% else %}
-                                <span class="badge badge-neutral badge-sm">未生成</span>
+                                <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-base-200 border border-base-300 text-base-content/50 flex-shrink-0">未生成</span>
                             {% endif %}
                         </div>
-                    </div>
-                    <div class="mt-3 grid grid-cols-2 gap-3 text-xs text-base-content/60">
-                        <div>
-                            <div class="text-base-content text-sm font-medium">{{ script.segment_count }}</div>
-                            <div>片段数</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-base-content text-sm font-medium">{{ script.created_at|date:"Y-m-d" }}</div>
-                            <div>创建日期</div>
+                        <div class="text-xs text-base-content/50 mt-1 truncate">
+                            {{ script.segment_count }} 段 ·
+                            {% if script.book %}关联《{{ script.book.name }}》{% else %}无关联书籍{% endif %}
+                            · {{ script.created_at|date:"Y-m-d" }}
                         </div>
                     </div>
-                    <div class="mt-4 flex flex-wrap gap-2">
-                        <a href="{% url 'dialogue_detail' script.id %}"
-                           class="btn btn-outline btn-sm flex-1 min-w-[6rem]">
-                            详情
-                        </a>
-                        {% if script.audio_file and not script.published %}
-                        <button type="button"
-                                onclick="publishScript({{ script.id }})"
-                                class="btn btn-success btn-sm flex-1 min-w-[6rem]">
-                            发布
-                        </button>
+                    <div class="flex items-center gap-1.5 flex-shrink-0">
+                        {% if script.audio_file and script.published == False %}
+                        <button type="button" onclick="publishScript({{ script.id }})"
+                                class="btn btn-ghost btn-sm rounded-lg text-success hover:bg-success/10">发布</button>
                         {% endif %}
-                        <button type="button"
-                                onclick="deleteScript({{ script.id }}, '{{ script.title|escapejs }}')"
-                                class="btn btn-error btn-sm flex-1 min-w-[6rem]">
-                            删除
-                        </button>
+                        <button type="button" onclick="deleteScript({{ script.id }}, '{{ script.title|escapejs }}')"
+                                class="btn btn-ghost btn-sm rounded-lg text-error hover:bg-error/10">删除</button>
+                        <a href="{% url 'dialogue_detail' script.id %}" class="btn btn-ghost btn-sm rounded-lg">打开编辑器 <i class="fas fa-arrow-right text-[10px]"></i></a>
                     </div>
                 </div>
                 {% endfor %}
-            </div>
-
-            <!-- 桌面端表格视图 -->
-            <div class="hidden md:block overflow-x-auto">
-                <table class="min-w-full divide-y divide-base-200 text-base-content">
-                    <thead class="bg-base-200">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap text-base-content/70">
-                                标题
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap text-base-content/70">
-                                关联书籍
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap text-base-content/70">
-                                片段数
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap text-base-content/70">
-                                状态
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap text-base-content/70">
-                                创建时间
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap text-base-content/70">
-                                操作
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-base-100 divide-y divide-base-200">
-                        {% for script in scripts %}
-                        <tr class="hover:bg-base-200/60">
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm font-medium text-base-content max-w-xs">
-                                    <div class="truncate">{{ script.title }}</div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-base-content/70 max-w-xs">
-                                    {% if script.book %}
-                                        <div class="truncate">{{ script.book.name }}</div>
-                                    {% else %}
-                                        <span class="text-base-content/50">无关联书籍</span>
-                                    {% endif %}
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-base-content">
-                                    {{ script.segment_count }} 个片段
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                {% if script.audio_file %}
-                                    {% if script.published %}
-                                        <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-success/10 text-success">
-                                            已发布
-                                        </span>
-                                    {% else %}
-                                        <span class="badge badge-primary badge-sm">
-                                            已生成
-                                        </span>
-                                    {% endif %}
-                                {% else %}
-                                    <span class="badge badge-neutral badge-sm">
-                                        未生成
-                                    </span>
-                                {% endif %}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-base-content/70">
-                                {{ script.created_at|date:"Y-m-d H:i" }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <div class="flex items-center space-x-3">
-                                    <a href="{% url 'dialogue_detail' script.id %}" 
-                                       class="text-primary hover:text-primary-focus">
-                                        详情
-                                    </a>
-                                    {% if script.audio_file and not script.published %}
-                                        <form style="display: inline;" 
-                                              method="post" 
-                                              action="{% url 'dialogue_publish' script.id %}"
-                                              id="publish-form-{{ script.id }}">
-                                            {% csrf_token %}
-                                            <button type="button" 
-                                                    onclick="publishScript({{ script.id }})"
-                                                    class="text-success hover:text-success-focus bg-transparent border-none cursor-pointer underline">
-                                                发布
-                                            </button>
-                                        </form>
-                                    {% endif %}
-                                    <button type="button" 
-                                            onclick="deleteScript({{ script.id }}, '{{ script.title|escapejs }}')" 
-                                            class="text-error hover:text-error-focus bg-transparent border-none cursor-pointer underline">
-                                        删除
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
         </div>
 
         <!-- 分页 -->

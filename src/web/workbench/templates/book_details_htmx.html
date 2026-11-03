@@ -2,32 +2,31 @@
 {% load static %}
 <!-- 响应式容器 -->
 <div class="container mx-auto px-2 sm:px-4 lg:px-6 xl:px-8">
-    <!-- 顶部导航 - 完整响应式设计 -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 mb-4 sm:mb-6 lg:mb-8">
+    <!-- 顶部导航 -->
+    <div class="flex items-center gap-3 flex-wrap mb-4 sm:mb-6">
         <!-- 返回按钮 -->
-        <div class="flex justify-start order-1 sm:order-1">
-            <a href="{% url 'aggregated_audio_segments' %}" class="btn btn-xs sm:btn-sm btn-outline w-full sm:w-auto">
-                <i class="fas fa-arrow-left h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2"></i>
-                <span class="text-xs sm:text-sm">返回书籍列表</span>
-            </a>
-        </div>
+        <a href="{% url 'aggregated_audio_segments' %}" class="btn btn-sm btn-ghost rounded-lg">
+            <i class="fas fa-arrow-left text-xs"></i>
+            <span>返回书籍列表</span>
+        </a>
 
-        <!-- 书籍 Hero：封面 + 书名 + 统计 + 播客 RSS -->
-        <div class="flex items-center gap-4 order-3 sm:order-2 min-w-0">
+        <!-- 书籍 Hero：封面 + 书名 + 统计 -->
+        <div class="flex items-center gap-3.5 min-w-0 flex-1">
             <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br {{ book_cover_gradient|default:"from-violet-500 to-violet-700" }} text-white
                         flex items-center justify-center text-lg font-bold flex-shrink-0">
                 {{ book_name|slice:":1" }}
             </div>
             <div class="min-w-0">
-                <div class="flex items-center gap-2">
-                    <h2 class="text-base sm:text-lg font-extrabold tracking-tight truncate">《{{ book_name }}》</h2>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h1 class="text-lg sm:text-xl font-extrabold tracking-tight truncate">《{{ book_name }}》</h1>
                     {% if total_segments %}
-                    <span class="tag ok" style="font-size:11px">{{ total_segments }} 集</span>
+                    <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-success/10 text-success flex-shrink-0">{{ total_segments }} 集</span>
                     {% endif %}
                 </div>
                 <div class="text-xs text-base-content/50 mt-1">有声书成品 · 点集收听</div>
             </div>
         </div>
+    </div>
 
     <!-- 分页统计信息 - 响应式卡片布局 -->
     {% if paginator.count > 0 %}
@@ -303,8 +302,6 @@
     </script>
     {% endif %}
 
-    <div class="divider my-2 sm:my-4 lg:my-6"></div>
-
     <!-- 音频片段列表 - 响应式网格布局 -->
     <div class="grid grid-cols-1 gap-3 sm:gap-4 lg:gap-6">
         {% for segment in segments %}
@@ -323,23 +320,52 @@
                             class="fas fa-chevron-down transition-transform duration-200 text-base-content/60 hover:text-base-content collapse-icon"></i>
                     </div>
                     <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-6 items-center pr-8">
-                        <!-- 标题 -->
-                        <div class="lg:col-span-9">
-                            <h3 class="text-base sm:text-lg font-bold text-base-content leading-tight break-words pr-2">
-                                {% if segment.type == 'dialogue_script' %}
-                                <i class="fas fa-comments text-primary/50 mr-1.5"></i>{{ segment.title }}
-                                {% else %}
-                                <i class="fas fa-headphones text-primary/50 mr-1.5"></i>{{ segment.title }}
-                                {% endif %}
-                            </h3>
-                            {% if segment.type == 'dialogue_script' and segment.speakers %}
-                            <p class="text-sm text-base-content/70 mt-1">{{ segment.speakers|length }}个角色</p>
-                            {% endif %}
+                        <!-- 标题 + 元信息 -->
+                        <div class="lg:col-span-8 min-w-0">
+                            <div class="flex items-start gap-2.5">
+                                <span class="flex-shrink-0 mt-0.5 w-6 h-6 rounded-lg bg-base-200 border border-base-300 text-[11px] text-base-content/50 flex items-center justify-center font-mono">{{ forloop.counter }}</span>
+                                <div class="min-w-0 flex-1">
+                                    <h3 class="text-sm sm:text-base font-bold text-base-content leading-tight break-words">
+                                        {% if segment.type == 'dialogue_script' %}
+                                        <i class="fas fa-comments text-primary/50 mr-1.5"></i>{{ segment.title }}
+                                        {% else %}
+                                        <i class="fas fa-headphones text-primary/50 mr-1.5"></i>{{ segment.title }}
+                                        {% endif %}
+                                    </h3>
+                                    <div class="flex items-center gap-2 mt-1 text-[11.5px] text-base-content/50 flex-wrap">
+                                        {% if segment.type == 'dialogue_script' and segment.speakers %}
+                                        <span>{{ segment.speakers|length }} 个角色</span><span>·</span>
+                                        {% endif %}
+                                        {% if segment.book_page %}
+                                        <span>{{ segment.book_page }}</span><span>·</span>
+                                        {% endif %}
+                                        <span>{{ segment.updated_at|date:"Y-m-d H:i" }}</span>
+                                        <span class="
+                                            {% if segment.published %}text-success bg-success/10
+                                            {% else %}text-base-content/50 bg-base-200 border border-base-300{% endif %}
+                                            px-1.5 py-0.5 rounded-full font-semibold">
+                                            {% if segment.published %}已发布{% else %}草稿{% endif %}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- 操作按钮组 - 优化桌面端布局 -->
-                        <div class="lg:col-span-3 flex flex-wrap gap-2 lg:gap-4 justify-end lg:justify-end lg:items-center lg:pr-2"
+                        <div class="lg:col-span-4 flex flex-nowrap gap-2 justify-end items-center pr-8 lg:pr-10"
                             onclick="event.stopPropagation()">
+                            <!-- 播放（Q3 中心点：accent 播放键） -->
+                            {% if segment.file_url %}
+                            <button type="button"
+                                    class="btn btn-circle btn-sm bg-accent hover:bg-accent-focus border-none text-accent-content play-audio-btn flex-shrink-0 shadow-md shadow-accent/30"
+                                    title="播放"
+                                    data-audio-url="{{ segment.file_url }}"
+                                    data-audio-title="{{ segment.title }}"
+                                    data-subtitle-url="{% if segment.subtitle_file %}{{ segment.subtitle_file.url }}{% endif %}"
+                                    data-chapters-url="{% if segment.chapters_file %}{{ segment.chapters_file.url }}{% endif %}">
+                                <i class="fas fa-play text-xs ml-0.5"></i>
+                            </button>
+                            {% endif %}
                             <!-- 下载按钮 -->
                             {% if segment.file_url %}
                             <a href="{% url 'download_audio' segment_type=segment.type segment_id=segment.id %}" class="btn btn-ghost btn-sm rounded-lg text-base-content/60 hover:text-primary touch-manipulation flex-shrink-0" title="下载音频（保存为：{{ segment.title }}.wav）">

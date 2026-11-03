@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}页面走丢了 - Book2TTS{% endblock %}
+
+{% block content %}
+<div class="min-h-[60vh] flex flex-col items-center justify-center text-center px-6 py-16">
+  <div class="text-[80px] font-extrabold leading-none text-base-content/10 select-none">404</div>
+  <h1 class="text-xl font-extrabold tracking-tight mt-4">页面走丢了</h1>
+  <p class="text-sm text-base-content/50 mt-2 max-w-sm leading-relaxed">
+    你要找的页面不存在，或者已经被移动了。
+  </p>
+  <div class="flex items-center gap-3 mt-7">
+    <a href="/" class="btn btn-primary rounded-xl">返回首页</a>
+    <a href="{% url 'explore' %}" class="btn btn-ghost rounded-xl">去探索听听</a>
+  </div>
+</div>
+{% endblock %}

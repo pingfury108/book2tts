@@ -85,9 +85,12 @@ def book_details_htmx(request, book_id):
         "segments": segments,
         "page_obj": segments_page,
         "paginator": paginator,
-        "is_htmx": True,
+        "is_htmx": request.headers.get("HX-Request") == "true",
         "total_segments": paginator.count,
         "page_size": page_size,
         "page_size_options": [5, 10, 20, 30, 50],
     }
-    return render(request, "book_details_htmx.html", context)
+    # HTMX 局部刷新返回片段；直接访问（刷新/分享链接）返回带导航和样式的完整页
+    if context["is_htmx"]:
+        return render(request, "book_details_htmx.html", context)
+    return render(request, "book_details_page.html", context)

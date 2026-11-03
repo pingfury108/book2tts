@@ -44,6 +44,19 @@ module.exports = {
     theme: {
         extend: {},
     },
+    /*
+     * 封面调色板：这些 class 由 cover_gradient 过滤器动态拼接，
+     * Tailwind JIT 扫不到源码，必须 safelist（对应 workbench/templatetags/custom_filters.py）。
+     */
+    safelist: [
+        'from-violet-500', 'to-violet-700',
+        'from-sky-500', 'to-sky-700',
+        'from-emerald-500', 'to-emerald-700',
+        'from-amber-500', 'to-amber-600',
+        'from-rose-500', 'to-rose-700',
+        'from-indigo-500', 'to-indigo-700',
+        'bg-gradient-to-br',
+    ],
     daisyui: {
         /*
          * B2T 设计系统 token（designs/b2t-ui-redesign/F 画板）：

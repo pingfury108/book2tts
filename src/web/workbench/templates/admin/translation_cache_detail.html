@@ -85,9 +85,9 @@
                                 <tr>
                                     <td><strong>翻译比率</strong></td>
                                     <td>
-                                        {% if cache.original_text|length > 0 %}
-                                            {{ cache.translated_text|length|floatformat:0 }}:{{ cache.original_text|length|floatformat:0 }}
-                                            ({{ cache.translated_text|length|div:cache.original_text|length|floatformat:2 }}x)
+                                        {% if original_len %}
+                                            {{ translated_len }}:{{ original_len }}
+                                            ({{ translate_ratio }}x)
                                         {% else %}
                                             N/A
                                         {% endif %}

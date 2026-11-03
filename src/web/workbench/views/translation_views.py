@@ -57,8 +57,16 @@ def translation_cache_detail(request, cache_id):
     """翻译缓存详情页面"""
     cache = get_object_or_404(TranslationCache, id=cache_id)
 
+    # 翻译膨胀比（译文长度 / 原文长度），模板中直接展示
+    original_len = len(cache.original_text or "")
+    translated_len = len(cache.translated_text or "")
+    ratio = round(translated_len / original_len, 2) if original_len else None
+
     context = {
         'cache': cache,
+        'original_len': original_len,
+        'translated_len': translated_len,
+        'translate_ratio': ratio,
     }
 
     return render(request, 'admin/translation_cache_detail.html', context)

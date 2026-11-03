@@ -57,14 +57,14 @@
             </div>
             <div class="flex flex-row justify-between items-center w-full min-w-0">
                 <!-- 显示模式 -->
-                <div id="view-mode-{{ book.id }}" class="flex flex-row justify-between items-center w-full">
-                    <a class="flex-grow flex items-center gap-2 min-w-0" href="{% url 'index' book_id=book.id %}">
-                        <span class="book-name font-medium text-base-content truncate" id="book-name-{{ book.id }}">{{ book.name }}</span>
-                        <span class="badge badge-accent text-accent-content badge-sm flex-shrink-0">{{ book.file_type }}</span>
+                <div id="view-mode-{{ book.id }}" class="flex flex-col w-full min-w-0">
+                    <a class="block min-w-0 w-full" href="{% url 'index' book_id=book.id %}">
+                        <span class="book-name font-semibold text-sm text-base-content truncate block" id="book-name-{{ book.id }}">{{ book.name }}</span>
                     </a>
-                    <div class="flex flex-row gap-2 items-center flex-shrink-0 ml-2">
+                    <div class="flex flex-wrap gap-1.5 items-center mt-1.5 min-w-0">
+                        <span class="text-[10.5px] font-semibold px-1.5 py-0.5 rounded-full bg-base-200 border border-base-300 text-base-content/50 flex-shrink-0">{{ book.file_type }}</span>
                         {% if book.file_type == ".pdf" %}
-                        <span class="pdf-type-badge badge badge-sm cursor-pointer hover:bg-primary hover:text-primary-content transition-colors duration-200 whitespace-nowrap" 
+                        <span class="pdf-type-badge text-[10.5px] font-semibold px-1.5 py-0.5 rounded-full bg-base-200 border border-base-300 cursor-pointer hover:bg-primary hover:text-primary-content transition-colors duration-200 whitespace-nowrap" 
                               id="pdf-type-badge-{{ book.id }}"
                               onclick="togglePdfType('{{ book.id }}', '{{ book.pdf_type }}')"
                               title="点击修改PDF类型">
@@ -77,20 +77,28 @@
                             {% endif %}
                         </span>
                         {% endif %}
-                        <button class="btn btn-sm btn-ghost btn-circle hover:bg-base-300 flex-shrink-0" 
+                        <button type="button"
+                                class="text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold whitespace-nowrap hover:bg-primary/20 transition-colors flex-shrink-0"
+                                onclick="cycleBookCategory('{{ book.id }}', '{{ book.category }}')"
+                                title="点击切换分类">
+                            {{ book.get_category_display }}
+                        </button>
+                        <div class="flex gap-0.5 items-center flex-shrink-0 ml-auto">
+                        <button class="btn btn-xs btn-ghost btn-circle hover:bg-base-300 flex-shrink-0" 
                                 onclick="startEditBookName('{{ book.id }}', '{{ book.name }}')"
                                 title="编辑书名">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
                             </svg>
                         </button>
-                        <button class="btn btn-sm btn-ghost btn-circle hover:bg-error hover:text-error-content transition-colors duration-200 flex-shrink-0" 
+                        <button class="btn btn-xs btn-ghost btn-circle hover:bg-error hover:text-error-content transition-colors duration-200 flex-shrink-0" 
                                 onclick="confirmDeleteBook('{{ book.id }}', '{{ book.name }}')"
                                 title="删除书籍">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
                             </svg>
                         </button>
+                        </div>
                     </div>
                 </div>
                 
@@ -582,6 +590,41 @@ function showToast(message, type = 'info') {
 }
 
 // Toggle PDF type function
+// 循环切换书籍分类（探索页筛选用）
+const BOOK_CATEGORY_CYCLE = ['fiction', 'history', 'scifi', 'essay', 'study', 'other'];
+const BOOK_CATEGORY_LABELS = {
+    fiction: '小说', history: '历史', scifi: '科幻',
+    essay: '散文', study: '学习', other: '其他'
+};
+
+function cycleBookCategory(bookId, currentCategory) {
+    const idx = BOOK_CATEGORY_CYCLE.indexOf(currentCategory);
+    const nextCategory = BOOK_CATEGORY_CYCLE[(idx + 1) % BOOK_CATEGORY_CYCLE.length];
+
+    fetch(`/workbench/book/${bookId}/update-category/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify({ category: nextCategory })
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+        if (data.status === 'success') {
+            if (typeof showToast === 'function') {
+                showToast('分类已改为：' + data.display_name, 'success');
+            }
+            location.reload();
+        } else if (typeof showToast === 'function') {
+            showToast(data.message || '修改失败', 'error');
+        }
+    })
+    .catch(function (err) {
+        if (typeof showToast === 'function') showToast('网络错误：' + err.message, 'error');
+    });
+}
+
 function togglePdfType(bookId, currentType) {
     // Create modal HTML for PDF type selection
     const nextType = currentType === 'text' ? 'scanned' : 

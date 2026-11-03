@@ -17,6 +17,15 @@ class Books(models.Model):
         ('text', '文本版'),
         ('scanned', '扫描版'),
     ]
+
+    CATEGORY_CHOICES = [
+        ('fiction', '小说'),
+        ('history', '历史'),
+        ('scifi', '科幻'),
+        ('essay', '散文'),
+        ('study', '学习'),
+        ('other', '其他'),
+    ]
     
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='books', null=True, blank=True)
     name = models.TextField(default="")
@@ -24,6 +33,7 @@ class Books(models.Model):
     file = models.FileField(upload_to='books/%Y/%m/%d/')
     md5_hash = models.CharField(max_length=32, blank=True, db_index=True, help_text="文件的MD5哈希值，用于检测重复文件")
     pdf_type = models.CharField(max_length=20, choices=PDF_TYPE_CHOICES, default='unknown', help_text="PDF类型：文本版或扫描版")
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='other', db_index=True, help_text="书籍分类，用于探索页筛选")
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(default=timezone.now)
 
