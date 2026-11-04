@@ -46,18 +46,12 @@ django==6.1.2
     # via book2tts
     # via django-browser-reload
     # via django-htmx
-    # via django-stubs-ext
     # via django-tailwind
-    # via django-tasks-db
 django-browser-reload==1.16.0
     # via django-tailwind
 django-htmx==1.21.0
     # via book2tts
-django-stubs-ext==6.1.2
-    # via django-tasks-db
 django-tailwind==3.8.0
-    # via book2tts
-django-tasks-db @ git+https://github.com/RealOrangeOne/django-tasks-db.git@5c7cbd1d015bd6cc6bbc1c7f35ff2cef839d2f13
     # via book2tts
 ebooklib==0.18
     # via book2tts
@@ -152,8 +146,6 @@ truststore==0.10.5
     # via httpx2
 typing-extensions==4.16.0
     # via anyio
-    # via django-stubs-ext
-    # via django-tasks-db
     # via edge-tts
     # via httpx2
     # via openai

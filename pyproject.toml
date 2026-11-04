@@ -12,7 +12,6 @@ dependencies = [
     "pymupdf>=1.24.12",
     "volcengine>=1.0.157",
     "django>=6.1",
-    "django-tasks-db @ git+https://github.com/RealOrangeOne/django-tasks-db.git@5c7cbd1d015bd6cc6bbc1c7f35ff2cef839d2f13",
     "django-tailwind[reload]>=3.8.0",
     "pip>=24.2",
     "django-htmx>=1.21.0",
@@ -49,7 +48,7 @@ dev-dependencies = [
 allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/book2tts", "src/web"]
+packages = ["src/book2tts", "src/web", "src/django_tasks_db"]
 
 [tool.pyright]
 extraPaths = [".venv/lib/python3.12/"]
