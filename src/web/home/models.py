@@ -1,3 +1,4 @@
+from django.utils.translation import gettext_lazy as _
 from django.db import models
 from django.conf import settings
 from django.db.models.signals import post_save
@@ -12,19 +13,19 @@ class UserQuota(models.Model):
         settings.AUTH_USER_MODEL, 
         on_delete=models.CASCADE, 
         related_name='quota',
-        verbose_name='用户'
+        verbose_name=_('用户')
     )
     
     # 用户积分
     points = models.PositiveIntegerField(
         default=1000,  # 默认1000积分
-        verbose_name='用户积分',
-        help_text='用户可用于音频生成和OCR处理的积分'
+        verbose_name=_('用户积分'),
+        help_text=_('用户可用于音频生成和OCR处理的积分')
     )
     
     # 创建和更新时间
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_('创建时间'))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_('更新时间'))
     
     class Meta:
         verbose_name = '用户配额'
@@ -68,52 +69,52 @@ class OperationRecord(models.Model):
     
     # 操作类型选择
     OPERATION_TYPES = [
-        ('audio_create', '音频创建'),
-        ('audio_delete', '音频删除'),
-        ('file_upload', '文件上传'),
-        ('file_delete', '文件删除'),
-        ('quota_consume', '配额消耗'),
-        ('quota_add', '配额增加'),
-        ('user_login', '用户登录'),
-        ('user_logout', '用户登出'),
-        ('system_operation', '系统操作'),
-        ('other', '其他操作'),
+        ('audio_create', _('音频创建')),
+        ('audio_delete', _('音频删除')),
+        ('file_upload', _('文件上传')),
+        ('file_delete', _('文件删除')),
+        ('quota_consume', _('配额消耗')),
+        ('quota_add', _('配额增加')),
+        ('user_login', _('用户登录')),
+        ('user_logout', _('用户登出')),
+        ('system_operation', _('系统操作')),
+        ('other', _('其他操作')),
     ]
     
     # 操作状态
     STATUS_CHOICES = [
-        ('success', '成功'),
-        ('failed', '失败'),
-        ('pending', '进行中'),
-        ('cancelled', '已取消'),
+        ('success', _('成功')),
+        ('failed', _('失败')),
+        ('pending', _('进行中')),
+        ('cancelled', _('已取消')),
     ]
     
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='operation_records',
-        verbose_name='用户',
-        help_text='执行操作的用户'
+        verbose_name=_('用户'),
+        help_text=_('执行操作的用户')
     )
     
     operation_type = models.CharField(
         max_length=50,
         choices=OPERATION_TYPES,
-        verbose_name='操作类型',
-        help_text='操作的类型分类'
+        verbose_name=_('操作类型'),
+        help_text=_('操作的类型分类')
     )
     
     operation_object = models.CharField(
         max_length=200,
-        verbose_name='操作对象',
-        help_text='操作的目标对象，如文件名、音频ID等',
+        verbose_name=_('操作对象'),
+        help_text=_('操作的目标对象，如文件名、音频ID等'),
         blank=True,
         null=True
     )
     
     operation_detail = models.TextField(
-        verbose_name='详细描述',
-        help_text='操作的详细描述信息',
+        verbose_name=_('详细描述'),
+        help_text=_('操作的详细描述信息'),
         blank=True,
         null=True
     )
@@ -122,37 +123,37 @@ class OperationRecord(models.Model):
         max_length=20,
         choices=STATUS_CHOICES,
         default='success',
-        verbose_name='操作状态'
+        verbose_name=_('操作状态')
     )
     
     # 额外的元数据信息（JSON格式）
     metadata = models.JSONField(
         default=dict,
         blank=True,
-        verbose_name='元数据',
-        help_text='操作相关的额外信息，如文件大小、音频时长等'
+        verbose_name=_('元数据'),
+        help_text=_('操作相关的额外信息，如文件大小、音频时长等')
     )
     
     # IP地址
     ip_address = models.GenericIPAddressField(
-        verbose_name='IP地址',
+        verbose_name=_('IP地址'),
         blank=True,
         null=True,
-        help_text='操作时的IP地址'
+        help_text=_('操作时的IP地址')
     )
     
     # 用户代理
     user_agent = models.TextField(
-        verbose_name='用户代理',
+        verbose_name=_('用户代理'),
         blank=True,
         null=True,
-        help_text='操作时的浏览器信息'
+        help_text=_('操作时的浏览器信息')
     )
     
     # 创建时间
     created_at = models.DateTimeField(
         auto_now_add=True,
-        verbose_name='操作时间'
+        verbose_name=_('操作时间')
     )
     
     class Meta:
@@ -208,17 +209,17 @@ class PointsConfig(models.Model):
     
     # 操作类型选择
     OPERATION_TYPES = [
-        ('audio_generation', '音频生成'),
-        ('ocr_processing', 'OCR处理'),
-        ('llm_usage', 'LLM调用'),
+        ('audio_generation', _('音频生成')),
+        ('ocr_processing', _('OCR处理')),
+        ('llm_usage', _('LLM调用')),
     ]
     
     operation_type = models.CharField(
         max_length=50,
         choices=OPERATION_TYPES,
         unique=True,
-        verbose_name='操作类型',
-        help_text='选择要配置的操作类型'
+        verbose_name=_('操作类型'),
+        help_text=_('选择要配置的操作类型')
     )
     
     points_per_unit = models.IntegerField(
@@ -227,31 +228,31 @@ class PointsConfig(models.Model):
             django.core.validators.MinValueValidator(0),
             django.core.validators.MaxValueValidator(10000)
         ],
-        verbose_name='每单位积分',
-        help_text='每个单位操作需要的积分数'
+        verbose_name=_('每单位积分'),
+        help_text=_('每个单位操作需要的积分数')
     )
     
     unit_name = models.CharField(
         max_length=50,
         default='次',
-        verbose_name='单位名称',
-        help_text='计费单位名称，如：秒、页、次等'
+        verbose_name=_('单位名称'),
+        help_text=_('计费单位名称，如：秒、页、次等')
     )
     
     is_active = models.BooleanField(
         default=True,
-        verbose_name='是否启用',
-        help_text='是否启用此积分规则'
+        verbose_name=_('是否启用'),
+        help_text=_('是否启用此积分规则')
     )
     
     description = models.TextField(
         blank=True,
-        verbose_name='规则描述',
-        help_text='对此积分规则的详细描述'
+        verbose_name=_('规则描述'),
+        help_text=_('对此积分规则的详细描述')
     )
     
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_('创建时间'))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_('更新时间'))
     
     class Meta:
         verbose_name = '积分配置'
@@ -268,97 +269,97 @@ class SiteConfig(models.Model):
     # Google Ads 配置
     google_ads_enabled = models.BooleanField(
         default=False,
-        verbose_name='启用 Google Ads',
-        help_text='是否在网站中启用 Google Ads 脚本'
+        verbose_name=_('启用 Google Ads'),
+        help_text=_('是否在网站中启用 Google Ads 脚本')
     )
 
     google_ads_script = models.TextField(
         blank=True,
-        verbose_name='Google Ads 脚本',
-        help_text='Google Ads 的 JavaScript 脚本代码'
+        verbose_name=_('Google Ads 脚本'),
+        help_text=_('Google Ads 的 JavaScript 脚本代码')
     )
 
     # ads.txt 内容
     ads_txt_content = models.TextField(
         blank=True,
-        verbose_name='ads.txt 内容',
-        help_text='ads.txt 文件的内容，用于广告验证'
+        verbose_name=_('ads.txt 内容'),
+        help_text=_('ads.txt 文件的内容，用于广告验证')
     )
 
     # SEO 配置
     site_description = models.TextField(
         blank=True,
-        verbose_name='站点描述',
-        help_text='站点的 meta description，用于 SEO'
+        verbose_name=_('站点描述'),
+        help_text=_('站点的 meta description，用于 SEO')
     )
 
     site_keywords = models.TextField(
         blank=True,
-        verbose_name='站点关键词',
-        help_text='站点的 meta keywords，用于 SEO'
+        verbose_name=_('站点关键词'),
+        help_text=_('站点的 meta keywords，用于 SEO')
     )
 
     # S3 对象存储配置
     s3_enabled = models.BooleanField(
         default=False,
-        verbose_name='启用 S3 对象存储',
-        help_text='是否启用 S3 对象存储（启用后文件将上传到S3）'
+        verbose_name=_('启用 S3 对象存储'),
+        help_text=_('是否启用 S3 对象存储（启用后文件将上传到S3）')
     )
 
     s3_access_key_id = models.CharField(
         max_length=255,
         blank=True,
         verbose_name='S3 Access Key ID',
-        help_text='S3 访问密钥 ID'
+        help_text=_('S3 访问密钥 ID')
     )
 
     s3_secret_access_key = models.CharField(
         max_length=255,
         blank=True,
         verbose_name='S3 Secret Access Key',
-        help_text='S3 秘密访问密钥'
+        help_text=_('S3 秘密访问密钥')
     )
 
     s3_bucket_name = models.CharField(
         max_length=255,
         blank=True,
-        verbose_name='S3 存储桶名称',
-        help_text='S3 存储桶名称'
+        verbose_name=_('S3 存储桶名称'),
+        help_text=_('S3 存储桶名称')
     )
 
     s3_region = models.CharField(
         max_length=50,
         blank=True,
         default='us-east-1',
-        verbose_name='S3 区域',
-        help_text='S3 存储区域（如：us-east-1, cn-north-1）'
+        verbose_name=_('S3 区域'),
+        help_text=_('S3 存储区域（如：us-east-1, cn-north-1）')
     )
 
     s3_endpoint_url = models.CharField(
         max_length=255,
         blank=True,
-        verbose_name='S3 端点URL',
-        help_text='S3 兼容服务的端点URL（如使用其他S3兼容服务）'
+        verbose_name=_('S3 端点URL'),
+        help_text=_('S3 兼容服务的端点URL（如使用其他S3兼容服务）')
     )
 
     s3_custom_domain = models.CharField(
         max_length=255,
         blank=True,
-        verbose_name='S3 自定义域名',
-        help_text='S3 自定义域名（用于CDN加速）'
+        verbose_name=_('S3 自定义域名'),
+        help_text=_('S3 自定义域名（用于CDN加速）')
     )
 
     s3_prefix = models.CharField(
         max_length=100,
         blank=True,
         default='media/',
-        verbose_name='S3 路径前缀',
-        help_text='S3 存储路径前缀'
+        verbose_name=_('S3 路径前缀'),
+        help_text=_('S3 存储路径前缀')
     )
 
     # 创建和更新时间
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_('创建时间'))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_('更新时间'))
 
     class Meta:
         verbose_name = '站点配置'
@@ -401,77 +402,77 @@ class DiscussionTopic(models.Model):
 
     # 主题分类
     CATEGORY_CHOICES = [
-        ('general', '综合讨论'),
-        ('technical', '技术交流'),
-        ('feedback', '反馈建议'),
-        ('help', '求助问答'),
-        ('announcement', '公告通知'),
-        ('other', '其他话题'),
+        ('general', _('综合讨论')),
+        ('technical', _('技术交流')),
+        ('feedback', _('反馈建议')),
+        ('help', _('求助问答')),
+        ('announcement', _('公告通知')),
+        ('other', _('其他话题')),
     ]
 
     title = models.CharField(
         max_length=200,
-        verbose_name='主题标题',
-        help_text='讨论主题的标题'
+        verbose_name=_('主题标题'),
+        help_text=_('讨论主题的标题')
     )
 
     content = models.TextField(
-        verbose_name='主题内容',
-        help_text='主题的详细描述和内容'
+        verbose_name=_('主题内容'),
+        help_text=_('主题的详细描述和内容')
     )
 
     category = models.CharField(
         max_length=20,
         choices=CATEGORY_CHOICES,
         default='general',
-        verbose_name='主题分类',
-        help_text='选择主题的分类'
+        verbose_name=_('主题分类'),
+        help_text=_('选择主题的分类')
     )
 
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='discussion_topics',
-        verbose_name='创建者',
-        help_text='创建此主题的用户'
+        verbose_name=_('创建者'),
+        help_text=_('创建此主题的用户')
     )
 
     # 主题状态
     is_pinned = models.BooleanField(
         default=False,
-        verbose_name='是否置顶',
-        help_text='是否将此主题置顶显示'
+        verbose_name=_('是否置顶'),
+        help_text=_('是否将此主题置顶显示')
     )
 
     is_closed = models.BooleanField(
         default=False,
-        verbose_name='是否关闭',
-        help_text='是否关闭此主题，关闭后不能回复'
+        verbose_name=_('是否关闭'),
+        help_text=_('是否关闭此主题，关闭后不能回复')
     )
 
     # 统计信息
     view_count = models.PositiveIntegerField(
         default=0,
-        verbose_name='查看次数',
-        help_text='主题被查看的次数'
+        verbose_name=_('查看次数'),
+        help_text=_('主题被查看的次数')
     )
 
     reply_count = models.PositiveIntegerField(
         default=0,
-        verbose_name='回复数量',
-        help_text='主题下的回复数量'
+        verbose_name=_('回复数量'),
+        help_text=_('主题下的回复数量')
     )
 
     last_reply_at = models.DateTimeField(
         null=True,
         blank=True,
-        verbose_name='最后回复时间',
-        help_text='最后一条回复的时间'
+        verbose_name=_('最后回复时间'),
+        help_text=_('最后一条回复的时间')
     )
 
     # 创建和更新时间
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_('创建时间'))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_('更新时间'))
 
     class Meta:
         verbose_name = '讨论主题'
@@ -528,8 +529,8 @@ class Comment(models.Model):
 
     # 留言内容
     content = models.TextField(
-        verbose_name='留言内容',
-        help_text='留言的具体内容'
+        verbose_name=_('留言内容'),
+        help_text=_('留言的具体内容')
     )
 
     # 留言者
@@ -537,21 +538,21 @@ class Comment(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='comments',
-        verbose_name='留言者',
-        help_text='发表留言的用户'
+        verbose_name=_('留言者'),
+        help_text=_('发表留言的用户')
     )
 
     # 通用外键关联（支持任何模型）
     content_type = models.ForeignKey(
         'contenttypes.ContentType',
         on_delete=models.CASCADE,
-        verbose_name='关联模型',
-        help_text='留言关联的模型类型'
+        verbose_name=_('关联模型'),
+        help_text=_('留言关联的模型类型')
     )
 
     object_id = models.PositiveIntegerField(
-        verbose_name='关联对象ID',
-        help_text='留言关联的对象ID'
+        verbose_name=_('关联对象ID'),
+        help_text=_('留言关联的对象ID')
     )
 
     # 父级留言（支持回复）
@@ -561,13 +562,13 @@ class Comment(models.Model):
         null=True,
         blank=True,
         related_name='replies',
-        verbose_name='父级留言',
-        help_text='如果是回复留言，则指向被回复的留言'
+        verbose_name=_('父级留言'),
+        help_text=_('如果是回复留言，则指向被回复的留言')
     )
 
     # 创建和更新时间
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_('创建时间'))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_('更新时间'))
 
     class Meta:
         verbose_name = '留言'

@@ -7,6 +7,9 @@ from .models import DiscussionTopic
 
 
 class StaticViewSitemap(Sitemap):
+    i18n = True
+    alternates = True
+    x_default = True
     changefreq = "daily"
 
     def items(self):
@@ -20,11 +23,14 @@ class StaticViewSitemap(Sitemap):
 
 
 class AudioSegmentSitemap(Sitemap):
+    i18n = True
+    alternates = True
+    x_default = True
     changefreq = "weekly"
     priority = 0.8
 
     def items(self):
-        return AudioSegment.objects.filter(published=True)
+        return AudioSegment.objects.filter(published=True).order_by("id")
 
     def lastmod(self, obj):
         return obj.updated_at
@@ -37,11 +43,14 @@ class AudioSegmentSitemap(Sitemap):
 
 
 class DialogueScriptSitemap(Sitemap):
+    i18n = True
+    alternates = True
+    x_default = True
     changefreq = "weekly"
     priority = 0.8
 
     def items(self):
-        return DialogueScript.objects.filter(published=True, audio_file__isnull=False)
+        return DialogueScript.objects.filter(published=True, audio_file__isnull=False).order_by("id")
 
     def lastmod(self, obj):
         return obj.updated_at
@@ -54,14 +63,19 @@ class DialogueScriptSitemap(Sitemap):
 
 
 class BookSitemap(Sitemap):
+    i18n = True
+    alternates = True
+    x_default = True
     changefreq = "weekly"
     priority = 0.6
 
     def items(self):
         # 只收录有已发布音频的书籍，避免空页面
-        return Books.objects.filter(
-            audio_segments__published=True,
-        ).distinct()
+        return (
+            Books.objects.filter(audio_segments__published=True)
+            .distinct()
+            .order_by("id")
+        )
 
     def lastmod(self, obj):
         return obj.updated_at
@@ -71,11 +85,14 @@ class BookSitemap(Sitemap):
 
 
 class DiscussionTopicSitemap(Sitemap):
+    i18n = True
+    alternates = True
+    x_default = True
     changefreq = "daily"
     priority = 0.5
 
     def items(self):
-        return DiscussionTopic.objects.all()
+        return DiscussionTopic.objects.all().order_by("id")
 
     def lastmod(self, obj):
         return obj.updated_at

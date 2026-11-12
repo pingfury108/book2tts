@@ -1,25 +1,25 @@
-{% load static %}
+{% load static i18n %}
 <div class="max-w-6xl mx-auto px-4 sm:px-6 pt-8 sm:pt-14 pb-2">
   <div class="grid lg:grid-cols-[1.02fr_.98fr] gap-12 items-center">
     <!-- 左：价值主张 + 单一主 CTA（左对齐） -->
     <div>
       <span class="inline-flex items-center gap-2 text-[13px] font-medium text-base-content/60 border border-base-300 bg-base-100 rounded-full px-3.5 py-1.5">
         <span class="w-[7px] h-[7px] rounded-full bg-accent"></span>
-        EPUB / PDF → 有声书 → 播客 RSS
+        {% translate "EPUB / PDF → 有声书 → 播客 RSS" %}
       </span>
       <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight leading-[1.22] mt-5">
-        把一本书，<br />变成<span class="relative inline-block"><span class="relative z-10">一档节目</span><span class="absolute left-0 right-0 bottom-1 h-3.5 bg-orange-300/60 dark:bg-orange-400/30 rounded -z-0" style="z-index:0"></span></span>。
+        {% translate "把一本书，" %}<br />{% translate "变成" %}<span class="relative inline-block"><span class="relative z-10">{% translate "一档节目" %}</span><span class="absolute left-0 right-0 bottom-1 h-3.5 bg-orange-300/60 dark:bg-orange-400/30 rounded -z-0" style="z-index:0"></span></span>。
       </h1>
       <p class="text-base sm:text-lg leading-loose text-base-content/60 max-w-xl mt-4">
-        上传即自动分章、多音色朗读；成书即成台——生成标准播客 RSS，在任意播客 App 追更你自己的有声书。
+        {% translate "上传即自动分章、多音色朗读；成书即成台——生成标准播客 RSS，在任意播客 App 追更你自己的有声书。" %}
       </p>
       <div class="flex flex-wrap items-center gap-5 sm:gap-6 mt-7">
-        <a href="{% url 'register' %}" class="btn btn-primary rounded-xl px-7 shadow-lg shadow-primary/25">免费开始制作</a>
+        <a href="{% url 'register' %}" class="btn btn-primary rounded-xl px-7 shadow-lg shadow-primary/25">{% translate "免费开始制作" %}</a>
         <a href="{% url 'explore' %}" class="btn btn-link text-primary font-semibold no-underline hover:underline px-1 gap-2">
-          先听听公开作品 <i class="fas fa-arrow-right text-sm"></i>
+          {% translate "先听听公开作品" %} <i class="fas fa-arrow-right text-sm"></i>
         </a>
       </div>
-      <p class="text-[13px] text-base-content/50 mt-5">免费注册 · 中文多音色 · 章节与 SRT 字幕自动生成</p>
+      <p class="text-[13px] text-base-content/50 mt-5">{% translate "免费注册 · 中文多音色 · 章节与 SRT 字幕自动生成" %}</p>
     </div>
 
     <!-- 右：封面拼贴 + 悬浮播放 chip -->
@@ -27,25 +27,25 @@
       <div class="absolute left-6 top-4 w-44 h-60 rounded-2xl bg-gradient-to-br from-violet-500 to-violet-700 shadow-xl -rotate-6 p-4 flex flex-col justify-between text-white">
         <span class="w-5 h-0.5 bg-white/60 rounded"></span>
         <div>
-          <p class="text-xl font-bold leading-snug">把一本书</p>
-          <p class="text-xl font-bold leading-snug">变成一档节目</p>
+          <p class="text-xl font-bold leading-snug">{% translate "把一本书" %}</p>
+          <p class="text-xl font-bold leading-snug">{% translate "变成一档节目" %}</p>
           <p class="text-xs opacity-70 mt-2">Book2TTS</p>
         </div>
       </div>
       <div class="absolute left-48 top-10 w-44 h-60 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-700 shadow-xl rotate-3 p-4 flex flex-col justify-between text-white">
         <span class="w-5 h-0.5 bg-white/60 rounded"></span>
         <div>
-          <p class="text-xl font-bold leading-snug">多音色朗读</p>
-          <p class="text-xl font-bold leading-snug">章节 · 字幕</p>
+          <p class="text-xl font-bold leading-snug">{% translate "多音色朗读" %}</p>
+          <p class="text-xl font-bold leading-snug">{% translate "章节 · 字幕" %}</p>
           <p class="text-xs opacity-70 mt-2">EPUB / PDF / OCR</p>
         </div>
       </div>
       <div class="absolute left-28 top-52 w-48 h-64 rounded-2xl bg-gradient-to-br from-sky-500 to-sky-700 shadow-2xl rotate-2 p-4 flex flex-col justify-between text-white z-10">
         <span class="w-5 h-0.5 bg-white/60 rounded"></span>
         <div>
-          <p class="text-xl font-bold leading-snug">播客 RSS 订阅</p>
-          <p class="text-xl font-bold leading-snug">随时随地收听</p>
-          <p class="text-xs opacity-70 mt-2">Apple Podcasts · 小宇宙</p>
+          <p class="text-xl font-bold leading-snug">{% translate "播客 RSS 订阅" %}</p>
+          <p class="text-xl font-bold leading-snug">{% translate "随时随地收听" %}</p>
+          <p class="text-xs opacity-70 mt-2">{% translate "Apple Podcasts · 小宇宙" %}</p>
         </div>
       </div>
       <div class="absolute right-0 bottom-6 z-20 bg-base-100 border border-base-300 rounded-2xl shadow-xl px-4 py-3 flex items-center gap-3 -rotate-2">
@@ -53,7 +53,7 @@
           <i class="fas fa-play text-xs ml-0.5"></i>
         </span>
         <div>
-          <p class="text-[13px] font-semibold leading-none">第三章 · 江湖纪闻</p>
+          <p class="text-[13px] font-semibold leading-none">{% translate "第三章 · 江湖纪闻" %}</p>
           <div class="flex items-end gap-[2px] h-4 mt-2" aria-hidden="true">
             <span class="w-[2px] rounded bg-accent" style="height:35%"></span>
             <span class="w-[2px] rounded bg-accent" style="height:70%"></span>
@@ -81,22 +81,22 @@
       <div class="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-3">
         <i class="fas fa-cloud-upload-alt text-sm"></i>
       </div>
-      <h3 class="text-base font-bold">1 · 上传书籍</h3>
-      <p class="text-[13px] text-base-content/60 leading-relaxed mt-1.5">拖入 EPUB / PDF，扫描件自动 OCR；目录章节一键解析。</p>
+      <h3 class="text-base font-bold">{% translate "1 · 上传书籍" %}</h3>
+      <p class="text-[13px] text-base-content/60 leading-relaxed mt-1.5">{% translate "拖入 EPUB / PDF，扫描件自动 OCR；目录章节一键解析。" %}</p>
     </div>
     <div class="card bg-base-100 border border-base-300 shadow-sm p-5">
       <div class="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-3">
         <i class="fas fa-font text-sm"></i>
       </div>
-      <h3 class="text-base font-bold">2 · 工坊精修</h3>
-      <p class="text-[13px] text-base-content/60 leading-relaxed mt-1.5">原文排版、LLM 翻译润色、多角色对话脚本与音色分配。</p>
+      <h3 class="text-base font-bold">{% translate "2 · 工坊精修" %}</h3>
+      <p class="text-[13px] text-base-content/60 leading-relaxed mt-1.5">{% translate "原文排版、LLM 翻译润色、多角色对话脚本与音色分配。" %}</p>
     </div>
     <div class="card bg-base-100 border border-base-300 shadow-sm p-5">
       <div class="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-3">
         <i class="fas fa-wave-square text-sm"></i>
       </div>
-      <h3 class="text-base font-bold">3 · 合成发布</h3>
-      <p class="text-[13px] text-base-content/60 leading-relaxed mt-1.5">多音色合成 + 字幕章节，一键生成播客 RSS 订阅。</p>
+      <h3 class="text-base font-bold">{% translate "3 · 合成发布" %}</h3>
+      <p class="text-[13px] text-base-content/60 leading-relaxed mt-1.5">{% translate "多音色合成 + 字幕章节，一键生成播客 RSS 订阅。" %}</p>
     </div>
   </div>
 </div>
@@ -105,11 +105,11 @@
 <div class="max-w-6xl mx-auto px-4 sm:px-6 pb-10">
   <div class="rounded-2xl bg-neutral text-neutral-content px-6 sm:px-8 py-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
     <div class="flex-1">
-      <div class="text-lg font-extrabold">现在上传第一本书</div>
-      <div class="text-[13px] opacity-70 mt-1">免费额度足够合成一整章</div>
+      <div class="text-lg font-extrabold">{% translate "现在上传第一本书" %}</div>
+      <div class="text-[13px] opacity-70 mt-1">{% translate "免费额度足够合成一整章" %}</div>
     </div>
     <a href="{% url 'register' %}" class="btn bg-accent hover:bg-accent-focus border-none text-accent-content rounded-xl">
-      免费开始 <i class="fas fa-arrow-right text-xs"></i>
+      {% translate "免费开始" %} <i class="fas fa-arrow-right text-xs"></i>
     </a>
   </div>
 </div>

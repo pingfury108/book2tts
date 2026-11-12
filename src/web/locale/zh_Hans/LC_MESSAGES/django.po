@@ -1,0 +1,3371 @@
+# Chinese (Simplified) catalog -- 源码文案即中文，msgstr 等于 msgid，
+# 作用是钉住 zh-hans，避免回退到默认语言（en）。
+msgid ""
+msgstr ""
+"Project-Id-Version: Book2TTS\n"
+"Language: zh_Hans\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: home/models.py:16 home/models.py:96
+msgid "用户"
+msgstr "用户"
+
+#: home/models.py:22
+msgid "用户积分"
+msgstr "用户积分"
+
+#: home/models.py:23
+msgid "用户可用于音频生成和OCR处理的积分"
+msgstr "用户可用于音频生成和OCR处理的积分"
+
+#: home/models.py:27 home/models.py:254 home/models.py:361 home/models.py:474
+#: home/models.py:570
+#: workbench/templates/admin/translation_cache_detail.html:56
+#: workbench/templates/admin/translation_cache_list.html:104
+msgid "创建时间"
+msgstr "创建时间"
+
+#: home/models.py:28 home/models.py:255 home/models.py:362 home/models.py:475
+#: home/models.py:571
+msgid "更新时间"
+msgstr "更新时间"
+
+#: home/models.py:72
+msgid "音频创建"
+msgstr "音频创建"
+
+#: home/models.py:73
+msgid "音频删除"
+msgstr "音频删除"
+
+#: home/models.py:74
+msgid "文件上传"
+msgstr "文件上传"
+
+#: home/models.py:75
+msgid "文件删除"
+msgstr "文件删除"
+
+#: home/models.py:76
+msgid "配额消耗"
+msgstr "配额消耗"
+
+#: home/models.py:77
+msgid "配额增加"
+msgstr "配额增加"
+
+#: home/models.py:78
+msgid "用户登录"
+msgstr "用户登录"
+
+#: home/models.py:79
+msgid "用户登出"
+msgstr "用户登出"
+
+#: home/models.py:80
+msgid "系统操作"
+msgstr "系统操作"
+
+#: home/models.py:81
+msgid "其他操作"
+msgstr "其他操作"
+
+#: home/models.py:86 home/templates/home/operation_records.html:54
+msgid "成功"
+msgstr "成功"
+
+#: home/models.py:87 home/templates/home/operation_records.html:56
+#: workbench/models.py:161 workbench/templates/task_queue.html:33
+#: workbench/templates/task_queue.html:197
+msgid "失败"
+msgstr "失败"
+
+#: home/models.py:88 home/templates/home/operation_records.html:58
+#: workbench/templates/task_queue.html:25
+msgid "进行中"
+msgstr "进行中"
+
+#: home/models.py:89 home/templates/home/operation_records.html:60
+#: workbench/models.py:162 workbench/templates/task_queue.html:198
+msgid "已取消"
+msgstr "已取消"
+
+#: home/models.py:97
+msgid "执行操作的用户"
+msgstr "执行操作的用户"
+
+#: home/models.py:103 home/models.py:221
+#: home/templates/home/operation_records.html:26
+msgid "操作类型"
+msgstr "操作类型"
+
+#: home/models.py:104
+msgid "操作的类型分类"
+msgstr "操作的类型分类"
+
+#: home/models.py:109 home/templates/home/operation_records.html:27
+msgid "操作对象"
+msgstr "操作对象"
+
+#: home/models.py:110
+msgid "操作的目标对象，如文件名、音频ID等"
+msgstr "操作的目标对象，如文件名、音频ID等"
+
+#: home/models.py:116 home/templates/home/operation_records.html:29
+msgid "详细描述"
+msgstr "详细描述"
+
+#: home/models.py:117
+msgid "操作的详细描述信息"
+msgstr "操作的详细描述信息"
+
+#: home/models.py:126
+msgid "操作状态"
+msgstr "操作状态"
+
+#: home/models.py:133
+msgid "元数据"
+msgstr "元数据"
+
+#: home/models.py:134
+msgid "操作相关的额外信息，如文件大小、音频时长等"
+msgstr "操作相关的额外信息，如文件大小、音频时长等"
+
+#: home/models.py:139
+msgid "IP地址"
+msgstr "IP地址"
+
+#: home/models.py:142
+msgid "操作时的IP地址"
+msgstr "操作时的IP地址"
+
+#: home/models.py:147
+msgid "用户代理"
+msgstr "用户代理"
+
+#: home/models.py:150
+msgid "操作时的浏览器信息"
+msgstr "操作时的浏览器信息"
+
+#: home/models.py:156 home/templates/home/operation_records.html:25
+msgid "操作时间"
+msgstr "操作时间"
+
+#: home/models.py:212 workbench/templates/dialogue_detail.html:327
+msgid "音频生成"
+msgstr "音频生成"
+
+#: home/models.py:213
+msgid "OCR处理"
+msgstr "OCR处理"
+
+#: home/models.py:214
+msgid "LLM调用"
+msgstr "LLM调用"
+
+#: home/models.py:222
+msgid "选择要配置的操作类型"
+msgstr "选择要配置的操作类型"
+
+#: home/models.py:231
+msgid "每单位积分"
+msgstr "每单位积分"
+
+#: home/models.py:232
+msgid "每个单位操作需要的积分数"
+msgstr "每个单位操作需要的积分数"
+
+#: home/models.py:238
+msgid "单位名称"
+msgstr "单位名称"
+
+#: home/models.py:239
+msgid "计费单位名称，如：秒、页、次等"
+msgstr "计费单位名称，如：秒、页、次等"
+
+#: home/models.py:244
+msgid "是否启用"
+msgstr "是否启用"
+
+#: home/models.py:245
+msgid "是否启用此积分规则"
+msgstr "是否启用此积分规则"
+
+#: home/models.py:250
+msgid "规则描述"
+msgstr "规则描述"
+
+#: home/models.py:251
+msgid "对此积分规则的详细描述"
+msgstr "对此积分规则的详细描述"
+
+#: home/models.py:272
+msgid "启用 Google Ads"
+msgstr "启用 Google Ads"
+
+#: home/models.py:273
+msgid "是否在网站中启用 Google Ads 脚本"
+msgstr "是否在网站中启用 Google Ads 脚本"
+
+#: home/models.py:278
+msgid "Google Ads 脚本"
+msgstr "Google Ads 脚本"
+
+#: home/models.py:279
+msgid "Google Ads 的 JavaScript 脚本代码"
+msgstr "Google Ads 的 JavaScript 脚本代码"
+
+#: home/models.py:285
+msgid "ads.txt 内容"
+msgstr "ads.txt 内容"
+
+#: home/models.py:286
+msgid "ads.txt 文件的内容，用于广告验证"
+msgstr "ads.txt 文件的内容，用于广告验证"
+
+#: home/models.py:292
+msgid "站点描述"
+msgstr "站点描述"
+
+#: home/models.py:293
+msgid "站点的 meta description，用于 SEO"
+msgstr "站点的 meta description，用于 SEO"
+
+#: home/models.py:298
+msgid "站点关键词"
+msgstr "站点关键词"
+
+#: home/models.py:299
+msgid "站点的 meta keywords，用于 SEO"
+msgstr "站点的 meta keywords，用于 SEO"
+
+#: home/models.py:305
+msgid "启用 S3 对象存储"
+msgstr "启用 S3 对象存储"
+
+#: home/models.py:306
+msgid "是否启用 S3 对象存储（启用后文件将上传到S3）"
+msgstr "是否启用 S3 对象存储（启用后文件将上传到S3）"
+
+#: home/models.py:313
+msgid "S3 访问密钥 ID"
+msgstr "S3 访问密钥 ID"
+
+#: home/models.py:320
+msgid "S3 秘密访问密钥"
+msgstr "S3 秘密访问密钥"
+
+#: home/models.py:326 home/models.py:327
+msgid "S3 存储桶名称"
+msgstr "S3 存储桶名称"
+
+#: home/models.py:334
+msgid "S3 区域"
+msgstr "S3 区域"
+
+#: home/models.py:335
+msgid "S3 存储区域（如：us-east-1, cn-north-1）"
+msgstr "S3 存储区域（如：us-east-1, cn-north-1）"
+
+#: home/models.py:341
+msgid "S3 端点URL"
+msgstr "S3 端点URL"
+
+#: home/models.py:342
+msgid "S3 兼容服务的端点URL（如使用其他S3兼容服务）"
+msgstr "S3 兼容服务的端点URL（如使用其他S3兼容服务）"
+
+#: home/models.py:348
+msgid "S3 自定义域名"
+msgstr "S3 自定义域名"
+
+#: home/models.py:349
+msgid "S3 自定义域名（用于CDN加速）"
+msgstr "S3 自定义域名（用于CDN加速）"
+
+#: home/models.py:356
+msgid "S3 路径前缀"
+msgstr "S3 路径前缀"
+
+#: home/models.py:357
+msgid "S3 存储路径前缀"
+msgstr "S3 存储路径前缀"
+
+#: home/models.py:405
+msgid "综合讨论"
+msgstr "综合讨论"
+
+#: home/models.py:406
+msgid "技术交流"
+msgstr "技术交流"
+
+#: home/models.py:407
+msgid "反馈建议"
+msgstr "反馈建议"
+
+#: home/models.py:408
+msgid "求助问答"
+msgstr "求助问答"
+
+#: home/models.py:409
+msgid "公告通知"
+msgstr "公告通知"
+
+#: home/models.py:410
+msgid "其他话题"
+msgstr "其他话题"
+
+#: home/models.py:415 home/templates/home/discussion_create.html:36
+#: home/templates/home/discussion_edit.html:36
+msgid "主题标题"
+msgstr "主题标题"
+
+#: home/models.py:416
+msgid "讨论主题的标题"
+msgstr "讨论主题的标题"
+
+#: home/models.py:420 home/templates/home/discussion_create.html:73
+#: home/templates/home/discussion_edit.html:73
+msgid "主题内容"
+msgstr "主题内容"
+
+#: home/models.py:421
+msgid "主题的详细描述和内容"
+msgstr "主题的详细描述和内容"
+
+#: home/models.py:428 home/templates/home/discussion_create.html:56
+#: home/templates/home/discussion_edit.html:56
+msgid "主题分类"
+msgstr "主题分类"
+
+#: home/models.py:429
+msgid "选择主题的分类"
+msgstr "选择主题的分类"
+
+#: home/models.py:436
+msgid "创建者"
+msgstr "创建者"
+
+#: home/models.py:437
+msgid "创建此主题的用户"
+msgstr "创建此主题的用户"
+
+#: home/models.py:443
+msgid "是否置顶"
+msgstr "是否置顶"
+
+#: home/models.py:444
+msgid "是否将此主题置顶显示"
+msgstr "是否将此主题置顶显示"
+
+#: home/models.py:449
+msgid "是否关闭"
+msgstr "是否关闭"
+
+#: home/models.py:450
+msgid "是否关闭此主题，关闭后不能回复"
+msgstr "是否关闭此主题，关闭后不能回复"
+
+#: home/models.py:456
+msgid "查看次数"
+msgstr "查看次数"
+
+#: home/models.py:457
+msgid "主题被查看的次数"
+msgstr "主题被查看的次数"
+
+#: home/models.py:462
+msgid "回复数量"
+msgstr "回复数量"
+
+#: home/models.py:463
+msgid "主题下的回复数量"
+msgstr "主题下的回复数量"
+
+#: home/models.py:469
+msgid "最后回复时间"
+msgstr "最后回复时间"
+
+#: home/models.py:470
+msgid "最后一条回复的时间"
+msgstr "最后一条回复的时间"
+
+#: home/models.py:532
+msgid "留言内容"
+msgstr "留言内容"
+
+#: home/models.py:533
+msgid "留言的具体内容"
+msgstr "留言的具体内容"
+
+#: home/models.py:541
+msgid "留言者"
+msgstr "留言者"
+
+#: home/models.py:542
+msgid "发表留言的用户"
+msgstr "发表留言的用户"
+
+#: home/models.py:549
+msgid "关联模型"
+msgstr "关联模型"
+
+#: home/models.py:550
+msgid "留言关联的模型类型"
+msgstr "留言关联的模型类型"
+
+#: home/models.py:554
+msgid "关联对象ID"
+msgstr "关联对象ID"
+
+#: home/models.py:555
+msgid "留言关联的对象ID"
+msgstr "留言关联的对象ID"
+
+#: home/models.py:565
+msgid "父级留言"
+msgstr "父级留言"
+
+#: home/models.py:566
+msgid "如果是回复留言，则指向被回复的留言"
+msgstr "如果是回复留言，则指向被回复的留言"
+
+#: home/templates/home/_guest_hero.html:8
+msgid "EPUB / PDF → 有声书 → 播客 RSS"
+msgstr "EPUB / PDF → 有声书 → 播客 RSS"
+
+#: home/templates/home/_guest_hero.html:11
+msgid "把一本书，"
+msgstr "把一本书，"
+
+#: home/templates/home/_guest_hero.html:11
+msgid "变成"
+msgstr "变成"
+
+#: home/templates/home/_guest_hero.html:11
+msgid "一档节目"
+msgstr "一档节目"
+
+#: home/templates/home/_guest_hero.html:14
+msgid ""
+"上传即自动分章、多音色朗读；成书即成台——生成标准播客 RSS，在任意播客 App 追更"
+"你自己的有声书。"
+msgstr "上传即自动分章、多音色朗读；成书即成台——生成标准播客 RSS，在任意播客 App 追更你自己的有声书。"
+
+#: home/templates/home/_guest_hero.html:17 home/templates/home/index.html:269
+msgid "免费开始制作"
+msgstr "免费开始制作"
+
+#: home/templates/home/_guest_hero.html:19
+msgid "先听听公开作品"
+msgstr "先听听公开作品"
+
+#: home/templates/home/_guest_hero.html:22
+msgid "免费注册 · 中文多音色 · 章节与 SRT 字幕自动生成"
+msgstr "免费注册 · 中文多音色 · 章节与 SRT 字幕自动生成"
+
+#: home/templates/home/_guest_hero.html:30
+msgid "把一本书"
+msgstr "把一本书"
+
+#: home/templates/home/_guest_hero.html:31
+msgid "变成一档节目"
+msgstr "变成一档节目"
+
+#: home/templates/home/_guest_hero.html:38
+msgid "多音色朗读"
+msgstr "多音色朗读"
+
+#: home/templates/home/_guest_hero.html:39
+msgid "章节 · 字幕"
+msgstr "章节 · 字幕"
+
+#: home/templates/home/_guest_hero.html:46
+msgid "播客 RSS 订阅"
+msgstr "播客 RSS 订阅"
+
+#: home/templates/home/_guest_hero.html:47
+msgid "随时随地收听"
+msgstr "随时随地收听"
+
+#: home/templates/home/_guest_hero.html:48
+msgid "Apple Podcasts · 小宇宙"
+msgstr "Apple Podcasts · 小宇宙"
+
+#: home/templates/home/_guest_hero.html:56
+msgid "第三章 · 江湖纪闻"
+msgstr "第三章 · 江湖纪闻"
+
+#: home/templates/home/_guest_hero.html:84
+msgid "1 · 上传书籍"
+msgstr "1 · 上传书籍"
+
+#: home/templates/home/_guest_hero.html:85
+msgid "拖入 EPUB / PDF，扫描件自动 OCR；目录章节一键解析。"
+msgstr "拖入 EPUB / PDF，扫描件自动 OCR；目录章节一键解析。"
+
+#: home/templates/home/_guest_hero.html:91
+msgid "2 · 工坊精修"
+msgstr "2 · 工坊精修"
+
+#: home/templates/home/_guest_hero.html:92
+msgid "原文排版、LLM 翻译润色、多角色对话脚本与音色分配。"
+msgstr "原文排版、LLM 翻译润色、多角色对话脚本与音色分配。"
+
+#: home/templates/home/_guest_hero.html:98
+msgid "3 · 合成发布"
+msgstr "3 · 合成发布"
+
+#: home/templates/home/_guest_hero.html:99
+msgid "多音色合成 + 字幕章节，一键生成播客 RSS 订阅。"
+msgstr "多音色合成 + 字幕章节，一键生成播客 RSS 订阅。"
+
+#: home/templates/home/_guest_hero.html:108
+msgid "现在上传第一本书"
+msgstr "现在上传第一本书"
+
+#: home/templates/home/_guest_hero.html:109
+msgid "免费额度足够合成一整章"
+msgstr "免费额度足够合成一整章"
+
+#: home/templates/home/_guest_hero.html:112
+msgid "免费开始"
+msgstr "免费开始"
+
+#: home/templates/home/about.html:4
+msgid "关于 - Book2TTS"
+msgstr "关于 - Book2TTS"
+
+#: home/templates/home/about.html:10
+msgid "关于 Book2TTS"
+msgstr "关于 Book2TTS"
+
+#: home/templates/home/about.html:11
+msgid "专为图书制作人打造的在线工作台，从电子书解析到音频发布一站式完成"
+msgstr "专为图书制作人打造的在线工作台，从电子书解析到音频发布一站式完成"
+
+#: home/templates/home/about.html:22
+msgid "书籍工作台"
+msgstr "书籍工作台"
+
+#: home/templates/home/about.html:24
+msgid "提供目录/页面双视图、原文预览与资源提取，精细掌控每一页内容。"
+msgstr "提供目录/页面双视图、原文预览与资源提取，精细掌控每一页内容。"
+
+#: home/templates/home/about.html:34
+msgid "LLM 智能处理"
+msgstr "LLM 智能处理"
+
+#: home/templates/home/about.html:36
+msgid "集成排版、翻译、对话脚本、章节提取等工具，自动记录 token 与缓存命中。"
+msgstr "集成排版、翻译、对话脚本、章节提取等工具，自动记录 token 与缓存命中。"
+
+#: home/templates/home/about.html:46
+msgid "音频与发布"
+msgstr "音频与发布"
+
+#: home/templates/home/about.html:48
+msgid "支持多语音合成、字幕与章节生成，生成标准 RSS 订阅方便播客分发。"
+msgstr "支持多语音合成、字幕与章节生成，生成标准 RSS 订阅方便播客分发。"
+
+#: home/templates/home/about.html:58
+msgid "章节 & RSS"
+msgstr "章节 & RSS"
+
+#: home/templates/home/about.html:60
+msgid "章节自动生成并支持手动微调，RSS feed 随音频更新，兼容主流播客客户端。"
+msgstr "章节自动生成并支持手动微调，RSS feed 随音频更新，兼容主流播客客户端。"
+
+#: home/templates/home/about.html:67
+msgid "如何使用"
+msgstr "如何使用"
+
+#: home/templates/home/about.html:73 home/templates/home/index.html:267
+#: workbench/templates/aggregated_audio_segments.html:51
+#: workbench/templates/upload.html:11
+msgid "上传书籍"
+msgstr "上传书籍"
+
+#: home/templates/home/about.html:74
+msgid "支持 EPUB、PDF 等格式，工作台自动解析目录和页面。"
+msgstr "支持 EPUB、PDF 等格式，工作台自动解析目录和页面。"
+
+#: home/templates/home/about.html:80
+msgid "挑选与润色"
+msgstr "挑选与润色"
+
+#: home/templates/home/about.html:81
+msgid "在工作台中勾选章节，按需调用排版、翻译或对话生成工具。"
+msgstr "在工作台中勾选章节，按需调用排版、翻译或对话生成工具。"
+
+#: home/templates/home/about.html:87
+msgid "生成并发布"
+msgstr "生成并发布"
+
+#: home/templates/home/about.html:88
+msgid "启动音频、字幕、章节任务，完成后可下载或发布到 RSS。"
+msgstr "启动音频、字幕、章节任务，完成后可下载或发布到 RSS。"
+
+#: home/templates/home/about.html:95
+msgid "功能亮点"
+msgstr "功能亮点"
+
+#: home/templates/home/about.html:99
+msgid "🔊 工作台全景"
+msgstr "🔊 工作台全景"
+
+#: home/templates/home/about.html:100
+msgid "一页掌握章节、页面、音频状态与原文件资源。"
+msgstr "一页掌握章节、页面、音频状态与原文件资源。"
+
+#: home/templates/home/about.html:102
+msgid "目录 / 页面双列表，支持多页批量操作"
+msgstr "目录 / 页面双列表，支持多页批量操作"
+
+#: home/templates/home/about.html:103
+msgid "原文、图片、资源一键预览与下载"
+msgstr "原文、图片、资源一键预览与下载"
+
+#: home/templates/home/about.html:104
+msgid "音频状态面板显示进度、失败原因与建议"
+msgstr "音频状态面板显示进度、失败原因与建议"
+
+#: home/templates/home/about.html:111
+msgid "🎯 LLM 助手"
+msgstr "🎯 LLM 助手"
+
+#: home/templates/home/about.html:112
+msgid "排版、翻译、对话脚本、章节提取随取随用。"
+msgstr "排版、翻译、对话脚本、章节提取随取随用。"
+
+#: home/templates/home/about.html:114
+msgid "多模型接入，缓存命中免扣积分"
+msgstr "多模型接入，缓存命中免扣积分"
+
+#: home/templates/home/about.html:115
+msgid "对话脚本分片处理，可断点续跑"
+msgstr "对话脚本分片处理，可断点续跑"
+
+#: home/templates/home/about.html:116
+msgid "自动记录 token、模型与失败信息"
+msgstr "自动记录 token、模型与失败信息"
+
+#: home/templates/home/about.html:123
+msgid "🌐 分发与收听"
+msgstr "🌐 分发与收听"
+
+#: home/templates/home/about.html:124
+msgid "生成的音频可在线预览、下载或通过 RSS 发布。"
+msgstr "生成的音频可在线预览、下载或通过 RSS 发布。"
+
+#: home/templates/home/about.html:126
+msgid "支持多音色合成、字幕和章节文件导出"
+msgstr "支持多音色合成、字幕和章节文件导出"
+
+#: home/templates/home/about.html:127
+msgid "按用户、书籍或 Token 生成 Podcast 兼容 RSS"
+msgstr "按用户、书籍或 Token 生成 Podcast 兼容 RSS"
+
+#: home/templates/home/about.html:128
+msgid "嵌入式播放器，便于团队内部审核"
+msgstr "嵌入式播放器，便于团队内部审核"
+
+#: home/templates/home/about.html:135
+msgid "📡 章节与 RSS"
+msgstr "📡 章节与 RSS"
+
+#: home/templates/home/about.html:136
+msgid "章节自动生成，整合到 RSS feed 中方便播客客户端识别。"
+msgstr "章节自动生成，整合到 RSS feed 中方便播客客户端识别。"
+
+#: home/templates/home/about.html:138
+msgid "支持字幕驱动的章节提取，可手动调整"
+msgstr "支持字幕驱动的章节提取，可手动调整"
+
+#: home/templates/home/about.html:139
+msgid "章节信息随音频一起写入 RSS，兼容 Apple Podcasts 等平台"
+msgstr "章节信息随音频一起写入 RSS，兼容 Apple Podcasts 等平台"
+
+#: home/templates/home/about.html:140
+msgid "章节与 RSS 资源可下载归档，方便二次分发"
+msgstr "章节与 RSS 资源可下载归档，方便二次分发"
+
+#: home/templates/home/about.html:149
+msgid "常见问题"
+msgstr "常见问题"
+
+#: home/templates/home/about.html:153
+msgid "📁 支持哪些文件格式？"
+msgstr "📁 支持哪些文件格式？"
+
+#: home/templates/home/about.html:156
+msgid ""
+"工作台当前支持 EPUB 与 PDF，PDF 会自动区分文本版和扫描版并提供 OCR 工具。"
+msgstr "工作台当前支持 EPUB 与 PDF，PDF 会自动区分文本版和扫描版并提供 OCR 工具。"
+
+#: home/templates/home/about.html:162
+msgid "🗂️ 章节生成需要哪些条件？"
+msgstr "🗂️ 章节生成需要哪些条件？"
+
+#: home/templates/home/about.html:165
+msgid ""
+"系统优先使用字幕（SRT）生成章节；若无字幕，可改用 LLM 解析，但准确度依赖文本"
+"质量。"
+msgstr "系统优先使用字幕（SRT）生成章节；若无字幕，可改用 LLM 解析，但准确度依赖文本质量。"
+
+#: home/templates/home/about.html:171
+msgid "📡 RSS 支持哪些客户端？"
+msgstr "📡 RSS 支持哪些客户端？"
+
+#: home/templates/home/about.html:174
+msgid ""
+"生成的 feed 兼容 Apple Podcasts、Pocket Casts 等主流客户端，章节信息会一并展"
+"示。"
+msgstr "生成的 feed 兼容 Apple Podcasts、Pocket Casts 等主流客户端，章节信息会一并展示。"
+
+#: home/templates/home/about.html:182
+msgid "联系我们"
+msgstr "联系我们"
+
+#: home/templates/home/about.html:184
+msgid "如果您有任何问题或建议，欢迎与我们联系。"
+msgstr "如果您有任何问题或建议，欢迎与我们联系。"
+
+#: home/templates/home/about.html:202
+msgid "扫码联系"
+msgstr "扫码联系"
+
+#: home/templates/home/about.html:207 home/templates/home/about.html:257
+#: workbench/templates/index.html:311
+msgid "💬 微信购买咨询"
+msgstr "💬 微信购买咨询"
+
+#: home/templates/home/about.html:208
+msgid "扫码添加微信，获取购买服务"
+msgstr "扫码添加微信，获取购买服务"
+
+#: home/templates/home/about.html:211 workbench/templates/index.html:314
+msgid "微信二维码"
+msgstr "微信二维码"
+
+#: home/templates/home/about.html:213
+msgid "微信扫码添加好友 • 点击放大查看"
+msgstr "微信扫码添加好友 • 点击放大查看"
+
+#: home/templates/home/about.html:219 home/templates/home/about.html:262
+msgid "📱 Telegram 用户群"
+msgstr "📱 Telegram 用户群"
+
+#: home/templates/home/about.html:220
+msgid "加入用户群，交流使用心得"
+msgstr "加入用户群，交流使用心得"
+
+#: home/templates/home/about.html:223
+msgid "Telegram群二维码"
+msgstr "Telegram群二维码"
+
+#: home/templates/home/about.html:225
+msgid "扫码加入Telegram群聊 • 点击放大查看"
+msgstr "扫码加入Telegram群聊 • 点击放大查看"
+
+#: home/templates/home/about.html:260 workbench/templates/index.html:316
+msgid "扫码添加微信，获取购买服务和技术支持"
+msgstr "扫码添加微信，获取购买服务和技术支持"
+
+#: home/templates/home/about.html:265
+msgid "加入用户群，与其他用户交流使用心得和经验分享"
+msgstr "加入用户群，与其他用户交流使用心得和经验分享"
+
+#: home/templates/home/audio_detail.html:4
+msgid "- 音频详情 - Book2TTS"
+msgstr "- 音频详情 - Book2TTS"
+
+#: home/templates/home/audio_detail.html:40
+msgid "作品"
+msgstr "作品"
+
+#: home/templates/home/audio_detail.html:56 theme/templates/base.html:121
+#: theme/templates/base.html:152 workbench/templates/dialogue_list.html:9
+msgid "对话脚本"
+msgstr "对话脚本"
+
+#: home/templates/home/audio_detail.html:57
+msgid "多音色对话"
+msgstr "多音色对话"
+
+#: home/templates/home/audio_detail.html:57
+msgid "有声书"
+msgstr "有声书"
+
+#: home/templates/home/audio_detail.html:73
+msgid "下载音频"
+msgstr "下载音频"
+
+#: home/templates/home/audio_detail.html:77 home/templates/home/explore.html:99
+#: home/templates/home/explore.html:209 home/templates/home/index.html:113
+#: home/templates/home/index.html:169 home/templates/home/index.html:238
+#: home/templates/home/index.html:354
+#: workbench/templates/dialogue_detail.html:150
+msgid "下载字幕"
+msgstr "下载字幕"
+
+#: home/templates/home/audio_detail.html:81
+#: home/templates/home/audio_detail.html:206
+#: home/templates/home/explore.html:100 home/templates/home/index.html:114
+#: home/templates/home/index.html:170 home/templates/home/index.html:239
+#: workbench/templates/dialogue_detail.html:154
+#: workbench/templates/dialogue_detail.html:1625
+msgid "查看字幕"
+msgstr "查看字幕"
+
+#: home/templates/home/audio_detail.html:88
+msgid "作者 RSS 订阅"
+msgstr "作者 RSS 订阅"
+
+#: home/templates/home/audio_detail.html:89
+msgid "作者 RSS"
+msgstr "作者 RSS"
+
+#: home/templates/home/audio_detail.html:91 home/templates/home/index.html:58
+msgid "此书的 RSS 订阅"
+msgstr "此书的 RSS 订阅"
+
+#: home/templates/home/audio_detail.html:92
+msgid "此书 RSS"
+msgstr "此书 RSS"
+
+#: home/templates/home/audio_detail.html:108
+msgid "原始文本"
+msgstr "原始文本"
+
+#: home/templates/home/audio_detail.html:113
+#: workbench/templates/book_details_htmx.html:568
+msgid "文本内容"
+msgstr "文本内容"
+
+#: home/templates/home/audio_detail.html:123 theme/templates/base.html:274
+#: workbench/templates/book_details_htmx.html:518
+#: workbench/templates/dialogue_detail.html:225
+msgid "章节导航"
+msgstr "章节导航"
+
+#: home/templates/home/audio_detail.html:123
+msgid "章"
+msgstr "章"
+
+#: home/templates/home/audio_detail.html:149
+#: home/templates/home/explore.html:194 home/templates/home/index.html:339
+#: workbench/templates/dialogue_detail.html:160
+msgid "字幕内容"
+msgstr "字幕内容"
+
+#: home/templates/home/audio_detail.html:154
+#: home/templates/home/explore.html:203 home/templates/home/index.html:348
+#: workbench/templates/dialogue_detail.html:164
+msgid "加载字幕中..."
+msgstr "加载字幕中..."
+
+#: home/templates/home/audio_detail.html:196
+#: workbench/templates/dialogue_detail.html:1615
+msgid "隐藏字幕"
+msgstr "隐藏字幕"
+
+#: home/templates/home/discussion_create.html:13
+#: home/templates/home/discussion_detail.html:13
+#: workbench/templates/admin/translation_cache_detail.html:19
+#: workbench/templates/dialogue_detail.html:63
+msgid "返回列表"
+msgstr "返回列表"
+
+#: home/templates/home/discussion_create.html:37
+#: home/templates/home/discussion_create.html:74
+#: home/templates/home/discussion_edit.html:37
+#: home/templates/home/discussion_edit.html:74
+msgid "* 必填"
+msgstr "* 必填"
+
+#: home/templates/home/discussion_create.html:43
+#: home/templates/home/discussion_edit.html:43
+msgid "请输入主题标题（2-200个字符）"
+msgstr "请输入主题标题（2-200个字符）"
+
+#: home/templates/home/discussion_create.html:49
+#: home/templates/home/discussion_edit.html:49
+msgid "简洁明了地描述您的主题"
+msgstr "简洁明了地描述您的主题"
+
+#: home/templates/home/discussion_create.html:66
+#: home/templates/home/discussion_edit.html:66
+msgid "选择合适的分类有助于其他用户找到您的主题"
+msgstr "选择合适的分类有助于其他用户找到您的主题"
+
+#: home/templates/home/discussion_create.html:78
+#: home/templates/home/discussion_edit.html:78
+msgid "请详细描述您的问题、想法或分享的内容..."
+msgstr "请详细描述您的问题、想法或分享的内容..."
+
+#: home/templates/home/discussion_create.html:83
+#: home/templates/home/discussion_edit.html:83
+msgid "详细的内容描述有助于获得更好的回复"
+msgstr "详细的内容描述有助于获得更好的回复"
+
+#: home/templates/home/discussion_create.html:91
+msgid "发布主题"
+msgstr "发布主题"
+
+#: home/templates/home/discussion_create.html:94
+#: home/templates/home/discussion_detail.html:156
+#: home/templates/home/discussion_edit.html:94
+#: workbench/templates/admin/translation_cache_list.html:264
+#: workbench/templates/dialogue_create.html:72
+#: workbench/templates/dialogue_detail.html:381
+#: workbench/templates/dialogue_detail.html:395
+#: workbench/templates/dialogue_detail.html:412
+#: workbench/templates/dialogue_list.html:105
+#: workbench/templates/index.html:261 workbench/templates/task_queue.html:208
+msgid "取消"
+msgstr "取消"
+
+#: home/templates/home/discussion_create.html:104
+msgid "发帖指南"
+msgstr "发帖指南"
+
+#: home/templates/home/discussion_create.html:108
+msgid "标题要简洁明了，准确反映主题内容"
+msgstr "标题要简洁明了，准确反映主题内容"
+
+#: home/templates/home/discussion_create.html:112
+msgid "内容要详细具体，便于他人理解和回复"
+msgstr "内容要详细具体，便于他人理解和回复"
+
+#: home/templates/home/discussion_create.html:116
+msgid "选择合适的分类，方便主题归类"
+msgstr "选择合适的分类，方便主题归类"
+
+#: home/templates/home/discussion_create.html:120
+msgid "遵守社区规范，文明交流"
+msgstr "遵守社区规范，文明交流"
+
+#: home/templates/home/discussion_detail.html:21
+#: home/templates/home/discussion_detail.html:61
+#: home/templates/home/discussion_list.html:58
+msgid "置顶"
+msgstr "置顶"
+
+#: home/templates/home/discussion_detail.html:27
+#: home/templates/home/discussion_list.html:64
+msgid "已关闭"
+msgstr "已关闭"
+
+#: home/templates/home/discussion_detail.html:42
+#: home/templates/home/discussion_list.html:104
+#: workbench/templates/dialogue_detail.html:44
+#: workbench/templates/dialogue_detail.html:59
+#: workbench/templates/dialogue_detail.html:129
+msgid "编辑"
+msgstr "编辑"
+
+#: home/templates/home/discussion_detail.html:47
+msgid "重新打开"
+msgstr "重新打开"
+
+#: home/templates/home/discussion_detail.html:50
+#: home/templates/home/explore.html:211 home/templates/home/index.html:356
+#: workbench/templates/book_details_htmx.html:506
+#: workbench/templates/dialogue_create.html:159
+#: workbench/templates/index.html:279 workbench/templates/index.html:302
+#: workbench/templates/index.html:320
+msgid "关闭"
+msgstr "关闭"
+
+#: home/templates/home/discussion_detail.html:58
+msgid "取消置顶"
+msgstr "取消置顶"
+
+#: home/templates/home/discussion_detail.html:80 home/views.py:1032
+msgid "此主题已关闭，不能回复"
+msgstr "此主题已关闭，不能回复"
+
+#: home/templates/home/discussion_detail.html:86
+msgid "次查看 ·"
+msgstr "次查看 ·"
+
+#: home/templates/home/discussion_detail.html:86
+msgid "条回复"
+msgstr "条回复"
+
+#: home/templates/home/discussion_detail.html:100
+msgid "留言"
+msgstr "留言"
+
+#: home/templates/home/discussion_detail.html:128
+#: home/templates/home/discussion_detail.html:153
+msgid "回复"
+msgstr "回复"
+
+#: home/templates/home/discussion_detail.html:146
+#, python-format
+msgid "回复 %(name)s..."
+msgstr "回复 %(name)s..."
+
+#: home/templates/home/discussion_detail.html:187
+msgid "暂无留言"
+msgstr "暂无留言"
+
+#: home/templates/home/discussion_detail.html:188
+msgid "还没有人留言，快来发表第一个留言吧！"
+msgstr "还没有人留言，快来发表第一个留言吧！"
+
+#: home/templates/home/discussion_detail.html:197
+#: home/templates/home/discussion_detail.html:209
+msgid "发表留言"
+msgstr "发表留言"
+
+#: home/templates/home/discussion_detail.html:202
+msgid "请输入您的留言内容..."
+msgstr "请输入您的留言内容..."
+
+#: home/templates/home/discussion_detail.html:219
+msgid "请"
+msgstr "请"
+
+#: home/templates/home/discussion_detail.html:219 theme/templates/base.html:223
+#: theme/templates/registration/login.html:13
+#: theme/templates/registration/login.html:66
+msgid "登录"
+msgstr "登录"
+
+#: home/templates/home/discussion_detail.html:219
+msgid "后发表留言"
+msgstr "后发表留言"
+
+#: home/templates/home/discussion_edit.html:13
+msgid "返回详情"
+msgstr "返回详情"
+
+#: home/templates/home/discussion_edit.html:91
+msgid "保存修改"
+msgstr "保存修改"
+
+#: home/templates/home/discussion_edit.html:104
+msgid "主题信息"
+msgstr "主题信息"
+
+#: home/templates/home/discussion_edit.html:108
+msgid "作者："
+msgstr "作者："
+
+#: home/templates/home/discussion_edit.html:112
+msgid "创建时间："
+msgstr "创建时间："
+
+#: home/templates/home/discussion_edit.html:116
+msgid "查看次数："
+msgstr "查看次数："
+
+#: home/templates/home/discussion_edit.html:120
+msgid "回复数量："
+msgstr "回复数量："
+
+#: home/templates/home/discussion_list.html:12
+msgid "制作技巧、音色经验与反馈建议。"
+msgstr "制作技巧、音色经验与反馈建议。"
+
+#: home/templates/home/discussion_list.html:17
+msgid "发起讨论"
+msgstr "发起讨论"
+
+#: home/templates/home/discussion_list.html:29
+msgid "搜索主题…"
+msgstr "搜索主题…"
+
+#: home/templates/home/discussion_list.html:35
+msgid "全部分类"
+msgstr "全部分类"
+
+#: home/templates/home/discussion_list.html:42
+msgid "筛选"
+msgstr "筛选"
+
+#: home/templates/home/discussion_list.html:91
+msgid "最后回复"
+msgstr "最后回复"
+
+#: home/templates/home/discussion_list.html:91
+#: home/templates/home/discussion_list.html:93
+msgid "前"
+msgstr "前"
+
+#: home/templates/home/discussion_list.html:109
+msgid "置顶/取消置顶"
+msgstr "置顶/取消置顶"
+
+#: home/templates/home/discussion_list.html:120
+msgid "暂无主题"
+msgstr "暂无主题"
+
+#: home/templates/home/discussion_list.html:121
+msgid "还没有人创建讨论主题，快来创建第一个吧！"
+msgstr "还没有人创建讨论主题，快来创建第一个吧！"
+
+#: home/templates/home/discussion_list.html:125
+msgid "创建主题"
+msgstr "创建主题"
+
+#: home/templates/home/discussion_list.html:129
+msgid "登录后创建主题"
+msgstr "登录后创建主题"
+
+#: home/templates/home/discussion_list.html:140
+#: home/templates/home/explore.html:138 home/templates/home/index.html:283
+#: workbench/templates/book_details_htmx.html:41
+#: workbench/templates/my_upload_list.html:23
+msgid "显示"
+msgstr "显示"
+
+#: home/templates/home/discussion_list.html:140
+msgid "条，共"
+msgstr "条，共"
+
+#: home/templates/home/discussion_list.html:140
+msgid "条主题"
+msgstr "条主题"
+
+#: home/templates/home/discussion_list.html:162
+msgid "每页显示"
+msgstr "每页显示"
+
+#: home/templates/home/discussion_list.html:167
+#: home/templates/home/operation_records.html:105
+#: workbench/templates/admin/translation_cache_list.html:217
+msgid "条"
+msgstr "条"
+
+#: home/templates/home/explore.html:4
+msgid "探索 - Book2TTS"
+msgstr "探索 - Book2TTS"
+
+#: home/templates/home/explore.html:12
+msgid "搜索“"
+msgstr "搜索“"
+
+#: home/templates/home/explore.html:12 theme/templates/base.html:124
+#: theme/templates/base.html:158
+msgid "探索"
+msgstr "探索"
+
+#: home/templates/home/explore.html:15
+#: home/templates/home/operation_records.html:105
+#: workbench/templates/task_queue.html:14
+msgid "共"
+msgstr "共"
+
+#: home/templates/home/explore.html:15
+msgid "个结果"
+msgstr "个结果"
+
+#: home/templates/home/explore.html:15
+msgid "社区公开的有声书与对话作品，可直接收听。"
+msgstr "社区公开的有声书与对话作品，可直接收听。"
+
+#: home/templates/home/explore.html:23
+msgid "搜索书名、标题或作者…"
+msgstr "搜索书名、标题或作者…"
+
+#: home/templates/home/explore.html:34
+msgid "全部"
+msgstr "全部"
+
+#: home/templates/home/explore.html:63 home/templates/home/index.html:205
+msgid "独立片段"
+msgstr "独立片段"
+
+#: home/templates/home/explore.html:70 home/templates/home/index.html:97
+#: home/templates/home/index.html:153 home/templates/home/index.html:211
+#: workbench/templates/book_details_htmx.html:361
+msgid "播放"
+msgstr "播放"
+
+#: home/templates/home/explore.html:91 home/templates/home/explore.html:102
+#: home/templates/home/index.html:111 home/templates/home/index.html:167
+#: home/templates/home/index.html:236
+#: workbench/templates/dialogue_create.html:131
+msgid "查看详情"
+msgstr "查看详情"
+
+#: home/templates/home/explore.html:122
+msgid "没有找到匹配的作品"
+msgstr "没有找到匹配的作品"
+
+#: home/templates/home/explore.html:122
+msgid "暂时还没有公开作品"
+msgstr "暂时还没有公开作品"
+
+#: home/templates/home/explore.html:123
+msgid "换个关键词试试。"
+msgstr "换个关键词试试。"
+
+#: home/templates/home/explore.html:123 home/templates/home/index.html:263
+msgid "成为第一个公开作品的人。"
+msgstr "成为第一个公开作品的人。"
+
+#: home/templates/home/explore.html:125 home/templates/home/index.html:67
+#: home/templates/home/index.html:69
+msgid "返回全部"
+msgstr "返回全部"
+
+#: home/templates/home/explore.html:138 home/templates/home/index.html:283
+msgid "项，共"
+msgstr "项，共"
+
+#: home/templates/home/explore.html:138 home/templates/home/explore.html:153
+#: home/templates/home/index.html:283 home/templates/home/index.html:297
+#: workbench/templates/book_details_htmx.html:41
+#: workbench/templates/book_details_htmx.html:54
+#: workbench/templates/my_upload_list.html:23
+#: workbench/templates/my_upload_list.html:38
+msgid "项"
+msgstr "项"
+
+#: home/templates/home/explore.html:143 home/templates/home/index.html:288
+#: workbench/templates/book_details_htmx.html:47
+#: workbench/templates/my_upload_list.html:29
+msgid "每页显示:"
+msgstr "每页显示:"
+
+#: home/templates/home/explore.html:144
+msgid "每页:"
+msgstr "每页:"
+
+#: home/templates/home/index.html:4
+msgid "首页 - Book2TTS"
+msgstr "首页 - Book2TTS"
+
+#: home/templates/home/index.html:20
+msgid "欢迎回来，"
+msgstr "欢迎回来，"
+
+#: home/templates/home/index.html:21
+msgid "继续你的上一章，或者开始一本新书。"
+msgstr "继续你的上一章，或者开始一本新书。"
+
+#: home/templates/home/index.html:29
+msgid "继续收听"
+msgstr "继续收听"
+
+#: home/templates/home/index.html:49
+msgid "我的音频作品"
+msgstr "我的音频作品"
+
+#: home/templates/home/index.html:52
+msgid "个人 RSS 订阅"
+msgstr "个人 RSS 订阅"
+
+#: home/templates/home/index.html:60
+msgid "此书"
+msgstr "此书"
+
+#: home/templates/home/index.html:73
+msgid "制作新音频"
+msgstr "制作新音频"
+
+#: home/templates/home/index.html:261
+msgid "还没有音频作品"
+msgstr "还没有音频作品"
+
+#: home/templates/home/index.html:261
+msgid "暂时没有公开音频"
+msgstr "暂时没有公开音频"
+
+#: home/templates/home/index.html:263
+msgid "上传一本书，合成你的第一段音频。"
+msgstr "上传一本书，合成你的第一段音频。"
+
+#: home/templates/home/operation_records.html:4
+msgid "操作记录 - Book2TTS"
+msgstr "操作记录 - Book2TTS"
+
+#: home/templates/home/operation_records.html:11
+#: home/templates/home/profile.html:156 theme/templates/base.html:218
+msgid "操作记录"
+msgstr "操作记录"
+
+#: home/templates/home/operation_records.html:12
+msgid "账户的全部重要操作历史"
+msgstr "账户的全部重要操作历史"
+
+#: home/templates/home/operation_records.html:14
+msgid "返回个人资料"
+msgstr "返回个人资料"
+
+#: home/templates/home/operation_records.html:28
+msgid "状态"
+msgstr "状态"
+
+#: home/templates/home/operation_records.html:85
+msgid "第一页"
+msgstr "第一页"
+
+#: home/templates/home/operation_records.html:86
+#: workbench/templates/admin/translation_cache_list.html:170
+#: workbench/templates/dialogue_list.html:63
+msgid "上一页"
+msgstr "上一页"
+
+#: home/templates/home/operation_records.html:98
+#: workbench/templates/admin/translation_cache_list.html:188
+#: workbench/templates/dialogue_list.html:74
+msgid "下一页"
+msgstr "下一页"
+
+#: home/templates/home/operation_records.html:99
+msgid "最后一页"
+msgstr "最后一页"
+
+#: home/templates/home/operation_records.html:105
+msgid "显示第"
+msgstr "显示第"
+
+#: home/templates/home/operation_records.html:105
+msgid "条记录"
+msgstr "条记录"
+
+#: home/templates/home/operation_records.html:105
+msgid "，"
+msgstr "，"
+
+#: home/templates/home/operation_records.html:113
+msgid "暂无操作记录"
+msgstr "暂无操作记录"
+
+#: home/templates/home/operation_records.html:115
+msgid "您还没有任何操作记录。开始使用系统功能后，操作记录将会出现在这里。"
+msgstr "您还没有任何操作记录。开始使用系统功能后，操作记录将会出现在这里。"
+
+#: home/templates/home/operation_records.html:119
+msgid "开始使用"
+msgstr "开始使用"
+
+#: home/templates/home/operation_records.html:134
+msgid "关于操作记录"
+msgstr "关于操作记录"
+
+#: home/templates/home/operation_records.html:136
+msgid ""
+"操作记录包含您在系统中执行的所有重要操作，如音频创建、删除、文件上传等。记录"
+"保留用于审计和问题排查，确保系统使用的透明性和可追溯性。"
+msgstr "操作记录包含您在系统中执行的所有重要操作，如音频创建、删除、文件上传等。记录保留用于审计和问题排查，确保系统使用的透明性和可追溯性。"
+
+#: home/templates/home/profile.html:4
+msgid "个人资料 - Book2TTS"
+msgstr "个人资料 - Book2TTS"
+
+#: home/templates/home/profile.html:11
+msgid "个人资料"
+msgstr "个人资料"
+
+#: home/templates/home/profile.html:12
+msgid "账户信息、积分与使用统计"
+msgstr "账户信息、积分与使用统计"
+
+#: home/templates/home/profile.html:26
+msgid "用户信息"
+msgstr "用户信息"
+
+#: home/templates/home/profile.html:31
+msgid "用户名:"
+msgstr "用户名:"
+
+#: home/templates/home/profile.html:37
+msgid "邮箱:"
+msgstr "邮箱:"
+
+#: home/templates/home/profile.html:43
+msgid "注册时间:"
+msgstr "注册时间:"
+
+#: home/templates/home/profile.html:57
+#: workbench/templates/admin/translation_cache_detail.html:109
+#: workbench/templates/admin/translation_cache_detail.html:126
+msgid "复制"
+msgstr "复制"
+
+#: home/templates/home/profile.html:59
+msgid "你的专属播客 RSS —— 粘贴到任意播客 App 即可订阅自己的作品"
+msgstr "你的专属播客 RSS —— 粘贴到任意播客 App 即可订阅自己的作品"
+
+#: home/templates/home/profile.html:69
+msgid "数据统计"
+msgstr "数据统计"
+
+#: home/templates/home/profile.html:73
+msgid "书籍总数"
+msgstr "书籍总数"
+
+#: home/templates/home/profile.html:78
+msgid "音频总数"
+msgstr "音频总数"
+
+#: home/templates/home/profile.html:83
+#: workbench/templates/book_details_htmx.html:347
+#: workbench/templates/book_details_htmx.html:387
+#: workbench/templates/dialogue_detail.html:194
+#: workbench/templates/dialogue_list.html:29
+msgid "已发布"
+msgstr "已发布"
+
+#: home/templates/home/profile.html:88
+msgid "未发布"
+msgstr "未发布"
+
+#: home/templates/home/profile.html:100
+msgid "积分信息"
+msgstr "积分信息"
+
+#: home/templates/home/profile.html:107
+msgid "积分余量"
+msgstr "积分余量"
+
+#: home/templates/home/profile.html:109 workbench/templates/quota_info.html:7
+msgid "积分"
+msgstr "积分"
+
+#: home/templates/home/profile.html:130
+msgid "充足"
+msgstr "充足"
+
+#: home/templates/home/profile.html:132
+msgid "适中"
+msgstr "适中"
+
+#: home/templates/home/profile.html:134
+msgid "不足"
+msgstr "不足"
+
+#: home/templates/home/profile.html:139
+msgid "请合理使用积分"
+msgstr "请合理使用积分"
+
+#: home/templates/home/profile.html:141
+msgid "可正常使用各项功能"
+msgstr "可正常使用各项功能"
+
+#: home/templates/home/profile.html:158
+msgid "查看详细记录"
+msgstr "查看详细记录"
+
+#: home/templates/home/profile.html:163
+msgid ""
+"点击上方按钮查看您的详细操作记录，包括音频创建、删除等所有操作的历史记录。"
+msgstr "点击上方按钮查看您的详细操作记录，包括音频创建、删除等所有操作的历史记录。"
+
+#: home/templates/home/profile.html:177 workbench/templates/quota_info.html:27
+msgid "积分扣除规则"
+msgstr "积分扣除规则"
+
+#: home/views.py:776
+msgid "探索音频作品"
+msgstr "探索音频作品"
+
+#: home/views.py:953 home/views.py:1033 home/views.py:1044 home/views.py:1065
+msgid "讨论区"
+msgstr "讨论区"
+
+#: home/views.py:972 home/views.py:1092
+msgid "请输入主题标题"
+msgstr "请输入主题标题"
+
+#: home/views.py:981 home/views.py:1099
+msgid "请输入主题内容"
+msgstr "请输入主题内容"
+
+#: home/views.py:1043
+msgid "请输入留言内容"
+msgstr "请输入留言内容"
+
+#: theme/templates/404.html:4
+msgid "页面走丢了 - Book2TTS"
+msgstr "页面走丢了 - Book2TTS"
+
+#: theme/templates/404.html:9
+msgid "页面走丢了"
+msgstr "页面走丢了"
+
+#: theme/templates/404.html:11
+msgid "你要找的页面不存在，或者已经被移动了。"
+msgstr "你要找的页面不存在，或者已经被移动了。"
+
+#: theme/templates/404.html:14 theme/templates/500.html:18
+#: theme/templates/registration/logged_out.html:20
+msgid "返回首页"
+msgstr "返回首页"
+
+#: theme/templates/404.html:15
+msgid "去探索听听"
+msgstr "去探索听听"
+
+#: theme/templates/500.html:7
+msgid "服务出错了"
+msgstr "服务出错了"
+
+#: theme/templates/500.html:14
+msgid "服务出了点问题"
+msgstr "服务出了点问题"
+
+#: theme/templates/base.html:6 theme/templates/base.html:31
+#: theme/templates/base.html:38
+msgid "Book2TTS - 文本转语音和有声书制作平台"
+msgstr "Book2TTS - 文本转语音和有声书制作平台"
+
+#: theme/templates/base.html:13 theme/templates/base.html:32
+#: theme/templates/base.html:39
+msgid ""
+"Book2TTS - 专业的在线文本转语音工具，支持EPUB、PDF、扫描PDF等多种格式转换，提"
+"供高质量有声书制作、多音色对话生成、SRT字幕支持和音频内容管理服务"
+msgstr "Book2TTS - 专业的在线文本转语音工具，支持EPUB、PDF、扫描PDF等多种格式转换，提供高质量有声书制作、多音色对话生成、SRT字幕支持和音频内容管理服务"
+
+#: theme/templates/base.html:18
+msgid ""
+"文本转语音,TTS,有声书制作,EPUB解析,电子书目录,PDF转语音,OCR识别,SRT字幕,章节"
+"生成,章节标注,LLM排版,翻译润色,对话脚本,多人对话,角色扮演对话,剧本生成,音频队"
+"列,RSS章节,播客章节,播客发布,Podcast Chapters"
+msgstr "文本转语音,TTS,有声书制作,EPUB解析,电子书目录,PDF转语音,OCR识别,SRT字幕,章节生成,章节标注,LLM排版,翻译润色,对话脚本,多人对话,角色扮演对话,剧本生成,音频队列,RSS章节,播客章节,播客发布,Podcast Chapters"
+
+#: theme/templates/base.html:29
+msgid "Book2TTS"
+msgstr "Book2TTS"
+
+#: theme/templates/base.html:83
+#, python-format
+msgid "%(username)s的Book2TTS音频"
+msgstr "%(username)s的Book2TTS音频"
+
+#: theme/templates/base.html:110 theme/templates/base.html:139
+msgid "工坊"
+msgstr "工坊"
+
+#: theme/templates/base.html:112 theme/templates/base.html:141
+#: workbench/templates/my_upload_list.html:11
+msgid "我的书籍"
+msgstr "我的书籍"
+
+#: theme/templates/base.html:113 theme/templates/base.html:142
+msgid "生成队列"
+msgstr "生成队列"
+
+#: theme/templates/base.html:117 theme/templates/base.html:148
+msgid "声音库"
+msgstr "声音库"
+
+#: theme/templates/base.html:119 theme/templates/base.html:150
+msgid "我的作品"
+msgstr "我的作品"
+
+#: theme/templates/base.html:120 theme/templates/base.html:151
+#: workbench/templates/aggregated_audio_segments.html:22
+#: workbench/templates/aggregated_audio_segments.html:38
+msgid "有声书成品"
+msgstr "有声书成品"
+
+#: theme/templates/base.html:125 theme/templates/base.html:160
+msgid "社区"
+msgstr "社区"
+
+#: theme/templates/base.html:126 theme/templates/base.html:162
+msgid "关于"
+msgstr "关于"
+
+#: theme/templates/base.html:169
+msgid "语言"
+msgstr "语言"
+
+#: theme/templates/base.html:190
+msgid "全局搜索 (⌘K)"
+msgstr "全局搜索 (⌘K)"
+
+#: theme/templates/base.html:192
+msgid "搜索…"
+msgstr "搜索…"
+
+#: theme/templates/base.html:197 theme/templates/base.html:198
+msgid "切换主题"
+msgstr "切换主题"
+
+#: theme/templates/base.html:214
+msgid "个人中心"
+msgstr "个人中心"
+
+#: theme/templates/base.html:219
+msgid "登出"
+msgstr "登出"
+
+#: theme/templates/base.html:224
+msgid "免费注册"
+msgstr "免费注册"
+
+#: theme/templates/base.html:249 theme/templates/base.html:773
+msgid "暂无字幕"
+msgstr "暂无字幕"
+
+#: theme/templates/base.html:264
+msgid "章节列表"
+msgstr "章节列表"
+
+#: theme/templates/base.html:276 theme/templates/base.html:1055
+msgid "未选择章节"
+msgstr "未选择章节"
+
+#: theme/templates/base.html:281 theme/templates/base.html:948
+msgid "暂无章节"
+msgstr "暂无章节"
+
+#: theme/templates/base.html:288
+msgid "未选择音频"
+msgstr "未选择音频"
+
+#: theme/templates/base.html:320
+msgid "搜索作品 / 书籍 / 社区帖…"
+msgstr "搜索作品 / 书籍 / 社区帖…"
+
+#: theme/templates/base.html:326
+msgid "↑↓ 选择"
+msgstr "↑↓ 选择"
+
+#: theme/templates/base.html:326
+msgid "↵ 打开"
+msgstr "↵ 打开"
+
+#: theme/templates/base.html:326
+msgid "esc 关闭"
+msgstr "esc 关闭"
+
+#: theme/templates/base.html:327
+msgid "作品 / 书籍 / 社区帖"
+msgstr "作品 / 书籍 / 社区帖"
+
+#: theme/templates/registration/logged_out.html:4
+msgid "已登出 - Book2TTS"
+msgstr "已登出 - Book2TTS"
+
+#: theme/templates/registration/logged_out.html:16
+msgid "您已成功登出"
+msgstr "您已成功登出"
+
+#: theme/templates/registration/logged_out.html:17
+msgid "感谢您使用我们的服务！"
+msgstr "感谢您使用我们的服务！"
+
+#: theme/templates/registration/logged_out.html:19
+msgid "重新登录"
+msgstr "重新登录"
+
+#: theme/templates/registration/login.html:4
+msgid "登录 - Book2TTS"
+msgstr "登录 - Book2TTS"
+
+#: theme/templates/registration/login.html:9
+msgid "登录 Book2TTS"
+msgstr "登录 Book2TTS"
+
+#: theme/templates/registration/login.html:10
+msgid "继续你的有声书制作"
+msgstr "继续你的有声书制作"
+
+#: theme/templates/registration/login.html:20
+#: theme/templates/registration/register.html:20
+msgid "用户名"
+msgstr "用户名"
+
+#: theme/templates/registration/login.html:32
+#: theme/templates/registration/register.html:44
+msgid "密码"
+msgstr "密码"
+
+#: theme/templates/registration/login.html:59
+msgid "登录失败，请检查用户名和密码"
+msgstr "登录失败，请检查用户名和密码"
+
+#: theme/templates/registration/login.html:73
+msgid "没有账号？去注册"
+msgstr "没有账号？去注册"
+
+#: theme/templates/registration/login.html:97
+#: theme/templates/registration/register.html:118
+msgid "请完成人机验证"
+msgstr "请完成人机验证"
+
+#: theme/templates/registration/register.html:4
+msgid "注册 - Book2TTS"
+msgstr "注册 - Book2TTS"
+
+#: theme/templates/registration/register.html:9
+msgid "注册 Book2TTS"
+msgstr "注册 Book2TTS"
+
+#: theme/templates/registration/register.html:10
+msgid "免费创建你的有声书工坊"
+msgstr "免费创建你的有声书工坊"
+
+#: theme/templates/registration/register.html:13
+#: theme/templates/registration/register.html:87
+msgid "注册"
+msgstr "注册"
+
+#: theme/templates/registration/register.html:32
+msgid "邮箱"
+msgstr "邮箱"
+
+#: theme/templates/registration/register.html:56
+msgid "确认密码"
+msgstr "确认密码"
+
+#: theme/templates/registration/register.html:94
+msgid "已有账号？去登录"
+msgstr "已有账号？去登录"
+
+#: workbench/models.py:17 workbench/templates/my_upload_list.html:77
+msgid "未检测"
+msgstr "未检测"
+
+#: workbench/models.py:18 workbench/templates/my_upload_list.html:75
+msgid "文本版"
+msgstr "文本版"
+
+#: workbench/models.py:19 workbench/templates/my_upload_list.html:73
+msgid "扫描版"
+msgstr "扫描版"
+
+#: workbench/models.py:23
+msgid "小说"
+msgstr "小说"
+
+#: workbench/models.py:24
+msgid "历史"
+msgstr "历史"
+
+#: workbench/models.py:25
+msgid "科幻"
+msgstr "科幻"
+
+#: workbench/models.py:26
+msgid "散文"
+msgstr "散文"
+
+#: workbench/models.py:27
+msgid "学习"
+msgstr "学习"
+
+#: workbench/models.py:28
+msgid "其他"
+msgstr "其他"
+
+#: workbench/models.py:35
+msgid "文件的MD5哈希值，用于检测重复文件"
+msgstr "文件的MD5哈希值，用于检测重复文件"
+
+#: workbench/models.py:36
+msgid "PDF类型：文本版或扫描版"
+msgstr "PDF类型：文本版或扫描版"
+
+#: workbench/models.py:37
+msgid "书籍分类，用于探索页筛选"
+msgstr "书籍分类，用于探索页筛选"
+
+#: workbench/models.py:118 workbench/models.py:262
+msgid "字幕文件"
+msgstr "字幕文件"
+
+#: workbench/models.py:119 workbench/models.py:264
+msgid "音频章节时间线"
+msgstr "音频章节时间线"
+
+#: workbench/models.py:120 workbench/models.py:265
+msgid "章节JSON文件"
+msgstr "章节JSON文件"
+
+#: workbench/models.py:121 workbench/models.py:266
+msgid "章节HTML片段"
+msgstr "章节HTML片段"
+
+#: workbench/models.py:158
+msgid "等待中"
+msgstr "等待中"
+
+#: workbench/models.py:159
+msgid "处理中"
+msgstr "处理中"
+
+#: workbench/models.py:160 workbench/templates/task_queue.html:29
+#: workbench/templates/task_queue.html:196
+msgid "已完成"
+msgstr "已完成"
+
+#: workbench/models.py:256
+msgid "对话脚本标题"
+msgstr "对话脚本标题"
+
+#: workbench/models.py:257 workbench/models.py:388
+#: workbench/templates/dialogue_create.html:38
+msgid "原始文本内容"
+msgstr "原始文本内容"
+
+#: workbench/models.py:258
+msgid "LLM解析后的JSON格式对话数据"
+msgstr "LLM解析后的JSON格式对话数据"
+
+#: workbench/models.py:263
+msgid "音频时长（秒）"
+msgstr "音频时长（秒）"
+
+#: workbench/models.py:267
+msgid "是否发布到成品"
+msgstr "是否发布到成品"
+
+#: workbench/models.py:334
+msgid "说话者名称"
+msgstr "说话者名称"
+
+#: workbench/models.py:335
+msgid "片段顺序"
+msgstr "片段顺序"
+
+#: workbench/models.py:336
+msgid "说话内容"
+msgstr "说话内容"
+
+#: workbench/models.py:337
+msgid "对话"
+msgstr "对话"
+
+#: workbench/models.py:341
+msgid "片段音频时长（秒）"
+msgstr "片段音频时长（秒）"
+
+#: workbench/models.py:356
+msgid "图片的MD5哈希值"
+msgstr "图片的MD5哈希值"
+
+#: workbench/models.py:357
+msgid "OCR识别的文本内容"
+msgstr "OCR识别的文本内容"
+
+#: workbench/models.py:358
+msgid "页面图片"
+msgstr "页面图片"
+
+#: workbench/models.py:374
+msgid "中文"
+msgstr "中文"
+
+#: workbench/models.py:375
+msgid "日本語"
+msgstr "日本語"
+
+#: workbench/models.py:385
+msgid "原文本的MD5哈希值"
+msgstr "原文本的MD5哈希值"
+
+#: workbench/models.py:386
+msgid "源语言（auto表示自动检测）"
+msgstr "源语言（auto表示自动检测）"
+
+#: workbench/models.py:387
+#: workbench/templates/admin/translation_cache_detail.html:48
+#: workbench/templates/admin/translation_cache_list.html:100
+msgid "目标语言"
+msgstr "目标语言"
+
+#: workbench/models.py:389
+msgid "翻译后的文本内容"
+msgstr "翻译后的文本内容"
+
+#: workbench/models.py:392
+msgid "缓存命中次数"
+msgstr "缓存命中次数"
+
+#: workbench/models.py:397
+msgid "最后使用时间"
+msgstr "最后使用时间"
+
+#: workbench/templates/admin/translation_cache_detail.html:5
+msgid "缓存详情 -"
+msgstr "缓存详情 -"
+
+#: workbench/templates/admin/translation_cache_detail.html:14
+msgid "翻译缓存详情"
+msgstr "翻译缓存详情"
+
+#: workbench/templates/admin/translation_cache_detail.html:22
+#: workbench/templates/dialogue_detail.html:135
+#: workbench/templates/dialogue_list.html:49
+#: workbench/templates/task_queue.html:226
+msgid "删除"
+msgstr "删除"
+
+#: workbench/templates/admin/translation_cache_detail.html:31
+msgid "基本信息"
+msgstr "基本信息"
+
+#: workbench/templates/admin/translation_cache_detail.html:34
+msgid "MD5哈希"
+msgstr "MD5哈希"
+
+#: workbench/templates/admin/translation_cache_detail.html:38
+msgid "源语言"
+msgstr "源语言"
+
+#: workbench/templates/admin/translation_cache_detail.html:41
+msgid "自动检测"
+msgstr "自动检测"
+
+#: workbench/templates/admin/translation_cache_detail.html:52
+#: workbench/templates/admin/translation_cache_list.html:103
+msgid "命中次数"
+msgstr "命中次数"
+
+#: workbench/templates/admin/translation_cache_detail.html:60
+#: workbench/templates/admin/translation_cache_list.html:105
+msgid "最后使用"
+msgstr "最后使用"
+
+#: workbench/templates/admin/translation_cache_detail.html:68
+msgid "文本统计"
+msgstr "文本统计"
+
+#: workbench/templates/admin/translation_cache_detail.html:71
+msgid "原文字符数"
+msgstr "原文字符数"
+
+#: workbench/templates/admin/translation_cache_detail.html:72
+#: workbench/templates/admin/translation_cache_detail.html:76
+#: workbench/templates/task_queue.html:116
+msgid "字符"
+msgstr "字符"
+
+#: workbench/templates/admin/translation_cache_detail.html:75
+msgid "译文字符数"
+msgstr "译文字符数"
+
+#: workbench/templates/admin/translation_cache_detail.html:79
+msgid "原文行数"
+msgstr "原文行数"
+
+#: workbench/templates/admin/translation_cache_detail.html:80
+#: workbench/templates/admin/translation_cache_detail.html:84
+msgid "行"
+msgstr "行"
+
+#: workbench/templates/admin/translation_cache_detail.html:83
+msgid "译文行数"
+msgstr "译文行数"
+
+#: workbench/templates/admin/translation_cache_detail.html:87
+msgid "翻译比率"
+msgstr "翻译比率"
+
+#: workbench/templates/admin/translation_cache_detail.html:107
+msgid "原文内容"
+msgstr "原文内容"
+
+#: workbench/templates/admin/translation_cache_detail.html:124
+msgid "译文内容"
+msgstr "译文内容"
+
+#: workbench/templates/admin/translation_cache_detail.html:142
+msgid "刷新统计"
+msgstr "刷新统计"
+
+#: workbench/templates/admin/translation_cache_detail.html:145
+msgid "导出为JSON"
+msgstr "导出为JSON"
+
+#: workbench/templates/admin/translation_cache_detail.html:177
+msgid "复制失败，请手动选择文本复制"
+msgstr "复制失败，请手动选择文本复制"
+
+#: workbench/templates/admin/translation_cache_detail.html:183
+#: workbench/templates/admin/translation_cache_list.html:320
+msgid "确定要删除这条缓存记录吗？"
+msgstr "确定要删除这条缓存记录吗？"
+
+#: workbench/templates/admin/translation_cache_detail.html:196
+#: workbench/templates/admin/translation_cache_list.html:333
+#: workbench/templates/admin/translation_cache_list.html:362
+#: workbench/templates/dialogue_detail.html:671
+#: workbench/templates/dialogue_detail.html:732
+#: workbench/templates/dialogue_list.html:205
+msgid "删除失败："
+msgstr "删除失败："
+
+#: workbench/templates/admin/translation_cache_detail.html:201
+#: workbench/templates/admin/translation_cache_list.html:338
+#: workbench/templates/admin/translation_cache_list.html:367
+msgid "删除失败，请重试"
+msgstr "删除失败，请重试"
+
+#: workbench/templates/admin/translation_cache_list.html:5
+msgid "翻译缓存管理 -"
+msgstr "翻译缓存管理 -"
+
+#: workbench/templates/admin/translation_cache_list.html:13
+msgid "翻译缓存管理"
+msgstr "翻译缓存管理"
+
+#: workbench/templates/admin/translation_cache_list.html:16
+msgid "统计信息"
+msgstr "统计信息"
+
+#: workbench/templates/admin/translation_cache_list.html:19
+msgid "清理缓存"
+msgstr "清理缓存"
+
+#: workbench/templates/admin/translation_cache_list.html:22
+msgid "批量删除"
+msgstr "批量删除"
+
+#: workbench/templates/admin/translation_cache_list.html:31
+msgid "搜索原文、译文或MD5..."
+msgstr "搜索原文、译文或MD5..."
+
+#: workbench/templates/admin/translation_cache_list.html:35
+msgid "所有语言"
+msgstr "所有语言"
+
+#: workbench/templates/admin/translation_cache_list.html:46
+msgid "搜索"
+msgstr "搜索"
+
+#: workbench/templates/admin/translation_cache_list.html:49
+#: workbench/templates/toc.html:11
+msgid "清除"
+msgstr "清除"
+
+#: workbench/templates/admin/translation_cache_list.html:60
+#: workbench/templates/admin/translation_cache_list.html:228
+msgid "总缓存条数"
+msgstr "总缓存条数"
+
+#: workbench/templates/admin/translation_cache_list.html:68
+#: workbench/templates/admin/translation_cache_list.html:232
+msgid "总命中次数"
+msgstr "总命中次数"
+
+#: workbench/templates/admin/translation_cache_list.html:76
+#: workbench/templates/admin/translation_cache_list.html:236
+msgid "平均命中率"
+msgstr "平均命中率"
+
+#: workbench/templates/admin/translation_cache_list.html:84
+msgid "语言种类"
+msgstr "语言种类"
+
+#: workbench/templates/admin/translation_cache_list.html:101
+msgid "原文预览"
+msgstr "原文预览"
+
+#: workbench/templates/admin/translation_cache_list.html:102
+msgid "译文预览"
+msgstr "译文预览"
+
+#: workbench/templates/admin/translation_cache_list.html:106
+msgid "操作"
+msgstr "操作"
+
+#: workbench/templates/admin/translation_cache_list.html:156
+msgid "暂无缓存记录"
+msgstr "暂无缓存记录"
+
+#: workbench/templates/admin/translation_cache_list.html:205
+msgid "翻译缓存统计"
+msgstr "翻译缓存统计"
+
+#: workbench/templates/admin/translation_cache_list.html:211
+msgid "按语言统计"
+msgstr "按语言统计"
+
+#: workbench/templates/admin/translation_cache_list.html:218
+msgid "次"
+msgstr "次"
+
+#: workbench/templates/admin/translation_cache_list.html:225
+msgid "总体统计"
+msgstr "总体统计"
+
+#: workbench/templates/admin/translation_cache_list.html:252
+msgid "清理翻译缓存"
+msgstr "清理翻译缓存"
+
+#: workbench/templates/admin/translation_cache_list.html:258
+msgid "清理多少天前的缓存"
+msgstr "清理多少天前的缓存"
+
+#: workbench/templates/admin/translation_cache_list.html:260
+msgid "将删除指定天数前未使用的缓存记录"
+msgstr "将删除指定天数前未使用的缓存记录"
+
+#: workbench/templates/admin/translation_cache_list.html:266
+msgid "清理"
+msgstr "清理"
+
+#: workbench/templates/admin/translation_cache_list.html:309
+#: workbench/views/translation_views.py:130
+msgid "请选择要删除的缓存记录"
+msgstr "请选择要删除的缓存记录"
+
+#: workbench/templates/admin/translation_cache_list.html:394
+msgid "清理失败："
+msgstr "清理失败："
+
+#: workbench/templates/admin/translation_cache_list.html:399
+msgid "清理失败，请重试"
+msgstr "清理失败，请重试"
+
+#: workbench/templates/aggregated_audio_segments.html:5
+msgid "我的音频库 - Book2TTS"
+msgstr "我的音频库 - Book2TTS"
+
+#: workbench/templates/aggregated_audio_segments.html:15
+msgid "操作成功!"
+msgstr "操作成功!"
+
+#: workbench/templates/aggregated_audio_segments.html:23
+msgid "已完成的有声书，按书籍分组"
+msgstr "已完成的有声书，按书籍分组"
+
+#: workbench/templates/aggregated_audio_segments.html:37
+#: workbench/templates/book_details_htmx.html:23
+msgid "集"
+msgstr "集"
+
+#: workbench/templates/aggregated_audio_segments.html:49
+msgid "还没有有声书成品"
+msgstr "还没有有声书成品"
+
+#: workbench/templates/aggregated_audio_segments.html:50
+msgid "先从书籍中合成音频，成品会自动出现在这里。"
+msgstr "先从书籍中合成音频，成品会自动出现在这里。"
+
+#: workbench/templates/aggregated_audio_segments.html:70
+msgid "音频片段已成功删除"
+msgstr "音频片段已成功删除"
+
+#: workbench/templates/aggregated_audio_segments.html:147
+msgid "未找到音频片段 #"
+msgstr "未找到音频片段 #"
+
+#: workbench/templates/book_details_htmx.html:10
+msgid "返回书籍列表"
+msgstr "返回书籍列表"
+
+#: workbench/templates/book_details_htmx.html:26
+msgid "有声书成品 · 点集收听"
+msgstr "有声书成品 · 点集收听"
+
+#: workbench/templates/book_details_htmx.html:60
+#: workbench/templates/dialogue_list.html:68
+#: workbench/templates/my_upload_list.html:44
+msgid "第"
+msgstr "第"
+
+#: workbench/templates/book_details_htmx.html:60
+#: workbench/templates/dialogue_list.html:68
+#: workbench/templates/my_upload_list.html:44
+msgid "页"
+msgstr "页"
+
+#: workbench/templates/book_details_htmx.html:124
+msgid "请输入有效的页码（1-"
+msgstr "请输入有效的页码（1-"
+
+#: workbench/templates/book_details_htmx.html:251
+msgid "处理中..."
+msgstr "处理中..."
+
+#: workbench/templates/book_details_htmx.html:284
+#: workbench/templates/index.html:2040
+msgid "网络错误，请稍后重试"
+msgstr "网络错误，请稍后重试"
+
+#: workbench/templates/book_details_htmx.html:295
+#: workbench/templates/book_details_htmx.html:394
+#: workbench/templates/index.html:2071
+msgid "取消发布"
+msgstr "取消发布"
+
+#: workbench/templates/book_details_htmx.html:299
+#: workbench/templates/book_details_htmx.html:399
+#: workbench/templates/dialogue_list.html:46 workbench/templates/index.html:168
+#: workbench/templates/index.html:415 workbench/templates/index.html:1296
+#: workbench/templates/index.html:2081
+msgid "发布"
+msgstr "发布"
+
+#: workbench/templates/book_details_htmx.html:337
+msgid "个角色"
+msgstr "个角色"
+
+#: workbench/templates/book_details_htmx.html:347
+msgid "草稿"
+msgstr "草稿"
+
+#: workbench/templates/book_details_htmx.html:371
+#, python-format
+msgid "下载音频（保存为：%(name)s.wav）"
+msgstr "下载音频（保存为：%(name)s.wav）"
+
+#: workbench/templates/book_details_htmx.html:378
+#, python-format
+msgid "下载字幕（保存为：%(name)s.srt）"
+msgstr "下载字幕（保存为：%(name)s.srt）"
+
+#: workbench/templates/book_details_htmx.html:389
+#: workbench/templates/dialogue_detail.html:196
+#: workbench/templates/dialogue_list.html:31
+msgid "已生成"
+msgstr "已生成"
+
+#: workbench/templates/book_details_htmx.html:409
+msgid "编辑对话脚本"
+msgstr "编辑对话脚本"
+
+#: workbench/templates/book_details_htmx.html:414
+msgid "删除音频"
+msgstr "删除音频"
+
+#: workbench/templates/book_details_htmx.html:438
+msgid "书籍:"
+msgstr "书籍:"
+
+#: workbench/templates/book_details_htmx.html:447
+#: workbench/templates/task_queue.html:176
+msgid "时长:"
+msgstr "时长:"
+
+#: workbench/templates/book_details_htmx.html:453
+#: workbench/templates/task_queue.html:122
+msgid "页面:"
+msgstr "页面:"
+
+#: workbench/templates/book_details_htmx.html:463
+msgid "点击查看页面内容"
+msgstr "点击查看页面内容"
+
+#: workbench/templates/book_details_htmx.html:479
+msgid "更新:"
+msgstr "更新:"
+
+#: workbench/templates/book_details_htmx.html:491
+msgid "页面内容"
+msgstr "页面内容"
+
+#: workbench/templates/book_details_htmx.html:526
+#: workbench/templates/dialogue_detail.html:233
+msgid "重新生成章节"
+msgstr "重新生成章节"
+
+#: workbench/templates/book_details_htmx.html:526
+#: workbench/templates/dialogue_detail.html:233
+msgid "生成章节"
+msgstr "生成章节"
+
+#: workbench/templates/book_details_htmx.html:550
+msgid "暂无章节信息，可点击上方按钮生成。"
+msgstr "暂无章节信息，可点击上方按钮生成。"
+
+#: workbench/templates/book_details_htmx.html:593
+#: workbench/templates/book_details_htmx.html:595
+#: workbench/templates/task_queue.html:165
+msgid "播放音频"
+msgstr "播放音频"
+
+#: workbench/templates/book_details_htmx.html:595
+msgid "含字幕"
+msgstr "含字幕"
+
+#: workbench/templates/book_details_htmx.html:608
+msgid "该书籍下没有任何音频片段。"
+msgstr "该书籍下没有任何音频片段。"
+
+#: workbench/templates/book_details_htmx.html:665
+#: workbench/templates/index.html:187
+msgid "加载中..."
+msgstr "加载中..."
+
+#: workbench/templates/book_details_htmx.html:684
+#: workbench/templates/dialogue_detail.html:1098
+msgid "未找到章节生成接口"
+msgstr "未找到章节生成接口"
+
+#: workbench/templates/book_details_htmx.html:728
+#: workbench/templates/dialogue_detail.html:1142
+msgid "章节生成请求失败："
+msgstr "章节生成请求失败："
+
+#: workbench/templates/book_details_htmx.html:811
+msgid "播放器正在加载中，请稍后再试"
+msgstr "播放器正在加载中，请稍后再试"
+
+#: workbench/templates/book_details_htmx.html:908
+#: workbench/templates/book_details_htmx.html:913
+msgid "加载失败: "
+msgstr "加载失败: "
+
+#: workbench/templates/book_details_page.html:4
+msgid "》 - 有声书成品 - Book2TTS"
+msgstr "》 - 有声书成品 - Book2TTS"
+
+#: workbench/templates/dialogue_create.html:8
+#: workbench/templates/dialogue_list.html:14
+#: workbench/templates/dialogue_list.html:91
+msgid "创建对话脚本"
+msgstr "创建对话脚本"
+
+#: workbench/templates/dialogue_create.html:9
+msgid "使用AI将文本内容转换为对话形式的脚本"
+msgstr "使用AI将文本内容转换为对话形式的脚本"
+
+#: workbench/templates/dialogue_create.html:16
+#: workbench/templates/dialogue_detail.html:354
+msgid "脚本标题"
+msgstr "脚本标题"
+
+#: workbench/templates/dialogue_create.html:20
+msgid "为您的对话脚本起一个标题"
+msgstr "为您的对话脚本起一个标题"
+
+#: workbench/templates/dialogue_create.html:25
+msgid "关联书籍（可选）"
+msgstr "关联书籍（可选）"
+
+#: workbench/templates/dialogue_create.html:29
+msgid "不关联任何书籍"
+msgstr "不关联任何书籍"
+
+#: workbench/templates/dialogue_create.html:42
+msgid "请输入需要转换为对话的文本内容..."
+msgstr "请输入需要转换为对话的文本内容..."
+
+#: workbench/templates/dialogue_create.html:45
+msgid "支持长文本，系统会自动分段处理。建议文本长度在1000-5000字之间效果最佳。"
+msgstr "支持长文本，系统会自动分段处理。建议文本长度在1000-5000字之间效果最佳。"
+
+#: workbench/templates/dialogue_create.html:52
+msgid "自定义提示词（可选）"
+msgstr "自定义提示词（可选）"
+
+#: workbench/templates/dialogue_create.html:56
+#: workbench/templates/dialogue_create.html:247
+msgid "显示高级选项"
+msgstr "显示高级选项"
+
+#: workbench/templates/dialogue_create.html:62
+msgid "如果需要自定义AI转换规则，可以在此输入提示词..."
+msgstr "如果需要自定义AI转换规则，可以在此输入提示词..."
+
+#: workbench/templates/dialogue_create.html:64
+msgid "留空将使用默认的对话转换提示词。自定义提示词需要包含完整的转换指令。"
+msgstr "留空将使用默认的对话转换提示词。自定义提示词需要包含完整的转换指令。"
+
+#: workbench/templates/dialogue_create.html:76
+msgid "转换为对话"
+msgstr "转换为对话"
+
+#: workbench/templates/dialogue_create.html:89
+msgid "正在处理中..."
+msgstr "正在处理中..."
+
+#: workbench/templates/dialogue_create.html:92
+#: workbench/templates/dialogue_create.html:290
+msgid "正在提交任务到后台处理队列..."
+msgstr "正在提交任务到后台处理队列..."
+
+#: workbench/templates/dialogue_create.html:101
+#: workbench/templates/dialogue_create.html:292
+msgid "准备中..."
+msgstr "准备中..."
+
+#: workbench/templates/dialogue_create.html:106
+#: workbench/templates/task_queue.html:207
+msgid "取消任务"
+msgstr "取消任务"
+
+#: workbench/templates/dialogue_create.html:120
+msgid "转换完成"
+msgstr "转换完成"
+
+#: workbench/templates/dialogue_create.html:123
+msgid "对话脚本已成功创建！"
+msgstr "对话脚本已成功创建！"
+
+#: workbench/templates/dialogue_create.html:145
+msgid "转换失败"
+msgstr "转换失败"
+
+#: workbench/templates/dialogue_create.html:148
+msgid "抱歉，对话转换过程中出现错误。"
+msgstr "抱歉，对话转换过程中出现错误。"
+
+#: workbench/templates/dialogue_create.html:156
+msgid "重试"
+msgstr "重试"
+
+#: workbench/templates/dialogue_create.html:244
+msgid "隐藏高级选项"
+msgstr "隐藏高级选项"
+
+#: workbench/templates/dialogue_create.html:277
+msgid "请输入文本内容"
+msgstr "请输入文本内容"
+
+#: workbench/templates/dialogue_detail.html:50
+#: workbench/templates/dialogue_detail.html:369
+#: workbench/templates/dialogue_list.html:39
+msgid "无关联书籍"
+msgstr "无关联书籍"
+
+#: workbench/templates/dialogue_detail.html:52
+msgid "段 · 创建于"
+msgstr "段 · 创建于"
+
+#: workbench/templates/dialogue_detail.html:74
+msgid "发布音频"
+msgstr "发布音频"
+
+#: workbench/templates/dialogue_detail.html:81
+msgid "删除脚本"
+msgstr "删除脚本"
+
+#: workbench/templates/dialogue_detail.html:91
+msgid "对话内容"
+msgstr "对话内容"
+
+#: workbench/templates/dialogue_detail.html:91
+msgid "段"
+msgstr "段"
+
+#: workbench/templates/dialogue_detail.html:117
+msgid "听见"
+msgstr "听见"
+
+#: workbench/templates/dialogue_detail.html:179
+msgid "状态信息"
+msgstr "状态信息"
+
+#: workbench/templates/dialogue_detail.html:182
+msgid "片段数量："
+msgstr "片段数量："
+
+#: workbench/templates/dialogue_detail.html:186
+msgid "说话者数量："
+msgstr "说话者数量："
+
+#: workbench/templates/dialogue_detail.html:190
+msgid "音频状态："
+msgstr "音频状态："
+
+#: workbench/templates/dialogue_detail.html:199
+#: workbench/templates/dialogue_list.html:34
+msgid "未生成"
+msgstr "未生成"
+
+#: workbench/templates/dialogue_detail.html:205
+msgid "音频时长："
+msgstr "音频时长："
+
+#: workbench/templates/dialogue_detail.html:206
+#: workbench/templates/task_queue.html:119
+#: workbench/templates/task_queue.html:176
+msgid "秒"
+msgstr "秒"
+
+#: workbench/templates/dialogue_detail.html:214
+msgid "播放成品音频"
+msgstr "播放成品音频"
+
+#: workbench/templates/dialogue_detail.html:269
+msgid "暂无章节信息，可点击右上方按钮生成。"
+msgstr "暂无章节信息，可点击右上方按钮生成。"
+
+#: workbench/templates/dialogue_detail.html:274
+msgid "暂无字幕文件，无法生成章节。"
+msgstr "暂无字幕文件，无法生成章节。"
+
+#: workbench/templates/dialogue_detail.html:283
+msgid "音色配置"
+msgstr "音色配置"
+
+#: workbench/templates/dialogue_detail.html:287
+msgid "AI智能推荐音色"
+msgstr "AI智能推荐音色"
+
+#: workbench/templates/dialogue_detail.html:289
+msgid "AI推荐"
+msgstr "AI推荐"
+
+#: workbench/templates/dialogue_detail.html:320
+msgid "保存配置"
+msgstr "保存配置"
+
+#: workbench/templates/dialogue_detail.html:331
+msgid "生成音频"
+msgstr "生成音频"
+
+#: workbench/templates/dialogue_detail.html:336
+msgid "准备生成对话音频..."
+msgstr "准备生成对话音频..."
+
+#: workbench/templates/dialogue_detail.html:349
+msgid "编辑脚本信息"
+msgstr "编辑脚本信息"
+
+#: workbench/templates/dialogue_detail.html:359
+msgid "请输入脚本标题"
+msgstr "请输入脚本标题"
+
+#: workbench/templates/dialogue_detail.html:366
+msgid "关联书籍"
+msgstr "关联书籍"
+
+#: workbench/templates/dialogue_detail.html:383
+msgid "保存"
+msgstr "保存"
+
+#: workbench/templates/dialogue_detail.html:392
+#: workbench/templates/dialogue_list.html:102
+msgid "确认操作"
+msgstr "确认操作"
+
+#: workbench/templates/dialogue_detail.html:393
+#: workbench/templates/dialogue_list.html:103
+msgid "确定要执行此操作吗？"
+msgstr "确定要执行此操作吗？"
+
+#: workbench/templates/dialogue_detail.html:396
+#: workbench/templates/dialogue_detail.html:413
+#: workbench/templates/dialogue_list.html:106
+msgid "确定"
+msgstr "确定"
+
+#: workbench/templates/dialogue_detail.html:404
+msgid "输入信息"
+msgstr "输入信息"
+
+#: workbench/templates/dialogue_detail.html:407
+msgid "请输入内容："
+msgstr "请输入内容："
+
+#: workbench/templates/dialogue_detail.html:409
+#: workbench/templates/dialogue_detail.html:514
+msgid "请输入内容"
+msgstr "请输入内容"
+
+#: workbench/templates/dialogue_detail.html:567
+#: workbench/views/dialogue_views.py:462
+msgid "标题不能为空"
+msgstr "标题不能为空"
+
+#: workbench/templates/dialogue_detail.html:632
+msgid "脚本信息已更新"
+msgstr "脚本信息已更新"
+
+#: workbench/templates/dialogue_detail.html:637
+#: workbench/templates/dialogue_detail.html:704
+msgid "更新失败："
+msgstr "更新失败："
+
+#: workbench/templates/dialogue_detail.html:643
+#: workbench/templates/dialogue_detail.html:675
+#: workbench/templates/dialogue_detail.html:708
+#: workbench/templates/dialogue_detail.html:736
+#: workbench/templates/dialogue_detail.html:1734
+#: workbench/templates/dialogue_detail.html:1875
+#: workbench/templates/dialogue_list.html:209
+#: workbench/templates/my_upload_list.html:625
+msgid "网络错误："
+msgstr "网络错误："
+
+#: workbench/templates/dialogue_detail.html:699
+#: workbench/views/dialogue_views.py:643
+msgid "片段已更新"
+msgstr "片段已更新"
+
+#: workbench/templates/dialogue_detail.html:789
+msgid "预览音频已生成"
+msgstr "预览音频已生成"
+
+#: workbench/templates/dialogue_detail.html:792
+msgid "预览生成失败："
+msgstr "预览生成失败："
+
+#: workbench/templates/dialogue_detail.html:879
+msgid "预览音频生成失败："
+msgstr "预览音频生成失败："
+
+#: workbench/templates/dialogue_detail.html:1236
+#: workbench/templates/dialogue_detail.html:1976
+msgid "全局播放器未初始化，请刷新页面重试"
+msgstr "全局播放器未初始化，请刷新页面重试"
+
+#: workbench/templates/dialogue_detail.html:1401
+msgid "暂无音色"
+msgstr "暂无音色"
+
+#: workbench/templates/dialogue_detail.html:1532
+msgid "请先选择音色"
+msgstr "请先选择音色"
+
+#: workbench/templates/dialogue_detail.html:1592
+#: workbench/templates/index.html:921
+msgid "浏览器阻止了自动播放，请点击播放按钮重试"
+msgstr "浏览器阻止了自动播放，请点击播放按钮重试"
+
+#: workbench/templates/dialogue_detail.html:1730
+msgid "AI推荐失败："
+msgstr "AI推荐失败："
+
+#: workbench/templates/dialogue_detail.html:1866
+#: workbench/views/dialogue_views.py:272
+msgid "音色配置已保存"
+msgstr "音色配置已保存"
+
+#: workbench/templates/dialogue_detail.html:1871
+msgid "保存失败："
+msgstr "保存失败："
+
+#: workbench/templates/dialogue_detail.html:1890
+msgid "请先为以下说话者配置音色："
+msgstr "请先为以下说话者配置音色："
+
+#: workbench/templates/dialogue_list.html:10
+msgid "多音色对话作品，生成后可转音频"
+msgstr "多音色对话作品，生成后可转音频"
+
+#: workbench/templates/dialogue_list.html:38
+msgid "段 ·"
+msgstr "段 ·"
+
+#: workbench/templates/dialogue_list.html:39
+msgid "关联《"
+msgstr "关联《"
+
+#: workbench/templates/dialogue_list.html:50
+msgid "打开编辑器"
+msgstr "打开编辑器"
+
+#: workbench/templates/dialogue_list.html:68
+msgid "页，共"
+msgstr "页，共"
+
+#: workbench/templates/dialogue_list.html:85
+msgid "暂无对话脚本"
+msgstr "暂无对话脚本"
+
+#: workbench/templates/dialogue_list.html:86
+msgid "开始创建您的第一个对话脚本"
+msgstr "开始创建您的第一个对话脚本"
+
+#: workbench/templates/index.html:5
+msgid "- 制作工作台 - Book2TTS"
+msgstr "- 制作工作台 - Book2TTS"
+
+#: workbench/templates/index.html:10
+msgid "建议使用电脑端访问"
+msgstr "建议使用电脑端访问"
+
+#: workbench/templates/index.html:11
+msgid ""
+"当前屏幕尺寸不足以正常使用制作工作台。请在宽屏设备上打开以获得完整体验。"
+msgstr "当前屏幕尺寸不足以正常使用制作工作台。请在宽屏设备上打开以获得完整体验。"
+
+#: workbench/templates/index.html:19
+msgid "制作台"
+msgstr "制作台"
+
+#: workbench/templates/index.html:20
+msgid "内容更改实时保存"
+msgstr "内容更改实时保存"
+
+#: workbench/templates/index.html:32
+msgid "章)"
+msgstr "章)"
+
+#: workbench/templates/index.html:39
+msgid "页面 ("
+msgstr "页面 ("
+
+#: workbench/templates/index.html:39
+msgid "页)"
+msgstr "页)"
+
+#: workbench/templates/index.html:51
+msgid "章节内容"
+msgstr "章节内容"
+
+#: workbench/templates/index.html:53
+msgid "0 字"
+msgstr "0 字"
+
+#: workbench/templates/index.html:55
+msgid "查看页面原图"
+msgstr "查看页面原图"
+
+#: workbench/templates/index.html:59
+msgid "查看原图"
+msgstr "查看原图"
+
+#: workbench/templates/index.html:61
+msgid "查看原始内容"
+msgstr "查看原始内容"
+
+#: workbench/templates/index.html:63
+msgid "查看原文"
+msgstr "查看原文"
+
+#: workbench/templates/index.html:67 workbench/templates/index.html:1509
+msgid "自动排版"
+msgstr "自动排版"
+
+#: workbench/templates/index.html:68 workbench/templates/index.html:1477
+msgid "翻译"
+msgstr "翻译"
+
+#: workbench/templates/index.html:69
+msgid "放大字体"
+msgstr "放大字体"
+
+#: workbench/templates/index.html:70
+msgid "缩小字体"
+msgstr "缩小字体"
+
+#: workbench/templates/index.html:74
+msgid "选择左侧目录或页面以加载内容..."
+msgstr "选择左侧目录或页面以加载内容..."
+
+#: workbench/templates/index.html:81
+msgid "制作配置"
+msgstr "制作配置"
+
+#: workbench/templates/index.html:82
+msgid "账户权益"
+msgstr "账户权益"
+
+#: workbench/templates/index.html:100
+msgid "选择页面查看音频生成状态"
+msgstr "选择页面查看音频生成状态"
+
+#: workbench/templates/index.html:110 workbench/templates/index.html:120
+#: workbench/templates/index.html:770
+msgid "语音模型"
+msgstr "语音模型"
+
+#: workbench/templates/index.html:123
+msgid "速度:"
+msgstr "速度:"
+
+#: workbench/templates/index.html:129
+msgid "音频标题（选填）"
+msgstr "音频标题（选填）"
+
+#: workbench/templates/index.html:132
+msgid "生成多角色音频"
+msgstr "生成多角色音频"
+
+#: workbench/templates/index.html:136
+msgid "合成音频"
+msgstr "合成音频"
+
+#: workbench/templates/index.html:149
+msgid "在全局播放器中播放"
+msgstr "在全局播放器中播放"
+
+#: workbench/templates/index.html:161
+msgid "下载"
+msgstr "下载"
+
+#: workbench/templates/index.html:198
+msgid "如需购买积分或重置配额，请联系客服："
+msgstr "如需购买积分或重置配额，请联系客服："
+
+#: workbench/templates/index.html:201
+msgid "微信客服: qzz18580256051"
+msgstr "微信客服: qzz18580256051"
+
+#: workbench/templates/index.html:205
+msgid "邮箱: pingfury@outlook.com"
+msgstr "邮箱: pingfury@outlook.com"
+
+#: workbench/templates/index.html:210
+msgid "微信扫码添加"
+msgstr "微信扫码添加"
+
+#: workbench/templates/index.html:225
+msgid "🌐 选择翻译语言"
+msgstr "🌐 选择翻译语言"
+
+#: workbench/templates/index.html:229
+msgid "English (英语)"
+msgstr "English (英语)"
+
+#: workbench/templates/index.html:233
+msgid "中文 (Chinese)"
+msgstr "中文 (Chinese)"
+
+#: workbench/templates/index.html:237
+msgid "日本語 (Japanese)"
+msgstr "日本語 (Japanese)"
+
+#: workbench/templates/index.html:270
+msgid "页面原图"
+msgstr "页面原图"
+
+#: workbench/templates/index.html:276
+msgid "加载页面图片中..."
+msgstr "加载页面图片中..."
+
+#: workbench/templates/index.html:289
+msgid "原始内容"
+msgstr "原始内容"
+
+#: workbench/templates/index.html:317
+msgid "微信号: qzz18580256051"
+msgstr "微信号: qzz18580256051"
+
+#: workbench/templates/index.html:857
+msgid "请先选择语音模型"
+msgstr "请先选择语音模型"
+
+#: workbench/templates/index.html:1022
+msgid "请先加载或输入章节内容"
+msgstr "请先加载或输入章节内容"
+
+#: workbench/templates/index.html:1046
+msgid "浏览器存储异常，暂时无法跳转"
+msgstr "浏览器存储异常，暂时无法跳转"
+
+#: workbench/templates/index.html:1064
+msgid "请先选择语音模型并输入文本"
+msgstr "请先选择语音模型并输入文本"
+
+#: workbench/templates/index.html:1266
+msgid "合成成功！"
+msgstr "合成成功！"
+
+#: workbench/templates/index.html:1332
+msgid "配额不足"
+msgstr "配额不足"
+
+#: workbench/templates/index.html:1342
+msgid "全局播放器未准备就绪"
+msgstr "全局播放器未准备就绪"
+
+#: workbench/templates/index.html:1582 workbench/templates/index.html:1764
+msgid "请先输入或加载文本内容"
+msgstr "请先输入或加载文本内容"
+
+#: workbench/templates/index.html:1726 workbench/templates/index.html:1747
+msgid "翻译失败: "
+msgstr "翻译失败: "
+
+#: workbench/templates/index.html:1737
+msgid "读取翻译结果时出错: "
+msgstr "读取翻译结果时出错: "
+
+#: workbench/templates/index.html:1751
+msgid "翻译过程中发生错误: "
+msgstr "翻译过程中发生错误: "
+
+#: workbench/templates/index.html:1770
+msgid "正在排版..."
+msgstr "正在排版..."
+
+#: workbench/templates/index.html:1882 workbench/templates/index.html:1903
+msgid "自动排版失败: "
+msgstr "自动排版失败: "
+
+#: workbench/templates/index.html:1893
+msgid "读取排版结果时出错: "
+msgstr "读取排版结果时出错: "
+
+#: workbench/templates/index.html:1907
+msgid "自动排版过程中发生错误: "
+msgstr "自动排版过程中发生错误: "
+
+#: workbench/templates/index.html:1982
+msgid "没有可发布的音频片段"
+msgstr "没有可发布的音频片段"
+
+#: workbench/templates/index.html:2118
+msgid "请先选择要查看的页面"
+msgstr "请先选择要查看的页面"
+
+#: workbench/templates/index.html:2416
+msgid "新标签打开"
+msgstr "新标签打开"
+
+#: workbench/templates/my_upload_list.html:5
+msgid "我的书籍 - Book2TTS"
+msgstr "我的书籍 - Book2TTS"
+
+#: workbench/templates/my_upload_list.html:12
+msgid "已上传的书籍与处理状态"
+msgstr "已上传的书籍与处理状态"
+
+#: workbench/templates/my_upload_list.html:71
+msgid "点击修改PDF类型"
+msgstr "点击修改PDF类型"
+
+#: workbench/templates/my_upload_list.html:84
+msgid "点击切换分类"
+msgstr "点击切换分类"
+
+#: workbench/templates/my_upload_list.html:90
+msgid "编辑书名"
+msgstr "编辑书名"
+
+#: workbench/templates/my_upload_list.html:97
+msgid "删除书籍"
+msgstr "删除书籍"
+
+#: workbench/templates/my_upload_list.html:112
+msgid "输入书名"
+msgstr "输入书名"
+
+#: workbench/templates/my_upload_list.html:168
+msgid "提示："
+msgstr "提示："
+
+#: workbench/templates/my_upload_list.html:169
+msgid "您还没有上传任何书籍。"
+msgstr "您还没有上传任何书籍。"
+
+#: workbench/templates/my_upload_list.html:179
+msgid "上传新书籍"
+msgstr "上传新书籍"
+
+#: workbench/templates/my_upload_list.html:302
+msgid "书名不能为空"
+msgstr "书名不能为空"
+
+#: workbench/templates/my_upload_list.html:358
+msgid "书名已更新"
+msgstr "书名已更新"
+
+#: workbench/templates/my_upload_list.html:369
+#: workbench/templates/my_upload_list.html:378
+#: workbench/templates/my_upload_list.html:755
+#: workbench/templates/my_upload_list.html:766
+msgid "更新失败: "
+msgstr "更新失败: "
+
+#: workbench/templates/my_upload_list.html:386
+msgid "请先完成编辑后再删除"
+msgstr "请先完成编辑后再删除"
+
+#: workbench/templates/my_upload_list.html:453
+msgid "删除中..."
+msgstr "删除中..."
+
+#: workbench/templates/my_upload_list.html:508
+#: workbench/templates/my_upload_list.html:518
+msgid "确认删除"
+msgstr "确认删除"
+
+#: workbench/templates/my_upload_list.html:511
+#: workbench/templates/my_upload_list.html:521
+#: workbench/templates/task_queue.html:325
+msgid "删除失败: "
+msgstr "删除失败: "
+
+#: workbench/templates/my_upload_list.html:617
+msgid "分类已改为："
+msgstr "分类已改为："
+
+#: workbench/templates/my_upload_list.html:746
+msgid "PDF类型已更新"
+msgstr "PDF类型已更新"
+
+#: workbench/templates/pages.html:13
+msgid "首页"
+msgstr "首页"
+
+#: workbench/templates/pages.html:21
+msgid "提取"
+msgstr "提取"
+
+#: workbench/templates/pages.html:29
+msgid "跳转"
+msgstr "跳转"
+
+#: workbench/templates/pages.html:40
+msgid "末页"
+msgstr "末页"
+
+#: workbench/templates/pages.html:49
+msgid "掐头"
+msgstr "掐头"
+
+#: workbench/templates/pages.html:51
+msgid "去尾"
+msgstr "去尾"
+
+#: workbench/templates/pages.html:54
+msgid "全选/取消"
+msgstr "全选/取消"
+
+#: workbench/templates/pages.html:146 workbench/templates/pages.html:148
+#: workbench/templates/pages.html:187 workbench/templates/pages.html:189
+msgid "加载页面内容失败："
+msgstr "加载页面内容失败："
+
+#: workbench/templates/pages.html:241 workbench/templates/pages.html:243
+msgid "批量加载内容失败："
+msgstr "批量加载内容失败："
+
+#: workbench/templates/pages.html:250 workbench/templates/pages.html:252
+msgid "请先选择要提取的页面！"
+msgstr "请先选择要提取的页面！"
+
+#: workbench/templates/task_queue.html:4
+msgid "任务队列 - Book2TTS"
+msgstr "任务队列 - Book2TTS"
+
+#: workbench/templates/task_queue.html:10
+msgid "任务队列"
+msgstr "任务队列"
+
+#: workbench/templates/task_queue.html:11
+msgid "生成任务的实时状态"
+msgstr "生成任务的实时状态"
+
+#: workbench/templates/task_queue.html:14
+msgid "个任务"
+msgstr "个任务"
+
+#: workbench/templates/task_queue.html:21
+msgid "总任务数"
+msgstr "总任务数"
+
+#: workbench/templates/task_queue.html:44
+#: workbench/templates/task_queue.html:62
+msgid "全部 ("
+msgstr "全部 ("
+
+#: workbench/templates/task_queue.html:47
+#: workbench/templates/task_queue.html:65
+msgid "进行中 ("
+msgstr "进行中 ("
+
+#: workbench/templates/task_queue.html:50
+#: workbench/templates/task_queue.html:68
+msgid "已完成 ("
+msgstr "已完成 ("
+
+#: workbench/templates/task_queue.html:53
+#: workbench/templates/task_queue.html:71
+msgid "失败 ("
+msgstr "失败 ("
+
+#: workbench/templates/task_queue.html:97
+msgid "任务ID:"
+msgstr "任务ID:"
+
+#: workbench/templates/task_queue.html:98
+msgid "创建:"
+msgstr "创建:"
+
+#: workbench/templates/task_queue.html:100
+msgid "完成:"
+msgstr "完成:"
+
+#: workbench/templates/task_queue.html:109
+msgid "任务详情"
+msgstr "任务详情"
+
+#: workbench/templates/task_queue.html:113
+msgid "语音:"
+msgstr "语音:"
+
+#: workbench/templates/task_queue.html:116
+msgid "文本长度:"
+msgstr "文本长度:"
+
+#: workbench/templates/task_queue.html:119
+msgid "预估时长:"
+msgstr "预估时长:"
+
+#: workbench/templates/task_queue.html:127
+msgid "文本内容:"
+msgstr "文本内容:"
+
+#: workbench/templates/task_queue.html:141
+msgid "状态:"
+msgstr "状态:"
+
+#: workbench/templates/task_queue.html:148
+msgid "错误:"
+msgstr "错误:"
+
+#: workbench/templates/task_queue.html:155
+msgid "结果:"
+msgstr "结果:"
+
+#: workbench/templates/task_queue.html:194
+msgid "排队中"
+msgstr "排队中"
+
+#: workbench/templates/task_queue.html:195
+msgid "生成中"
+msgstr "生成中"
+
+#: workbench/templates/task_queue.html:216
+msgid "刷新状态"
+msgstr "刷新状态"
+
+#: workbench/templates/task_queue.html:217
+msgid "刷新"
+msgstr "刷新"
+
+#: workbench/templates/task_queue.html:225
+msgid "删除记录"
+msgstr "删除记录"
+
+#: workbench/templates/task_queue.html:238
+msgid "暂无任务"
+msgstr "暂无任务"
+
+#: workbench/templates/task_queue.html:241
+msgid "您还没有创建任何任务"
+msgstr "您还没有创建任何任务"
+
+#: workbench/templates/task_queue.html:243
+msgid "当前没有进行中的任务"
+msgstr "当前没有进行中的任务"
+
+#: workbench/templates/task_queue.html:245
+msgid "没有已完成的任务"
+msgstr "没有已完成的任务"
+
+#: workbench/templates/task_queue.html:247
+msgid "没有失败的任务"
+msgstr "没有失败的任务"
+
+#: workbench/templates/task_queue.html:250
+msgid "开始制作音频"
+msgstr "开始制作音频"
+
+#: workbench/templates/task_queue.html:284
+msgid "确定要取消这个任务吗？"
+msgstr "确定要取消这个任务吗？"
+
+#: workbench/templates/task_queue.html:298
+msgid "取消任务失败: "
+msgstr "取消任务失败: "
+
+#: workbench/templates/task_queue.html:303
+msgid "取消任务失败"
+msgstr "取消任务失败"
+
+#: workbench/templates/task_queue.html:308
+msgid "确定要删除这个任务记录吗？"
+msgstr "确定要删除这个任务记录吗？"
+
+#: workbench/templates/task_queue.html:330
+msgid "删除失败"
+msgstr "删除失败"
+
+#: workbench/templates/task_queue.html:348
+msgid "刷新失败"
+msgstr "刷新失败"
+
+#: workbench/templates/toc.html:7
+msgid "选择 0 项"
+msgstr "选择 0 项"
+
+#: workbench/templates/toc.html:10
+msgid "全选"
+msgstr "全选"
+
+#: workbench/templates/toc.html:12
+msgid "加载选中"
+msgstr "加载选中"
+
+#: workbench/templates/toc.html:24
+msgid "展开目录"
+msgstr "展开目录"
+
+#: workbench/templates/upload.html:4
+msgid "上传书籍 - Book2TTS"
+msgstr "上传书籍 - Book2TTS"
+
+#: workbench/templates/upload.html:12
+msgid "支持 PDF / EPUB，扫描件将自动走 OCR 识别"
+msgstr "支持 PDF / EPUB，扫描件将自动走 OCR 识别"
+
+#: workbench/templates/upload.html:40
+msgid "只支持 PDF 和 EPUB 格式，最大 100MB"
+msgstr "只支持 PDF 和 EPUB 格式，最大 100MB"
+
+#: workbench/templates/upload.html:41
+msgid "开始上传"
+msgstr "开始上传"
+
+#: workbench/views/audio_views.py:684
+msgid "任务不存在或无权限访问"
+msgstr "任务不存在或无权限访问"
+
+#: workbench/views/audio_views.py:776
+msgid "您没有权限操作该音频片段"
+msgstr "您没有权限操作该音频片段"
+
+#: workbench/views/audio_views.py:786
+msgid "该音频暂无字幕文件，无法生成章节"
+msgstr "该音频暂无字幕文件，无法生成章节"
+
+#: workbench/views/audio_views.py:807 workbench/views/dialogue_views.py:383
+msgid "章节生成任务已提交"
+msgstr "章节生成任务已提交"
+
+#: workbench/views/audio_views.py:1103
+msgid "任务已取消"
+msgstr "任务已取消"
+
+#: workbench/views/audio_views.py:1108
+msgid "只能取消进行中的任务"
+msgstr "只能取消进行中的任务"
+
+#: workbench/views/audio_views.py:1132
+msgid "任务记录已删除"
+msgstr "任务记录已删除"
+
+#: workbench/views/audio_views.py:1137
+msgid "只能删除已完成的任务记录"
+msgstr "只能删除已完成的任务记录"
+
+#: workbench/views/audio_views.py:1158 workbench/views/audio_views.py:1202
+msgid "无效的片段类型"
+msgstr "无效的片段类型"
+
+#: workbench/views/audio_views.py:1166
+msgid "该音频片段没有音频文件"
+msgstr "该音频片段没有音频文件"
+
+#: workbench/views/audio_views.py:1209
+msgid "该音频片段没有字幕文件"
+msgstr "该音频片段没有字幕文件"
+
+#: workbench/views/book_views.py:74
+msgid "用户积分信息不存在，请先联系管理员。"
+msgstr "用户积分信息不存在，请先联系管理员。"
+
+#: workbench/views/book_views.py:1103
+msgid "您没有权限查看该书籍的原始内容"
+msgstr "您没有权限查看该书籍的原始内容"
+
+#: workbench/views/book_views.py:1138
+msgid "请选择要查看的章节或页面"
+msgstr "请选择要查看的章节或页面"
+
+#: workbench/views/book_views.py:1167
+msgid "未找到有效的页码"
+msgstr "未找到有效的页码"
+
+#: workbench/views/book_views.py:1264
+msgid "未能获取原始章节内容"
+msgstr "未能获取原始章节内容"
+
+#: workbench/views/book_views.py:1277
+msgid "当前格式暂不支持原文查看"
+msgstr "当前格式暂不支持原文查看"
+
+#: workbench/views/book_views.py:1287
+msgid "您没有权限访问该资源"
+msgstr "您没有权限访问该资源"
+
+#: workbench/views/book_views.py:1290
+msgid "当前书籍不是 EPUB 格式"
+msgstr "当前书籍不是 EPUB 格式"
+
+#: workbench/views/book_views.py:1294
+msgid "缺少资源路径参数"
+msgstr "缺少资源路径参数"
+
+#: workbench/views/book_views.py:1309
+msgid "资源未找到"
+msgstr "资源未找到"
+
+#: workbench/views/dialogue_views.py:66
+msgid "该片段没有可用内容"
+msgstr "该片段没有可用内容"
+
+#: workbench/views/dialogue_views.py:75
+msgid "该片段尚未配置音色"
+msgstr "该片段尚未配置音色"
+
+#: workbench/views/dialogue_views.py:139
+msgid "预览音频生成失败，请稍后重试"
+msgstr "预览音频生成失败，请稍后重试"
+
+#: workbench/views/dialogue_views.py:159
+msgid "文本内容不能为空"
+msgstr "文本内容不能为空"
+
+#: workbench/views/dialogue_views.py:194
+msgid "对话转换任务已提交，正在后台处理..."
+msgstr "对话转换任务已提交，正在后台处理..."
+
+#: workbench/views/dialogue_views.py:198 workbench/views/dialogue_views.py:276
+#: workbench/views/dialogue_views.py:341 workbench/views/dialogue_views.py:474
+#: workbench/views/dialogue_views.py:504 workbench/views/dialogue_views.py:653
+msgid "无效的JSON数据"
+msgstr "无效的JSON数据"
+
+#: workbench/views/dialogue_views.py:337
+msgid "音频生成任务已开始，请在任务队列中查看进度"
+msgstr "音频生成任务已开始，请在任务队列中查看进度"
+
+#: workbench/views/dialogue_views.py:360
+msgid "该脚本尚无字幕文件，无法生成章节"
+msgstr "该脚本尚无字幕文件，无法生成章节"
+
+#: workbench/views/dialogue_views.py:469
+msgid "标题已更新"
+msgstr "标题已更新"
+
+#: workbench/views/dialogue_views.py:499
+msgid "关联书籍已更新"
+msgstr "关联书籍已更新"
+
+#: workbench/views/dialogue_views.py:519
+msgid "对话脚本数据为空"
+msgstr "对话脚本数据为空"
+
+#: workbench/views/dialogue_views.py:526
+msgid "未能生成音色推荐"
+msgstr "未能生成音色推荐"
+
+#: workbench/views/dialogue_views.py:591
+msgid "片段已删除"
+msgstr "片段已删除"
+
+#: workbench/views/text_views.py:30 workbench/views/text_views.py:195
+msgid "No text content provided"
+msgstr "No text content provided"
+
+#: workbench/views/text_views.py:197
+msgid "No target language provided"
+msgstr "No target language provided"
+
+#: workbench/views/translation_views.py:85
+msgid "删除成功"
+msgstr "删除成功"
+
+#: workbench/views/translation_views.py:95
+msgid "天数必须大于0"
+msgstr "天数必须大于0"
+
+#: workbench/views/translation_views.py:144
+msgid "无效的缓存ID"
+msgstr "无效的缓存ID"

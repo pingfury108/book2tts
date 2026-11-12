@@ -1,14 +1,43 @@
 {% extends "base.html" %}
-{% load static custom_filters %}
+{% load static custom_filters i18n %}
 
-{% block title %}{{ segment.title }} - 音频详情 - Book2TTS{% endblock %}
+{% block title %}{{ segment.title }} {% translate "- 音频详情 - Book2TTS" %}{% endblock %}
+
+{% block og_type %}article{% endblock %}
+{% block og_title %}{{ segment.title }} - {% if segment.book %}{{ segment.book.name }}{% else %}Book2TTS{% endif %}{% endblock %}
+{% block og_description %}{{ segment.text|truncatechars:150 }}{% endblock %}
+{% block twitter_title %}{{ segment.title }}{% endblock %}
+{% block twitter_description %}{{ segment.text|truncatechars:150 }}{% endblock %}
+
+{% block structured_data %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "AudioObject",
+  "name": "{{ segment.title|escapejs }}",
+  "description": "{{ segment.text|truncatechars:180|escapejs }}",
+  "contentUrl": "{{ request.scheme }}://{{ request.get_host }}{{ segment.file.url }}",
+  "encodingFormat": "audio/wav",
+  "inLanguage": "{{ LANGUAGE_CODE }}",
+  "uploadDate": "{{ segment.updated_at|date:"c" }}",
+  "author": {
+    "@type": "Person",
+    "name": "{{ segment.book.user.username|default:"Book2TTS"|escapejs }}"
+  }{% if segment.book %},
+  "isPartOf": {
+    "@type": "Book",
+    "name": "{{ segment.book.name|escapejs }}"
+  }{% endif %}
+}
+</script>
+{% endblock %}
 
 {% block content %}
 <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6">
 
   <!-- 面包屑 -->
   <nav class="flex items-center gap-2 text-sm text-base-content/50">
-    <a href="{% url 'home' %}" class="hover:text-primary transition-colors">作品</a>
+    <a href="{% url 'home' %}" class="hover:text-primary transition-colors">{% translate "作品" %}</a>
     <i class="fas fa-chevron-right text-[10px]"></i>
     {% if segment.book %}
     <a href="{% url 'book_audio_list' segment.book.id %}" class="hover:text-primary transition-colors">{{ segment.book.name }}</a>
@@ -24,8 +53,8 @@
       <div class="w-full max-w-[240px] aspect-[3/4] rounded-2xl bg-gradient-to-br {{ segment.book|cover_gradient }} shadow-lg flex flex-col justify-between p-5 text-white">
         <span class="w-6 h-0.5 bg-white/60 rounded"></span>
         <div>
-          <p class="text-xl font-bold leading-snug break-words">{% if segment.book %}《{{ segment.book.name }}》{% else %}对话脚本{% endif %}</p>
-          <p class="text-xs opacity-70 mt-2">{% if segment_type == 'dialogue_script' %}多音色对话{% else %}有声书{% endif %}</p>
+          <p class="text-xl font-bold leading-snug break-words">{% if segment.book %}《{{ segment.book.name }}》{% else %}{% translate "对话脚本" %}{% endif %}</p>
+          <p class="text-xs opacity-70 mt-2">{% if segment_type == 'dialogue_script' %}{% translate "多音色对话" %}{% else %}{% translate "有声书" %}{% endif %}</p>
         </div>
       </div>
 
@@ -41,26 +70,26 @@
 
       <div class="flex flex-wrap justify-center gap-1 w-full">
         <a href="{% url 'download_audio' segment_type=segment_type segment_id=segment.id %}" class="btn btn-ghost btn-sm rounded-lg" download>
-          <i class="fas fa-download text-xs"></i> 下载音频
+          <i class="fas fa-download text-xs"></i> {% translate "下载音频" %}
         </a>
         {% if segment.subtitle_file and segment.subtitle_file.name %}
         <a href="{% url 'download_subtitle' segment_type=segment_type segment_id=segment.id %}" class="btn btn-ghost btn-sm rounded-lg" download>
-          <i class="fas fa-download text-xs"></i> 下载字幕
+          <i class="fas fa-download text-xs"></i> {% translate "下载字幕" %}
         </a>
         <button id="toggle-subtitles-btn" class="btn btn-ghost btn-sm rounded-lg">
           <i class="fas fa-closed-captioning text-xs"></i>
-          <span>查看字幕</span>
+          <span>{% translate "查看字幕" %}</span>
         </button>
         {% endif %}
       </div>
 
       {% if segment.book and segment.book.user.profile.rss_token %}
       <div class="flex items-center justify-center gap-5 pt-3 border-t border-base-300 w-full text-xs">
-        <a href="{% url 'token_audio_rss_feed' token=segment.book.user.profile.rss_token|stringformat:'s' %}" class="inline-flex items-center gap-1.5 text-base-content/50 hover:text-primary transition-colors" title="作者 RSS 订阅">
-          <i class="fas fa-rss"></i> 作者 RSS
+        <a href="{% url 'token_audio_rss_feed' token=segment.book.user.profile.rss_token|stringformat:'s' %}" class="inline-flex items-center gap-1.5 text-base-content/50 hover:text-primary transition-colors" title="{% translate "作者 RSS 订阅" %}">
+          <i class="fas fa-rss"></i> {% translate "作者 RSS" %}
         </a>
-        <a href="{% url 'token_book_audio_rss_feed' token=segment.book.user.profile.rss_token|stringformat:'s' book_id=segment.book.id %}" class="inline-flex items-center gap-1.5 text-base-content/50 hover:text-primary transition-colors" title="此书的 RSS 订阅">
-          <i class="fas fa-rss"></i> 此书 RSS
+        <a href="{% url 'token_book_audio_rss_feed' token=segment.book.user.profile.rss_token|stringformat:'s' book_id=segment.book.id %}" class="inline-flex items-center gap-1.5 text-base-content/50 hover:text-primary transition-colors" title="{% translate "此书的 RSS 订阅" %}">
+          <i class="fas fa-rss"></i> {% translate "此书 RSS" %}
         </a>
       </div>
       {% endif %}
@@ -76,12 +105,12 @@
 
       {% if segment_type == 'dialogue_script' %}
         {% if segment.original_text %}
-        <h2 class="text-xs font-semibold uppercase tracking-wider text-base-content/40 mt-8 mb-3">原始文本</h2>
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-base-content/40 mt-8 mb-3">{% translate "原始文本" %}</h2>
         <p class="whitespace-pre-line text-sm sm:text-base leading-loose text-base-content/80">{{ segment.original_text }}</p>
         {% endif %}
       {% else %}
         {% if segment.text %}
-        <h2 class="text-xs font-semibold uppercase tracking-wider text-base-content/40 mt-8 mb-3">文本内容</h2>
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-base-content/40 mt-8 mb-3">{% translate "文本内容" %}</h2>
         <p class="whitespace-pre-line text-sm sm:text-base leading-loose text-base-content/80">{{ segment.text }}</p>
         {% endif %}
       {% endif %}
@@ -91,7 +120,7 @@
   <!-- 章节导航 -->
   {% if segment.chapters %}
   <div class="mt-10">
-    <h2 class="text-lg font-extrabold tracking-tight mb-4">章节导航 <span class="text-sm font-medium text-base-content/40">{{ segment.chapters|length }} 章</span></h2>
+    <h2 class="text-lg font-extrabold tracking-tight mb-4">{% translate "章节导航" %} <span class="text-sm font-medium text-base-content/40">{{ segment.chapters|length }} {% translate "章" %}</span></h2>
     <div class="space-y-2">
       {% for chapter in segment.chapters %}
       <button
@@ -117,12 +146,12 @@
   <div id="subtitles-container" class="mt-10 bg-base-100 border border-base-300 rounded-2xl p-5 sm:p-6 hidden">
     <h2 class="text-lg font-extrabold tracking-tight mb-4 flex items-center gap-2">
       <i class="fas fa-closed-captioning text-base-content/40"></i>
-      字幕内容
+      {% translate "字幕内容" %}
     </h2>
     <div id="subtitles-content" class="prose max-w-none">
       <div class="text-center text-base-content/40">
         <i class="fas fa-spinner fa-spin mr-2"></i>
-        加载字幕中...
+        {% translate "加载字幕中..." %}
       </div>
     </div>
   </div>
@@ -164,7 +193,7 @@
           // 显示字幕
           subtitlesContainer.classList.remove('hidden');
           this.classList.add('btn-active');
-          this.querySelector('span').textContent = '隐藏字幕';
+          this.querySelector('span').textContent = '{% translate "隐藏字幕" %}';
 
           // 如果还没加载过字幕，则加载
           if (!subtitlesLoaded) {
@@ -174,7 +203,7 @@
           // 隐藏字幕
           subtitlesContainer.classList.add('hidden');
           this.classList.remove('btn-active');
-          this.querySelector('span').textContent = '查看字幕';
+          this.querySelector('span').textContent = '{% translate "查看字幕" %}';
         }
       });
     }

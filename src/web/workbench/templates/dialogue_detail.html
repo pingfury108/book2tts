@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load static %}
 {% load custom_filters %}
 
@@ -40,26 +41,26 @@
                         <button type="button"
                                 data-role="edit-script"
                                 class="btn btn-ghost btn-sm text-primary hover:text-primary-focus hidden lg:inline-flex">
-                            <i class="fas fa-edit"></i> 编辑
+                            <i class="fas fa-edit"></i> {% translate "编辑" %}
                         </button>
                     </div>
                 </div>
                 <div class="mt-2 text-sm lg:text-base text-base-content/50">
                     <span id="script-book-display">
-                        {% if script.book %}{{ script.book.name }}{% else %}无关联书籍{% endif %}
+                        {% if script.book %}{{ script.book.name }}{% else %}{% translate "无关联书籍" %}{% endif %}
                     </span>
-                    <span class="ml-2 lg:ml-3">{{ segments|length }} 段 · 创建于 {{ script.created_at|date:"Y-m-d H:i" }}</span>
+                    <span class="ml-2 lg:ml-3">{{ segments|length }} {% translate "段 · 创建于" %} {{ script.created_at|date:"Y-m-d H:i" }}</span>
                 </div>
             </div>
             <div class="flex flex-wrap items-center justify-end gap-3 flex-shrink-0">
                 <button type="button"
                         data-role="edit-script"
                         class="btn btn-ghost btn-sm text-primary hover:text-primary-focus lg:hidden">
-                    <i class="fas fa-edit"></i> 编辑
+                    <i class="fas fa-edit"></i> {% translate "编辑" %}
                 </button>
                 <a href="{% url 'dialogue_list' %}"
                    class="btn btn-ghost btn-sm rounded-lg flex-shrink-0">
-                    <i class="fas fa-arrow-left mr-2"></i>返回列表
+                    <i class="fas fa-arrow-left mr-2"></i>{% translate "返回列表" %}
                 </a>
                 {% if script.audio_file and not script.published %}
                 <form method="post"
@@ -70,14 +71,14 @@
                     <button type="button"
                             id="publish-btn"
                             class="btn btn-primary rounded-xl">
-                        <i class="fas fa-upload mr-2"></i>发布音频
+                        <i class="fas fa-upload mr-2"></i>{% translate "发布音频" %}
                     </button>
                 </form>
                 {% endif %}
                 <button type="button"
                         id="delete-script-btn"
                         class="btn btn-ghost btn-sm rounded-lg text-error hover:text-error-focus flex-shrink-0">
-                    <i class="fas fa-trash mr-2"></i>删除脚本
+                    <i class="fas fa-trash mr-2"></i>{% translate "删除脚本" %}
                 </button>
             </div>
         </div>
@@ -87,7 +88,7 @@
         <!-- 对话内容预览 -->
         <div class="flex flex-col min-h-0 lg:flex-[2] lg:min-h-0">
             <div class="bg-base-100 shadow-md rounded-lg flex flex-col flex-1 min-h-0 relative">
-                <h2 class="text-base font-bold p-6 pb-4 border-b border-base-200 flex-shrink-0">对话内容 <span class="text-xs font-medium text-base-content/40 ml-1">{{ segments|length }} 段</span></h2>
+                <h2 class="text-base font-bold p-6 pb-4 border-b border-base-200 flex-shrink-0">{% translate "对话内容" %} <span class="text-xs font-medium text-base-content/40 ml-1">{{ segments|length }} {% translate "段" %}</span></h2>
                 <div class="flex-1 overflow-y-auto custom-scrollbar p-6 pt-4 min-h-0">
                     {% for segment in segments %}
                     <div class="mb-3 p-4 rounded-xl transition-all border group {% if segment.dialogue_type == 'narration' %}bg-base-200/60 border-transparent hover:bg-base-200{% else %}bg-primary/5 border-primary/15 hover:bg-primary/10{% endif %}">
@@ -113,7 +114,7 @@
                                             <button type="button" 
                                                     data-segment-id="{{ segment.id }}"
                                                     class="preview-segment-btn text-success hover:text-success-focus p-1" 
-                                                    title="听见">
+                                                    title="{% translate "听见" %}">
                                                 <i class="fas fa-play"></i>
                                             </button>
                                         {% endif %}
@@ -125,13 +126,13 @@
                                         data-text="{{ segment.utterance|escapejs }}"
                                         data-sequence="{{ segment.sequence }}"
                                         class="edit-segment-btn text-primary hover:text-primary-focus p-1" 
-                                        title="编辑">
+                                        title="{% translate "编辑" %}">
                                     <i class="fas fa-edit"></i>
                                 </button>
                                 <button type="button" 
                                         data-segment-id="{{ segment.id }}"
                                         class="delete-segment-btn text-error hover:text-error-focus p-1" 
-                                        title="删除">
+                                        title="{% translate "删除" %}">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
@@ -146,21 +147,21 @@
                     <div class="flex gap-2">
                         <a href="{{ script.subtitle_file.url }}" class="btn btn-secondary btn-sm" download>
                             <i class="fas fa-download"></i>
-                            <span class="ml-2">下载字幕</span>
+                            <span class="ml-2">{% translate "下载字幕" %}</span>
                         </a>
                         <button id="toggle-subtitles-btn" class="btn btn-outline btn-sm">
                             <i class="fas fa-closed-captioning"></i>
-                            <span class="ml-2">查看字幕</span>
+                            <span class="ml-2">{% translate "查看字幕" %}</span>
                         </button>
                     </div>
                     
                     <!-- 字幕内容显示区域 -->
                     <div id="subtitles-content" class="mt-4 hidden">
-                        <h4 class="font-medium text-sm text-base-content mb-2">字幕内容</h4>
+                        <h4 class="font-medium text-sm text-base-content mb-2">{% translate "字幕内容" %}</h4>
                         <div id="subtitles-text" class="text-xs text-base-content/70 max-h-40 overflow-y-auto custom-scrollbar p-3 bg-base-100 rounded border border-base-300">
                             <div class="text-center text-base-content/50">
                                 <i class="fas fa-spinner fa-spin mr-2"></i>
-                                加载字幕中...
+                                {% translate "加载字幕中..." %}
                             </div>
                         </div>
                     </div>
@@ -175,34 +176,34 @@
         <div class="flex flex-col gap-6 min-h-0 lg:flex-[1] lg:min-h-0 lg:overflow-y-auto">
             <!-- 状态信息 -->
             <div class="bg-base-100 shadow-md rounded-lg p-6 text-base-content">
-                <h3 class="text-lg font-semibold mb-3">状态信息</h3>
+                <h3 class="text-lg font-semibold mb-3">{% translate "状态信息" %}</h3>
                 <div class="space-y-2 text-sm">
                     <div class="flex justify-between">
-                        <span>片段数量：</span>
+                        <span>{% translate "片段数量：" %}</span>
                         <span>{{ segments.count }}</span>
                     </div>
                     <div class="flex justify-between">
-                        <span>说话者数量：</span>
+                        <span>{% translate "说话者数量：" %}</span>
                         <span>{{ speakers|length }}</span>
                     </div>
                     <div class="flex justify-between">
-                        <span>音频状态：</span>
+                        <span>{% translate "音频状态：" %}</span>
                         <span>
                             {% if script.audio_file %}
                                 {% if script.published %}
-                                    <span class="text-success">已发布</span>
+                                    <span class="text-success">{% translate "已发布" %}</span>
                                 {% else %}
-                                    <span class="text-primary">已生成</span>
+                                    <span class="text-primary">{% translate "已生成" %}</span>
                                 {% endif %}
                             {% else %}
-                                <span class="text-base-content/70">未生成</span>
+                                <span class="text-base-content/70">{% translate "未生成" %}</span>
                             {% endif %}
                         </span>
                     </div>
                     {% if script.audio_duration %}
                     <div class="flex justify-between">
-                        <span>音频时长：</span>
-                        <span>{{ script.audio_duration|floatformat:1 }} 秒</span>
+                        <span>{% translate "音频时长：" %}</span>
+                        <span>{{ script.audio_duration|floatformat:1 }} {% translate "秒" %}</span>
                     </div>
                     {% endif %}
                 </div>
@@ -210,7 +211,7 @@
                 {% if script.audio_file %}
                 <div class="mt-4">
                     <button class="btn btn-primary w-full" onclick="playFinishedAudio('{{ script.audio_file.url }}', '{{ script.title|escapejs }}', {% if script.subtitle_file and script.subtitle_file.name %}'{{ script.subtitle_file.url }}'{% else %}null{% endif %}, {% if script.chapters %}'dialogue-chapters-{{ script.id }}'{% else %}null{% endif %}, {% if script.chapters_file and script.chapters_file.url %}'{{ script.chapters_file.url }}'{% else %}null{% endif %})">
-                        <i class="fas fa-play mr-2"></i>播放成品音频
+                        <i class="fas fa-play mr-2"></i>{% translate "播放成品音频" %}
                     </button>
                 </div>
                 {% endif %}
@@ -221,7 +222,7 @@
                 <div class="flex items-center justify-between mb-3" data-chapter-wrapper>
                     <h3 class="text-lg font-semibold flex items-center">
                         <i class="fas fa-list mr-2"></i>
-                        章节导航
+                        {% translate "章节导航" %}
                     </h3>
                     {% if script.subtitle_file and script.subtitle_file.name %}
                     <button id="generate-dialogue-chapters-btn"
@@ -229,7 +230,7 @@
                         data-target-url="{% url 'dialogue_generate_chapters' script.id %}"
                         data-force="{% if script.chapters %}true{% else %}false{% endif %}">
                         <i class="fas fa-magic mr-1"></i>
-                        {% if script.chapters %}重新生成章节{% else %}生成章节{% endif %}
+                        {% if script.chapters %}{% translate "重新生成章节" %}{% else %}{% translate "生成章节" %}{% endif %}
                     </button>
                     {% endif %}
                 </div>
@@ -265,12 +266,12 @@
                     {% endwith %}
                     {% else %}
                     <div class="text-sm text-base-content/60">
-                        暂无章节信息，可点击右上方按钮生成。
+                        {% translate "暂无章节信息，可点击右上方按钮生成。" %}
                     </div>
                     {% endif %}
                 {% else %}
                 <div class="text-sm text-base-content/60">
-                    暂无字幕文件，无法生成章节。
+                    {% translate "暂无字幕文件，无法生成章节。" %}
                 </div>
                 {% endif %}
             </div>
@@ -279,13 +280,13 @@
             <!-- 音色配置 -->
             <div class="bg-base-100 shadow-md rounded-lg p-6">
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-lg font-semibold">音色配置</h3>
+                    <h3 class="text-lg font-semibold">{% translate "音色配置" %}</h3>
                     <button type="button"
                             id="ai-recommend-btn"
                             class="btn btn-primary btn-sm"
-                            title="AI智能推荐音色">
+                            title="{% translate "AI智能推荐音色" %}">
                         <i class="fas fa-robot mr-1"></i>
-                        AI推荐
+                        {% translate "AI推荐" %}
                     </button>
                 </div>
                 <form id="voice-config-form">
@@ -316,23 +317,23 @@
                     {% endfor %}
                     
                     <button type="submit" class="w-full bg-primary hover:bg-primary-focus text-white font-medium py-2 px-4 rounded-lg">
-                        <i class="fas fa-save mr-2"></i>保存配置
+                        <i class="fas fa-save mr-2"></i>{% translate "保存配置" %}
                     </button>
                 </form>
             </div>
 
             <!-- 音频生成 -->
             <div class="bg-base-100 shadow-md rounded-lg p-6">
-                <h3 class="text-lg font-semibold mb-3">音频生成</h3>
+                <h3 class="text-lg font-semibold mb-3">{% translate "音频生成" %}</h3>
                 <form id="audio-generation-form" class="space-y-3">
                     <button type="submit" id="generate-audio-btn"
                             class="w-full bg-success hover:bg-success-focus text-white font-medium py-2 px-4 rounded-lg">
-                        <i class="fas fa-microphone mr-2"></i>生成音频
+                        <i class="fas fa-microphone mr-2"></i>{% translate "生成音频" %}
                     </button>
                     <div id="dialogue-audio-status" class="hidden">
                         <div class="alert alert-info flex items-center gap-2 text-sm m-0" id="dialogue-audio-status-alert">
                             <span class="loading loading-spinner loading-sm"></span>
-                            <span id="dialogue-audio-status-text">准备生成对话音频...</span>
+                            <span id="dialogue-audio-status-text">{% translate "准备生成对话音频..." %}</span>
                         </div>
                     </div>
                 </form>
@@ -345,27 +346,27 @@
 <!-- 脚本编辑对话框 -->
 <div id="edit-script-modal" class="modal">
     <div class="modal-box w-11/12 max-w-2xl">
-        <h3 class="font-bold text-lg mb-4">编辑脚本信息</h3>
+        <h3 class="font-bold text-lg mb-4">{% translate "编辑脚本信息" %}</h3>
         <div class="space-y-4">
             <!-- 标题编辑 -->
             <div>
                 <label class="label">
-                    <span class="label-text">脚本标题</span>
+                    <span class="label-text">{% translate "脚本标题" %}</span>
                 </label>
                 <input type="text" 
                        id="edit-script-title" 
                        class="input input-bordered w-full" 
-                       placeholder="请输入脚本标题"
+                       placeholder="{% translate "请输入脚本标题" %}"
                        value="{{ script.title }}">
             </div>
             
             <!-- 关联书籍编辑 -->
             <div>
                 <label class="label">
-                    <span class="label-text">关联书籍</span>
+                    <span class="label-text">{% translate "关联书籍" %}</span>
                 </label>
                 <select id="edit-script-book" class="select select-bordered w-full">
-                    <option value="">无关联书籍</option>
+                    <option value="">{% translate "无关联书籍" %}</option>
                     {% for book in books %}
                     <option value="{{ book.id }}" 
                         {% if script.book and script.book.id == book.id %}selected{% endif %}>
@@ -377,9 +378,9 @@
         </div>
         
         <div class="modal-action">
-            <button class="btn" id="cancel-script-edit">取消</button>
+            <button class="btn" id="cancel-script-edit">{% translate "取消" %}</button>
             <button class="btn btn-primary" id="save-script-edit">
-                <i class="fas fa-save mr-2"></i>保存
+                <i class="fas fa-save mr-2"></i>{% translate "保存" %}
             </button>
         </div>
     </div>
@@ -388,11 +389,11 @@
 <!-- 确认对话框 -->
 <div id="confirm-modal" class="modal">
     <div class="modal-box">
-        <h3 class="font-bold text-lg" id="confirm-title">确认操作</h3>
-        <p class="py-4" id="confirm-message">确定要执行此操作吗？</p>
+        <h3 class="font-bold text-lg" id="confirm-title">{% translate "确认操作" %}</h3>
+        <p class="py-4" id="confirm-message">{% translate "确定要执行此操作吗？" %}</p>
         <div class="modal-action">
-            <button class="btn" id="confirm-cancel">取消</button>
-            <button class="btn btn-error" id="confirm-ok">确定</button>
+            <button class="btn" id="confirm-cancel">{% translate "取消" %}</button>
+            <button class="btn btn-error" id="confirm-ok">{% translate "确定" %}</button>
         </div>
     </div>
 </div>
@@ -400,16 +401,16 @@
 <!-- 输入对话框 -->
 <div id="prompt-modal" class="modal">
     <div class="modal-box">
-        <h3 class="font-bold text-lg" id="prompt-title">输入信息</h3>
+        <h3 class="font-bold text-lg" id="prompt-title">{% translate "输入信息" %}</h3>
         <div class="py-4">
             <label class="label">
-                <span class="label-text" id="prompt-label">请输入内容：</span>
+                <span class="label-text" id="prompt-label">{% translate "请输入内容：" %}</span>
             </label>
-            <input type="text" id="prompt-input" class="input input-bordered w-full" placeholder="请输入内容">
+            <input type="text" id="prompt-input" class="input input-bordered w-full" placeholder="{% translate "请输入内容" %}">
         </div>
         <div class="modal-action">
-            <button class="btn" id="prompt-cancel">取消</button>
-            <button class="btn btn-primary" id="prompt-ok">确定</button>
+            <button class="btn" id="prompt-cancel">{% translate "取消" %}</button>
+            <button class="btn btn-primary" id="prompt-ok">{% translate "确定" %}</button>
         </div>
     </div>
 </div>
@@ -510,7 +511,7 @@ function showPrompt(title, label, defaultValue = '', onConfirm, onCancel = null)
             modal.classList.remove('modal-open');
             if (onConfirm) onConfirm(value);
         } else {
-            showToast('请输入内容', 'warning');
+            showToast({% translate "请输入内容" %}, 'warning');
         }
     });
     
@@ -563,7 +564,7 @@ function saveScript() {
     const newBookName = bookSelect.options[bookSelect.selectedIndex].text;
     
     if (!newTitle) {
-        showToast('标题不能为空', 'warning');
+        showToast({% translate "标题不能为空" %}, 'warning');
         return;
     }
     
@@ -628,18 +629,18 @@ function saveScript() {
                 document.getElementById('script-book-display').textContent = newBookId ? newBookName : '无关联书籍';
                 document.title = newTitle + ' - 对话脚本';
                 
-                showToast('脚本信息已更新', 'success');
+                showToast({% translate "脚本信息已更新" %}, 'success');
                 cancelScriptEdit();
             } else {
                 // 显示错误信息
                 const errors = results.filter(result => !result.success).map(result => result.error);
-                showToast('更新失败：' + errors.join(', '), 'error');
+                showToast({% translate "更新失败：" %} + errors.join(', '), 'error');
             }
         })
         .catch(error => {
             saveBtn.innerHTML = originalText;
             saveBtn.disabled = false;
-            showToast('网络错误：' + error.message, 'error');
+            showToast({% translate "网络错误：" %} + error.message, 'error');
         });
 }
 
@@ -667,11 +668,11 @@ function deleteScript() {
                     window.location.href = '{% url "dialogue_list" %}';
                 }, 1500);
             } else {
-                showToast('删除失败：' + result.error, 'error');
+                showToast({% translate "删除失败：" %} + result.error, 'error');
             }
         })
         .catch(error => {
-            showToast('网络错误：' + error.message, 'error');
+            showToast({% translate "网络错误：" %} + error.message, 'error');
         });
     });
 }
@@ -695,16 +696,16 @@ function editSegment(segmentId, currentSpeaker, currentText, currentSequence) {
             .then(response => response.json())
             .then(result => {
                 if (result.success) {
-                    showToast('片段已更新', 'success');
+                    showToast({% translate "片段已更新" %}, 'success');
                     setTimeout(() => {
                         location.reload();
                     }, 1500);
                 } else {
-                    showToast('更新失败：' + result.error, 'error');
+                    showToast({% translate "更新失败：" %} + result.error, 'error');
                 }
             })
             .catch(error => {
-                showToast('网络错误：' + error.message, 'error');
+                showToast({% translate "网络错误：" %} + error.message, 'error');
             });
         });
     });
@@ -728,11 +729,11 @@ function deleteSegment(segmentId) {
                     location.reload();
                 }, 1500);
             } else {
-                showToast('删除失败：' + result.error, 'error');
+                showToast({% translate "删除失败：" %} + result.error, 'error');
             }
         })
         .catch(error => {
-            showToast('网络错误：' + error.message, 'error');
+            showToast({% translate "网络错误：" %} + error.message, 'error');
         });
     });
 }
@@ -785,10 +786,10 @@ function previewSegment(segmentId, triggerButton) {
         const blob = new Blob([buffer], { type: contentType });
         const objectUrl = URL.createObjectURL(blob);
         showPreviewAudio(objectUrl, segmentId, true);
-        showToast('预览音频已生成', 'success');
+        showToast({% translate "预览音频已生成" %}, 'success');
     })
     .catch((error) => {
-        showToast('预览生成失败：' + error.message, 'error');
+        showToast({% translate "预览生成失败：" %} + error.message, 'error');
     })
     .finally(() => {
         if (btn) {
@@ -875,7 +876,7 @@ function initializePreviewCheck() {
                     showPreviewAudio(task.result_data.audio_file, task.metadata.segment_id);
                 } else if (task.status === 'failure') {
                     clearInterval(checkInterval);
-                    showToast('预览音频生成失败：' + task.error_message, 'error');
+                    showToast({% translate "预览音频生成失败：" %} + task.error_message, 'error');
                 }
             });
         }, 2000);
@@ -1094,7 +1095,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const force = button.dataset.force === 'true';
 
         if (!requestUrl) {
-            showToast('未找到章节生成接口', 'error');
+            showToast({% translate "未找到章节生成接口" %}, 'error');
             return;
         }
 
@@ -1138,7 +1139,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 button.style.width = '';
             }
         } catch (error) {
-            showToast('章节生成请求失败：' + error.message, 'error');
+            showToast({% translate "章节生成请求失败：" %} + error.message, 'error');
             button.disabled = false;
             button.innerHTML = originalHtml;
             button.style.width = '';
@@ -1232,7 +1233,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         if (!window.globalAudioPlayer) {
-            showToast('全局播放器未初始化，请刷新页面重试', 'error');
+            showToast({% translate "全局播放器未初始化，请刷新页面重试" %}, 'error');
             return;
         }
 
@@ -1397,7 +1398,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!availableVoices.length && !selectedValue) {
             const emptyItem = document.createElement('div');
             emptyItem.className = 'px-3 py-2 text-xs text-base-content/60';
-            emptyItem.textContent = '暂无音色';
+            emptyItem.textContent = '{% translate "暂无音色" %}';
             menu.appendChild(emptyItem);
         }
 
@@ -1528,7 +1529,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const providerValue = defaultProvider || 'edge_tts';
 
         if (!voiceName) {
-            showToast('请先选择音色', 'error');
+            showToast({% translate "请先选择音色" %}, 'error');
             return;
         }
 
@@ -1588,7 +1589,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 setPreviewButtonState(triggerButton, 'playing');
             } catch (playError) {
                 console.error('播放试听音频失败:', playError);
-                showToast('浏览器阻止了自动播放，请点击播放按钮重试', 'error');
+                showToast({% translate "浏览器阻止了自动播放，请点击播放按钮重试" %}, 'error');
                 stopVoicePreview();
             }
         } catch (error) {
@@ -1611,7 +1612,7 @@ document.addEventListener('DOMContentLoaded', function() {
           // 显示字幕
           subtitlesContent.classList.remove('hidden');
           this.classList.add('btn-active');
-          this.querySelector('span').textContent = '隐藏字幕';
+          this.querySelector('span').textContent = '{% translate "隐藏字幕" %}';
           
           // 如果还没加载过字幕，则加载
           if (!subtitlesLoaded) {
@@ -1621,7 +1622,7 @@ document.addEventListener('DOMContentLoaded', function() {
           // 隐藏字幕
           subtitlesContent.classList.add('hidden');
           this.classList.remove('btn-active');
-          this.querySelector('span').textContent = '查看字幕';
+          this.querySelector('span').textContent = '{% translate "查看字幕" %}';
         }
       });
     }
@@ -1726,11 +1727,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 applyVoiceRecommendations(result.recommendations);
                 showToast(result.message, 'success');
             } else {
-                showToast('AI推荐失败：' + result.error, 'error');
+                showToast({% translate "AI推荐失败：" %} + result.error, 'error');
             }
         })
         .catch(error => {
-            showToast('网络错误：' + error.message, 'error');
+            showToast({% translate "网络错误：" %} + error.message, 'error');
         })
         .finally(() => {
             aiRecommendBtn.disabled = false;
@@ -1862,16 +1863,16 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(result => {
                 if (result.success) {
-                    showToast('音色配置已保存', 'success');
+                    showToast({% translate "音色配置已保存" %}, 'success');
                     setTimeout(() => {
                         location.reload();
                     }, 1500);
                 } else {
-                    showToast('保存失败：' + result.error, 'error');
+                    showToast({% translate "保存失败：" %} + result.error, 'error');
                 }
             })
             .catch(error => {
-                showToast('网络错误：' + error.message, 'error');
+                showToast({% translate "网络错误：" %} + error.message, 'error');
             });
         });
     }
@@ -1886,7 +1887,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             if (unconfiguredSpeakers.length) {
-                showToast('请先为以下说话者配置音色：' + unconfiguredSpeakers.join('、'), 'error');
+                showToast({% translate "请先为以下说话者配置音色：" %} + unconfiguredSpeakers.join('、'), 'error');
                 return;
             }
 
@@ -1972,7 +1973,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // 成品音频全局播放功能
 function playFinishedAudio(audioUrl, title, subtitleUrl, chaptersScriptId = null, chaptersUrl = null) {
     if (!window.globalAudioPlayer) {
-        showToast('全局播放器未初始化，请刷新页面重试', 'error');
+        showToast({% translate "全局播放器未初始化，请刷新页面重试" %}, 'error');
         return;
     }
     

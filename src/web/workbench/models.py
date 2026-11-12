@@ -1,5 +1,6 @@
 from pathlib import Path
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 from django.db import models
 from django.conf import settings
 import uuid
@@ -13,27 +14,27 @@ from django.dispatch import receiver
 
 class Books(models.Model):
     PDF_TYPE_CHOICES = [
-        ('unknown', '未检测'),
-        ('text', '文本版'),
-        ('scanned', '扫描版'),
+        ('unknown', _('未检测')),
+        ('text', _('文本版')),
+        ('scanned', _('扫描版')),
     ]
 
     CATEGORY_CHOICES = [
-        ('fiction', '小说'),
-        ('history', '历史'),
-        ('scifi', '科幻'),
-        ('essay', '散文'),
-        ('study', '学习'),
-        ('other', '其他'),
+        ('fiction', _('小说')),
+        ('history', _('历史')),
+        ('scifi', _('科幻')),
+        ('essay', _('散文')),
+        ('study', _('学习')),
+        ('other', _('其他')),
     ]
     
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='books', null=True, blank=True)
     name = models.TextField(default="")
     file_type = models.TextField(default="")
     file = models.FileField(upload_to='books/%Y/%m/%d/')
-    md5_hash = models.CharField(max_length=32, blank=True, db_index=True, help_text="文件的MD5哈希值，用于检测重复文件")
-    pdf_type = models.CharField(max_length=20, choices=PDF_TYPE_CHOICES, default='unknown', help_text="PDF类型：文本版或扫描版")
-    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='other', db_index=True, help_text="书籍分类，用于探索页筛选")
+    md5_hash = models.CharField(max_length=32, blank=True, db_index=True, help_text=_("文件的MD5哈希值，用于检测重复文件"))
+    pdf_type = models.CharField(max_length=20, choices=PDF_TYPE_CHOICES, default='unknown', help_text=_("PDF类型：文本版或扫描版"))
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='other', db_index=True, help_text=_("书籍分类，用于探索页筛选"))
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(default=timezone.now)
 
@@ -114,10 +115,10 @@ class AudioSegment(models.Model):
     text = models.TextField()
     book_page = models.CharField(max_length=255)
     file = models.FileField(upload_to='audio_segments/%Y/%m/%d/')
-    subtitle_file = models.FileField(upload_to='subtitles/audio_segments/%Y/%m/%d/', null=True, blank=True, verbose_name='字幕文件')
-    chapters = models.JSONField(default=list, blank=True, help_text="音频章节时间线")
-    chapters_file = models.FileField(upload_to='chapters/audio_segments/%Y/%m/%d/', null=True, blank=True, verbose_name='章节JSON文件')
-    chapters_html = models.TextField(blank=True, default='', help_text="章节HTML片段")
+    subtitle_file = models.FileField(upload_to='subtitles/audio_segments/%Y/%m/%d/', null=True, blank=True, verbose_name=_('字幕文件'))
+    chapters = models.JSONField(default=list, blank=True, help_text=_("音频章节时间线"))
+    chapters_file = models.FileField(upload_to='chapters/audio_segments/%Y/%m/%d/', null=True, blank=True, verbose_name=_('章节JSON文件'))
+    chapters_html = models.TextField(blank=True, default='', help_text=_("章节HTML片段"))
     published = models.BooleanField(default=False)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(default=timezone.now)
@@ -154,11 +155,11 @@ def create_or_update_user_profile(sender, instance, created, **kwargs):
 class UserTask(models.Model):
     """用户任务模型，用于跟踪Celery异步任务"""
     TASK_STATUS_CHOICES = [
-        ('pending', '等待中'),
-        ('processing', '处理中'),
-        ('success', '已完成'),
-        ('failure', '失败'),
-        ('revoked', '已取消'),
+        ('pending', _('等待中')),
+        ('processing', _('处理中')),
+        ('success', _('已完成')),
+        ('failure', _('失败')),
+        ('revoked', _('已取消')),
     ]
     
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='tasks')
@@ -252,18 +253,18 @@ class DialogueScript(models.Model):
     """对话脚本模型，存储LLM转换后的对话脚本"""
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='dialogue_scripts')
     book = models.ForeignKey(Books, on_delete=models.CASCADE, related_name='dialogue_scripts', null=True, blank=True)
-    title = models.CharField(max_length=500, help_text="对话脚本标题")
-    original_text = models.TextField(help_text="原始文本内容")
-    script_data = models.JSONField(help_text="LLM解析后的JSON格式对话数据")
+    title = models.CharField(max_length=500, help_text=_("对话脚本标题"))
+    original_text = models.TextField(help_text=_("原始文本内容"))
+    script_data = models.JSONField(help_text=_("LLM解析后的JSON格式对话数据"))
     
     # 音频生成相关
     audio_file = models.FileField(upload_to='dialogue_audio/%Y/%m/%d/', null=True, blank=True)
-    subtitle_file = models.FileField(upload_to='subtitles/dialogue_scripts/%Y/%m/%d/', null=True, blank=True, verbose_name='字幕文件')
-    audio_duration = models.FloatField(null=True, blank=True, help_text="音频时长（秒）")
-    chapters = models.JSONField(default=list, blank=True, help_text="音频章节时间线")
-    chapters_file = models.FileField(upload_to='chapters/dialogue_scripts/%Y/%m/%d/', null=True, blank=True, verbose_name='章节JSON文件')
-    chapters_html = models.TextField(blank=True, default='', help_text="章节HTML片段")
-    published = models.BooleanField(default=False, help_text="是否发布到成品")
+    subtitle_file = models.FileField(upload_to='subtitles/dialogue_scripts/%Y/%m/%d/', null=True, blank=True, verbose_name=_('字幕文件'))
+    audio_duration = models.FloatField(null=True, blank=True, help_text=_("音频时长（秒）"))
+    chapters = models.JSONField(default=list, blank=True, help_text=_("音频章节时间线"))
+    chapters_file = models.FileField(upload_to='chapters/dialogue_scripts/%Y/%m/%d/', null=True, blank=True, verbose_name=_('章节JSON文件'))
+    chapters_html = models.TextField(blank=True, default='', help_text=_("章节HTML片段"))
+    published = models.BooleanField(default=False, help_text=_("是否发布到成品"))
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -330,14 +331,14 @@ class DialogueScript(models.Model):
 class DialogueSegment(models.Model):
     """对话片段模型，用于存储角色音色配置"""
     script = models.ForeignKey(DialogueScript, on_delete=models.CASCADE, related_name='segments')
-    speaker = models.CharField(max_length=100, help_text="说话者名称")
-    sequence = models.IntegerField(help_text="片段顺序")
-    utterance = models.TextField(help_text="说话内容")
-    dialogue_type = models.CharField(max_length=20, choices=[('dialogue', '对话'), ('narration', '旁白')], default='dialogue')
+    speaker = models.CharField(max_length=100, help_text=_("说话者名称"))
+    sequence = models.IntegerField(help_text=_("片段顺序"))
+    utterance = models.TextField(help_text=_("说话内容"))
+    dialogue_type = models.CharField(max_length=20, choices=[('dialogue', _('对话')), ('narration', '旁白')], default='dialogue')
     
     # 音频相关
     audio_file = models.FileField(upload_to='dialogue_segments/%Y/%m/%d/', null=True, blank=True)
-    audio_duration = models.FloatField(null=True, blank=True, help_text="片段音频时长（秒）")
+    audio_duration = models.FloatField(null=True, blank=True, help_text=_("片段音频时长（秒）"))
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -352,9 +353,9 @@ class DialogueSegment(models.Model):
 
 class OCRCache(models.Model):
     """OCR缓存模型，基于图片MD5存储OCR识别结果"""
-    image_md5 = models.CharField(max_length=32, unique=True, db_index=True, help_text="图片的MD5哈希值")
-    ocr_text = models.TextField(help_text="OCR识别的文本内容")
-    source_type = models.CharField(max_length=20, choices=[('page_image', '页面图片'), ('manual_upload', '手动上传')], default='page_image')
+    image_md5 = models.CharField(max_length=32, unique=True, db_index=True, help_text=_("图片的MD5哈希值"))
+    ocr_text = models.TextField(help_text=_("OCR识别的文本内容"))
+    source_type = models.CharField(max_length=20, choices=[('page_image', _('页面图片')), ('manual_upload', '手动上传')], default='page_image')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -370,8 +371,8 @@ class TranslationCache(models.Model):
     # 语言选择
     LANGUAGE_CHOICES = [
         ('en', 'English'),
-        ('zh', '中文'),
-        ('ja', '日本語'),
+        ('zh', _('中文')),
+        ('ja', _('日本語')),
         ('ko', '한국어'),
         ('fr', 'Français'),
         ('de', 'Deutsch'),
@@ -381,19 +382,19 @@ class TranslationCache(models.Model):
         ('pt', 'Português'),
     ]
 
-    text_md5 = models.CharField(max_length=32, db_index=True, help_text="原文本的MD5哈希值")
-    source_language = models.CharField(max_length=10, default='auto', help_text="源语言（auto表示自动检测）")
-    target_language = models.CharField(max_length=10, choices=LANGUAGE_CHOICES, help_text="目标语言")
-    original_text = models.TextField(help_text="原始文本内容")
-    translated_text = models.TextField(help_text="翻译后的文本内容")
+    text_md5 = models.CharField(max_length=32, db_index=True, help_text=_("原文本的MD5哈希值"))
+    source_language = models.CharField(max_length=10, default='auto', help_text=_("源语言（auto表示自动检测）"))
+    target_language = models.CharField(max_length=10, choices=LANGUAGE_CHOICES, help_text=_("目标语言"))
+    original_text = models.TextField(help_text=_("原始文本内容"))
+    translated_text = models.TextField(help_text=_("翻译后的文本内容"))
 
     # 使用统计
-    hit_count = models.IntegerField(default=1, help_text="缓存命中次数")
+    hit_count = models.IntegerField(default=1, help_text=_("缓存命中次数"))
 
     # 时间戳
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    last_used_at = models.DateTimeField(auto_now_add=True, help_text="最后使用时间")
+    last_used_at = models.DateTimeField(auto_now_add=True, help_text=_("最后使用时间"))
 
     class Meta:
         ordering = ['-last_used_at']

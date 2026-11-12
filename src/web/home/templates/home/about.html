@@ -1,14 +1,14 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static i18n %}
 
-{% block title %}关于 - Book2TTS{% endblock %}
+{% block title %}{% translate "关于 - Book2TTS" %}{% endblock %}
 
 {% block content %}
 <div class="container mx-auto px-4 py-6 max-w-4xl">
   <!-- 页面标题 -->
   <div class="mb-12">
-    <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight">关于 Book2TTS</h1>
-    <p class="text-base sm:text-lg text-base-content/60 mt-3 max-w-2xl">专为图书制作人打造的在线工作台，从电子书解析到音频发布一站式完成</p>
+    <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight">{% translate "关于 Book2TTS" %}</h1>
+    <p class="text-base sm:text-lg text-base-content/60 mt-3 max-w-2xl">{% translate "专为图书制作人打造的在线工作台，从电子书解析到音频发布一站式完成" %}</p>
   </div>
 
   <!-- 产品介绍 -->
@@ -19,9 +19,9 @@
           <div class="w-12 h-12 bg-primary rounded-full flex items-center justify-center mr-4">
             <i class="fa-solid fa-book-open text-primary-content text-xl"></i>
           </div>
-          <h2 class="card-title">书籍工作台</h2>
+          <h2 class="card-title">{% translate "书籍工作台" %}</h2>
         </div>
-        <p>提供目录/页面双视图、原文预览与资源提取，精细掌控每一页内容。</p>
+        <p>{% translate "提供目录/页面双视图、原文预览与资源提取，精细掌控每一页内容。" %}</p>
       </div>
     </div>
 
@@ -31,9 +31,9 @@
           <div class="w-12 h-12 bg-secondary rounded-full flex items-center justify-center mr-4">
             <i class="fa-solid fa-robot text-secondary-content text-xl"></i>
           </div>
-          <h2 class="card-title">LLM 智能处理</h2>
+          <h2 class="card-title">{% translate "LLM 智能处理" %}</h2>
         </div>
-        <p>集成排版、翻译、对话脚本、章节提取等工具，自动记录 token 与缓存命中。</p>
+        <p>{% translate "集成排版、翻译、对话脚本、章节提取等工具，自动记录 token 与缓存命中。" %}</p>
       </div>
     </div>
 
@@ -43,9 +43,9 @@
           <div class="w-12 h-12 bg-accent rounded-full flex items-center justify-center mr-4">
             <i class="fa-solid fa-podcast text-accent-content text-xl"></i>
           </div>
-          <h2 class="card-title">音频与发布</h2>
+          <h2 class="card-title">{% translate "音频与发布" %}</h2>
         </div>
-        <p>支持多语音合成、字幕与章节生成，生成标准 RSS 订阅方便播客分发。</p>
+        <p>{% translate "支持多语音合成、字幕与章节生成，生成标准 RSS 订阅方便播客分发。" %}</p>
       </div>
     </div>
 
@@ -55,89 +55,89 @@
           <div class="w-12 h-12 bg-info rounded-full flex items-center justify-center mr-4">
             <i class="fa-solid fa-list-check text-info-content text-xl"></i>
           </div>
-          <h2 class="card-title">章节 & RSS</h2>
+          <h2 class="card-title">{% translate "章节 & RSS" %}</h2>
         </div>
-        <p>章节自动生成并支持手动微调，RSS feed 随音频更新，兼容主流播客客户端。</p>
+        <p>{% translate "章节自动生成并支持手动微调，RSS feed 随音频更新，兼容主流播客客户端。" %}</p>
       </div>
     </div>
   </div>
 
   <!-- 使用方法 -->
   <div class="mb-12">
-    <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-center mb-8">如何使用</h2>
+    <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-center mb-8">{% translate "如何使用" %}</h2>
     <div class="grid md:grid-cols-3 gap-6">
       <div class="text-center">
         <div class="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
           <span class="text-2xl font-bold text-primary-content">1</span>
         </div>
-        <h3 class="text-xl font-semibold mb-2">上传书籍</h3>
-        <p class="text-base-content/70">支持 EPUB、PDF 等格式，工作台自动解析目录和页面。</p>
+        <h3 class="text-xl font-semibold mb-2">{% translate "上传书籍" %}</h3>
+        <p class="text-base-content/70">{% translate "支持 EPUB、PDF 等格式，工作台自动解析目录和页面。" %}</p>
       </div>
       <div class="text-center">
         <div class="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4">
           <span class="text-2xl font-bold text-secondary-content">2</span>
         </div>
-        <h3 class="text-xl font-semibold mb-2">挑选与润色</h3>
-        <p class="text-base-content/70">在工作台中勾选章节，按需调用排版、翻译或对话生成工具。</p>
+        <h3 class="text-xl font-semibold mb-2">{% translate "挑选与润色" %}</h3>
+        <p class="text-base-content/70">{% translate "在工作台中勾选章节，按需调用排版、翻译或对话生成工具。" %}</p>
       </div>
       <div class="text-center">
         <div class="w-16 h-16 bg-accent rounded-full flex items-center justify-center mx-auto mb-4">
           <span class="text-2xl font-bold text-accent-content">3</span>
         </div>
-        <h3 class="text-xl font-semibold mb-2">生成并发布</h3>
-        <p class="text-base-content/70">启动音频、字幕、章节任务，完成后可下载或发布到 RSS。</p>
+        <h3 class="text-xl font-semibold mb-2">{% translate "生成并发布" %}</h3>
+        <p class="text-base-content/70">{% translate "启动音频、字幕、章节任务，完成后可下载或发布到 RSS。" %}</p>
       </div>
     </div>
   </div>
 
   <!-- 功能亮点 -->
   <div class="mb-12">
-    <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-center mb-8">功能亮点</h2>
+    <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-center mb-8">{% translate "功能亮点" %}</h2>
     <div class="grid md:grid-cols-2 gap-6">
       <div class="card bg-base-100 border border-base-300 shadow-sm">
       <div class="card-body">
-        <h3 class="card-title mb-3">🔊 工作台全景</h3>
-        <p class="text-base-content/70 mb-4">一页掌握章节、页面、音频状态与原文件资源。</p>
+        <h3 class="card-title mb-3">{% translate "🔊 工作台全景" %}</h3>
+        <p class="text-base-content/70 mb-4">{% translate "一页掌握章节、页面、音频状态与原文件资源。" %}</p>
         <ul class="list-disc list-inside space-y-2 text-sm text-base-content/70">
-          <li>目录 / 页面双列表，支持多页批量操作</li>
-          <li>原文、图片、资源一键预览与下载</li>
-          <li>音频状态面板显示进度、失败原因与建议</li>
+          <li>{% translate "目录 / 页面双列表，支持多页批量操作" %}</li>
+          <li>{% translate "原文、图片、资源一键预览与下载" %}</li>
+          <li>{% translate "音频状态面板显示进度、失败原因与建议" %}</li>
         </ul>
       </div>
       </div>
 
       <div class="card bg-base-100 border border-base-300 shadow-sm">
       <div class="card-body">
-        <h3 class="card-title mb-3">🎯 LLM 助手</h3>
-        <p class="text-base-content/70 mb-4">排版、翻译、对话脚本、章节提取随取随用。</p>
+        <h3 class="card-title mb-3">{% translate "🎯 LLM 助手" %}</h3>
+        <p class="text-base-content/70 mb-4">{% translate "排版、翻译、对话脚本、章节提取随取随用。" %}</p>
         <ul class="list-disc list-inside space-y-2 text-sm text-base-content/70">
-          <li>多模型接入，缓存命中免扣积分</li>
-          <li>对话脚本分片处理，可断点续跑</li>
-          <li>自动记录 token、模型与失败信息</li>
+          <li>{% translate "多模型接入，缓存命中免扣积分" %}</li>
+          <li>{% translate "对话脚本分片处理，可断点续跑" %}</li>
+          <li>{% translate "自动记录 token、模型与失败信息" %}</li>
         </ul>
       </div>
       </div>
 
       <div class="card bg-base-100 border border-base-300 shadow-sm">
       <div class="card-body">
-        <h3 class="card-title mb-3">🌐 分发与收听</h3>
-        <p class="text-base-content/70 mb-4">生成的音频可在线预览、下载或通过 RSS 发布。</p>
+        <h3 class="card-title mb-3">{% translate "🌐 分发与收听" %}</h3>
+        <p class="text-base-content/70 mb-4">{% translate "生成的音频可在线预览、下载或通过 RSS 发布。" %}</p>
         <ul class="list-disc list-inside space-y-2 text-sm text-base-content/70">
-          <li>支持多音色合成、字幕和章节文件导出</li>
-          <li>按用户、书籍或 Token 生成 Podcast 兼容 RSS</li>
-          <li>嵌入式播放器，便于团队内部审核</li>
+          <li>{% translate "支持多音色合成、字幕和章节文件导出" %}</li>
+          <li>{% translate "按用户、书籍或 Token 生成 Podcast 兼容 RSS" %}</li>
+          <li>{% translate "嵌入式播放器，便于团队内部审核" %}</li>
         </ul>
       </div>
     </div>
 
     <div class="card bg-base-100 border border-base-300 shadow-sm">
       <div class="card-body">
-        <h3 class="card-title mb-3">📡 章节与 RSS</h3>
-        <p class="text-base-content/70 mb-4">章节自动生成，整合到 RSS feed 中方便播客客户端识别。</p>
+        <h3 class="card-title mb-3">{% translate "📡 章节与 RSS" %}</h3>
+        <p class="text-base-content/70 mb-4">{% translate "章节自动生成，整合到 RSS feed 中方便播客客户端识别。" %}</p>
         <ul class="list-disc list-inside space-y-2 text-sm text-base-content/70">
-          <li>支持字幕驱动的章节提取，可手动调整</li>
-          <li>章节信息随音频一起写入 RSS，兼容 Apple Podcasts 等平台</li>
-          <li>章节与 RSS 资源可下载归档，方便二次分发</li>
+          <li>{% translate "支持字幕驱动的章节提取，可手动调整" %}</li>
+          <li>{% translate "章节信息随音频一起写入 RSS，兼容 Apple Podcasts 等平台" %}</li>
+          <li>{% translate "章节与 RSS 资源可下载归档，方便二次分发" %}</li>
         </ul>
       </div>
     </div>
@@ -146,32 +146,32 @@
 
   <!-- 常见问题 -->
   <div class="mb-12">
-    <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-center mb-8">常见问题</h2>
+    <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-center mb-8">{% translate "常见问题" %}</h2>
     <div class="space-y-4">
       <details class="collapse collapse-plus bg-base-100 shadow-md">
         <summary class="collapse-title text-lg font-medium">
-          📁 支持哪些文件格式？
+          {% translate "📁 支持哪些文件格式？" %}
         </summary>
         <div class="collapse-content text-base-content/70">
-          <p>工作台当前支持 EPUB 与 PDF，PDF 会自动区分文本版和扫描版并提供 OCR 工具。</p>
+          <p>{% translate "工作台当前支持 EPUB 与 PDF，PDF 会自动区分文本版和扫描版并提供 OCR 工具。" %}</p>
         </div>
       </details>
 
       <details class="collapse collapse-plus bg-base-100 shadow-md">
         <summary class="collapse-title text-lg font-medium">
-          🗂️ 章节生成需要哪些条件？
+          {% translate "🗂️ 章节生成需要哪些条件？" %}
         </summary>
         <div class="collapse-content text-base-content/70">
-          <p>系统优先使用字幕（SRT）生成章节；若无字幕，可改用 LLM 解析，但准确度依赖文本质量。</p>
+          <p>{% translate "系统优先使用字幕（SRT）生成章节；若无字幕，可改用 LLM 解析，但准确度依赖文本质量。" %}</p>
         </div>
       </details>
 
       <details class="collapse collapse-plus bg-base-100 shadow-md">
         <summary class="collapse-title text-lg font-medium">
-          📡 RSS 支持哪些客户端？
+          {% translate "📡 RSS 支持哪些客户端？" %}
         </summary>
         <div class="collapse-content text-base-content/70">
-          <p>生成的 feed 兼容 Apple Podcasts、Pocket Casts 等主流客户端，章节信息会一并展示。</p>
+          <p>{% translate "生成的 feed 兼容 Apple Podcasts、Pocket Casts 等主流客户端，章节信息会一并展示。" %}</p>
         </div>
       </details>
     </div>
@@ -179,9 +179,9 @@
 
   <!-- 联系信息 -->
   <div class="text-center">
-    <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight mb-6">联系我们</h2>
+    <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight mb-6">{% translate "联系我们" %}</h2>
     <div class="bg-base-100 rounded-lg p-8 shadow-lg max-w-4xl mx-auto">
-      <p class="text-lg mb-6">如果您有任何问题或建议，欢迎与我们联系。</p>
+      <p class="text-lg mb-6">{% translate "如果您有任何问题或建议，欢迎与我们联系。" %}</p>
       <div class="grid md:grid-cols-2 gap-4 mb-8">
         <div class="flex items-center justify-center">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -199,30 +199,30 @@
       
       <!-- 二维码部分 -->
       <div class="border-t pt-8">
-        <h3 class="text-xl font-semibold mb-6">扫码联系</h3>
+        <h3 class="text-xl font-semibold mb-6">{% translate "扫码联系" %}</h3>
         <div class="grid md:grid-cols-2 gap-8">
           <!-- 微信二维码 -->
           <div class="text-center">
             <div class="mb-4">
-              <h4 class="text-lg font-medium mb-2 text-success">💬 微信购买咨询</h4>
-              <p class="text-sm text-base-content/70 mb-4">扫码添加微信，获取购买服务</p>
+              <h4 class="text-lg font-medium mb-2 text-success">{% translate "💬 微信购买咨询" %}</h4>
+              <p class="text-sm text-base-content/70 mb-4">{% translate "扫码添加微信，获取购买服务" %}</p>
             </div>
             <div class="bg-white p-4 rounded-lg inline-block shadow-md cursor-pointer hover:shadow-lg transition-shadow" onclick="openQRModal('wechat')">
-              <img src="{% static 'images/wechat_qr.png' %}" alt="微信二维码" class="w-32 h-32 mx-auto">
+              <img src="{% static 'images/wechat_qr.png' %}" alt="{% translate "微信二维码" %}" class="w-32 h-32 mx-auto">
             </div>
-            <p class="text-xs text-base-content/60 mt-2">微信扫码添加好友 • 点击放大查看</p>
+            <p class="text-xs text-base-content/60 mt-2">{% translate "微信扫码添加好友 • 点击放大查看" %}</p>
           </div>
           
           <!-- Telegram群聊二维码 -->
           <div class="text-center">
             <div class="mb-4">
-              <h4 class="text-lg font-medium mb-2 text-info">📱 Telegram 用户群</h4>
-              <p class="text-sm text-base-content/70 mb-4">加入用户群，交流使用心得</p>
+              <h4 class="text-lg font-medium mb-2 text-info">{% translate "📱 Telegram 用户群" %}</h4>
+              <p class="text-sm text-base-content/70 mb-4">{% translate "加入用户群，交流使用心得" %}</p>
             </div>
             <div class="bg白 p-4 rounded-lg inline-block shadow-md cursor-pointer hover:shadow-lg transition-shadow" onclick="openQRModal('telegram')">
-              <img src="{% static 'images/telegram_qr.png' %}" alt="Telegram群二维码" class="w-32 h-32 mx-auto">
+              <img src="{% static 'images/telegram_qr.png' %}" alt="{% translate "Telegram群二维码" %}" class="w-32 h-32 mx-auto">
             </div>
-            <p class="text-xs text-base-content/60 mt-2">扫码加入Telegram群聊 • 点击放大查看</p>
+            <p class="text-xs text-base-content/60 mt-2">{% translate "扫码加入Telegram群聊 • 点击放大查看" %}</p>
           </div>
         </div>
       </div>
@@ -254,15 +254,15 @@ function openQRModal(type) {
   const description = document.getElementById('modalDescription');
   
   if (type === 'wechat') {
-    title.textContent = '💬 微信购买咨询';
+    title.textContent = '{% translate "💬 微信购买咨询" %}';
     image.src = "{% static 'images/wechat_qr.png' %}";
     image.alt = '微信二维码';
-    description.textContent = '扫码添加微信，获取购买服务和技术支持';
+    description.textContent = '{% translate "扫码添加微信，获取购买服务和技术支持" %}';
   } else if (type === 'telegram') {
-    title.textContent = '📱 Telegram 用户群';
+    title.textContent = '{% translate "📱 Telegram 用户群" %}';
     image.src = "{% static 'images/telegram_qr.png' %}";
     image.alt = 'Telegram群二维码';
-    description.textContent = '加入用户群，与其他用户交流使用心得和经验分享';
+    description.textContent = '{% translate "加入用户群，与其他用户交流使用心得和经验分享" %}';
   }
   
   modal.classList.remove('hidden');

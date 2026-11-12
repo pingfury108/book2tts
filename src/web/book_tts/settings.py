@@ -61,6 +61,8 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
+    "book_tts.middleware.ForceDefaultLanguageOnUnprefixed",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -82,9 +84,11 @@ TEMPLATES = [
             "context_processors": [
                 "django.template.context_processors.debug",
                 "django.template.context_processors.request",
+                "django.template.context_processors.i18n",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "book_tts.context_processors.css_version",
+                "book_tts.context_processors.language_alternates",
                 "home.context_processors.site_config",
             ],
         },
@@ -124,11 +128,30 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
-LANGUAGE_CODE = "en-us"
+# 源码中的界面文案是中文，翻译文件以中文为 msgid；
+# LANGUAGE_CODE=en 让英文成为默认语言（无前缀 URL），中文走 /zh-hans/ 前缀。
+LANGUAGE_CODE = "en"
+
+LANGUAGES = [
+    ("en", "English"),
+    ("zh-hans", "简体中文"),
+]
+
+LOCALE_PATHS = [BASE_DIR / "locale"]
+
+# 各界面语言下的默认 TTS 音色（音色列表仍由 edge-tts 全量提供）
+DEFAULT_VOICE_BY_LANGUAGE = {
+    "en": "en-US-AriaNeural",
+    "zh-hans": "zh-CN-YunxiNeural",
+}
+DEFAULT_VOICE_FALLBACK = "en-US-AriaNeural"
 
 TIME_ZONE = "Asia/Shanghai"
 
 USE_I18N = True
+
+# 日期/数字按当前语言格式化
+USE_L10N = True
 
 USE_TZ = True
 

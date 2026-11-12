@@ -1,31 +1,32 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load static %}
 
 {% block content %}
 <div class="container mx-auto px-4 py-8 max-w-4xl text-base-content">
     <div class="mb-6">
-        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">创建对话脚本</h1>
-        <p class="text-sm text-base-content/50 mt-1.5">使用AI将文本内容转换为对话形式的脚本</p>
+        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">{% translate "创建对话脚本" %}</h1>
+        <p class="text-sm text-base-content/50 mt-1.5">{% translate "使用AI将文本内容转换为对话形式的脚本" %}</p>
     </div>
 
     <div class="bg-base-100 border border-base-300 shadow-sm rounded-2xl p-6">
         <form id="dialogue-form">
             <div class="mb-6">
                 <label for="title" class="block text-sm font-medium text-base-content mb-2">
-                    脚本标题
+                    {% translate "脚本标题" %}
                 </label>
                 <input type="text" id="title" name="title" 
                        class="input input-bordered w-full"
-                       placeholder="为您的对话脚本起一个标题">
+                       placeholder="{% translate "为您的对话脚本起一个标题" %}">
             </div>
 
             <div class="mb-6">
                 <label for="book_id" class="block text-sm font-medium text-base-content mb-2">
-                    关联书籍（可选）
+                    {% translate "关联书籍（可选）" %}
                 </label>
                 <select id="book_id" name="book_id" 
                         class="select select-bordered w-full">
-                    <option value="">不关联任何书籍</option>
+                    <option value="">{% translate "不关联任何书籍" %}</option>
                     {% for book in books %}
                     <option value="{{ book.id }}">{{ book.name }}</option>
                     {% endfor %}
@@ -34,33 +35,33 @@
 
             <div class="mb-6">
                 <label for="text" class="block text-sm font-medium text-base-content mb-2">
-                    原始文本内容 <span class="text-error">*</span>
+                    {% translate "原始文本内容" %} <span class="text-error">*</span>
                 </label>
                 <textarea id="text" name="text" rows="12" 
                           class="textarea textarea-bordered w-full"
-                          placeholder="请输入需要转换为对话的文本内容..."
+                          placeholder="{% translate "请输入需要转换为对话的文本内容..." %}"
                           required></textarea>
                 <p class="text-sm text-base-content/70 mt-2">
-                    支持长文本，系统会自动分段处理。建议文本长度在1000-5000字之间效果最佳。
+                    {% translate "支持长文本，系统会自动分段处理。建议文本长度在1000-5000字之间效果最佳。" %}
                 </p>
             </div>
 
             <div class="mb-6">
                 <div class="flex items-center justify-between mb-2">
                     <label for="custom_prompt" class="block text-sm font-medium text-base-content">
-                        自定义提示词（可选）
+                        {% translate "自定义提示词（可选）" %}
                     </label>
                     <button type="button" id="toggle-custom-prompt" 
                             class="text-sm text-primary hover:text-primary-focus">
-                        显示高级选项
+                        {% translate "显示高级选项" %}
                     </button>
                 </div>
                 <div id="custom-prompt-section" class="hidden">
                     <textarea id="custom_prompt" name="custom_prompt" rows="8" 
                               class="textarea textarea-bordered w-full"
-                              placeholder="如果需要自定义AI转换规则，可以在此输入提示词..."></textarea>
+                              placeholder="{% translate "如果需要自定义AI转换规则，可以在此输入提示词..." %}"></textarea>
                     <p class="text-sm text-base-content/70 mt-2">
-                        留空将使用默认的对话转换提示词。自定义提示词需要包含完整的转换指令。
+                        {% translate "留空将使用默认的对话转换提示词。自定义提示词需要包含完整的转换指令。" %}
                     </p>
                 </div>
             </div>
@@ -68,11 +69,11 @@
             <div class="flex justify-between">
                 <a href="{% url 'dialogue_list' %}" 
                    class="btn btn-outline">
-                    取消
+                    {% translate "取消" %}
                 </a>
                 <button type="submit" id="convert-btn"
                         class="btn btn-primary">
-                    <i class="fas fa-magic mr-2"></i>转换为对话
+                    <i class="fas fa-magic mr-2"></i>{% translate "转换为对话" %}
                 </button>
             </div>
         </form>
@@ -85,10 +86,10 @@
                 <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-primary/20">
                     <i class="fas fa-magic text-primary"></i>
                 </div>
-                <h3 class="text-lg leading-6 font-medium mt-2">正在处理中...</h3>
+                <h3 class="text-lg leading-6 font-medium mt-2">{% translate "正在处理中..." %}</h3>
                 <div class="mt-2 px-7 py-3">
                     <p id="progress-message" class="text-sm text-base-content/70">
-                        正在提交任务到后台处理队列...
+                        {% translate "正在提交任务到后台处理队列..." %}
                     </p>
                     <div class="mt-4">
                         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
@@ -97,12 +98,12 @@
                         <div class="w-full bg-base-200 rounded-full h-2.5">
                             <div id="progress-bar" class="bg-primary h-2.5 rounded-full" style="width: 0%"></div>
                         </div>
-                        <p id="progress-text" class="text-xs text-base-content/60 mt-1">准备中...</p>
+                        <p id="progress-text" class="text-xs text-base-content/60 mt-1">{% translate "准备中..." %}</p>
                     </div>
                 </div>
                 <div class="items-center px-4 py-3">
                     <button id="cancel-task" class="btn btn-outline">
-                        取消任务
+                        {% translate "取消任务" %}
                     </button>
                 </div>
             </div>
@@ -116,10 +117,10 @@
                 <div id="completion-icon" class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-success/20">
                     <i class="fas fa-check text-success"></i>
                 </div>
-                <h3 id="completion-title" class="text-lg leading-6 font-medium text-base-content mt-2">转换完成</h3>
+                <h3 id="completion-title" class="text-lg leading-6 font-medium text-base-content mt-2">{% translate "转换完成" %}</h3>
                 <div class="mt-2 px-7 py-3">
                     <p id="completion-message" class="text-sm text-base-content/70">
-                        对话脚本已成功创建！
+                        {% translate "对话脚本已成功创建！" %}
                     </p>
                     <div id="completion-details" class="mt-4 text-sm text-base-content/70">
                         <!-- 动态填充详细信息 -->
@@ -127,7 +128,7 @@
                 </div>
                 <div class="items-center px-4 py-3">
                     <button id="go-to-detail" class="btn btn-primary">
-                        查看详情
+                        {% translate "查看详情" %}
                     </button>
                 </div>
             </div>
@@ -141,10 +142,10 @@
                 <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-error/20">
                     <i class="fas fa-exclamation-triangle text-error"></i>
                 </div>
-                <h3 class="text-lg leading-6 font-medium text-base-content mt-2">转换失败</h3>
+                <h3 class="text-lg leading-6 font-medium text-base-content mt-2">{% translate "转换失败" %}</h3>
                 <div class="mt-2 px-7 py-3">
                     <p id="error-message" class="text-sm text-base-content/70">
-                        抱歉，对话转换过程中出现错误。
+                        {% translate "抱歉，对话转换过程中出现错误。" %}
                     </p>
                     <div id="error-details" class="mt-4 text-sm text-error bg-error/10 p-3 rounded">
                         <!-- 动态填充错误详情 -->
@@ -152,10 +153,10 @@
                 </div>
                 <div class="items-center px-4 py-3">
                     <button id="retry-conversion" class="btn btn-primary">
-                        重试
+                        {% translate "重试" %}
                     </button>
                     <button id="close-error" class="ml-2 btn btn-outline">
-                        关闭
+                        {% translate "关闭" %}
                     </button>
                 </div>
             </div>
@@ -240,10 +241,10 @@ document.addEventListener('DOMContentLoaded', function() {
     toggleBtn.addEventListener('click', function() {
         if (customPromptSection.classList.contains('hidden')) {
             customPromptSection.classList.remove('hidden');
-            toggleBtn.textContent = '隐藏高级选项';
+            toggleBtn.textContent = '{% translate "隐藏高级选项" %}';
         } else {
             customPromptSection.classList.add('hidden');
-            toggleBtn.textContent = '显示高级选项';
+            toggleBtn.textContent = '{% translate "显示高级选项" %}';
         }
     });
     
@@ -273,7 +274,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 验证必填字段
         if (!data.text.trim()) {
-            alert('请输入文本内容');
+            alert({% translate "请输入文本内容" %});
             return;
         }
         
@@ -286,9 +287,9 @@ document.addEventListener('DOMContentLoaded', function() {
         convertBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>提交中...';
         
         // 重置进度显示
-        document.getElementById('progress-message').textContent = '正在提交任务到后台处理队列...';
+        document.getElementById('progress-message').textContent = '{% translate "正在提交任务到后台处理队列..." %}';
         document.getElementById('progress-bar').style.width = '0%';
-        document.getElementById('progress-text').textContent = '准备中...';
+        document.getElementById('progress-text').textContent = '{% translate "准备中..." %}';
         
         progressModal.classList.remove('hidden');
         

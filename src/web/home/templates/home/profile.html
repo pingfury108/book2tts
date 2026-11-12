@@ -1,14 +1,15 @@
 {% extends "base.html" %}
+{% load i18n %}
 
-{% block title %}个人资料 - Book2TTS{% endblock %}
+{% block title %}{% translate "个人资料 - Book2TTS" %}{% endblock %}
 
 {% block content %}
 <div class="max-w-4xl mx-auto px-4 sm:px-6 py-6">
     <div class="w-full mx-auto">
         <!-- 页面标题 -->
         <div class="mb-6">
-            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">个人资料</h1>
-            <p class="text-sm text-base-content/50 mt-1.5">账户信息、积分与使用统计</p>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">{% translate "个人资料" %}</h1>
+            <p class="text-sm text-base-content/50 mt-1.5">{% translate "账户信息、积分与使用统计" %}</p>
         </div>
 
         <!-- 用户基本信息 -->
@@ -22,24 +23,24 @@
                                 <span class="text-xl font-bold">{{ user.username|slice:":2"|upper }}</span>
                             </div>
                         </div>
-                        用户信息
+                        {% translate "用户信息" %}
                     </h2>
                     
                     <div class="space-y-3">
                         <div class="flex justify-between">
-                            <span class="font-medium">用户名:</span>
+                            <span class="font-medium">{% translate "用户名:" %}</span>
                             <span>{{ user.username }}</span>
                         </div>
                         
                         {% if user.email %}
                         <div class="flex justify-between">
-                            <span class="font-medium">邮箱:</span>
+                            <span class="font-medium">{% translate "邮箱:" %}</span>
                             <span>{{ user.email }}</span>
                         </div>
                         {% endif %}
                         
                         <div class="flex justify-between">
-                            <span class="font-medium">注册时间:</span>
+                            <span class="font-medium">{% translate "注册时间:" %}</span>
                             <span>{{ user.date_joined|date:"Y-m-d" }}</span>
                         </div>
                         
@@ -53,9 +54,9 @@
                             <div class="flex items-center gap-2 bg-base-200 border border-base-300 rounded-xl px-3 py-2">
                                 <i class="fas fa-rss text-accent text-xs"></i>
                                 <span class="text-[11.5px] font-mono text-base-content/60 flex-1 truncate" id="rss-url-text">{{ request.scheme }}://{{ request.get_host }}{% url 'token_audio_rss_feed' token=user_profile.rss_token|stringformat:'s' %}</span>
-                                <button type="button" class="btn btn-ghost btn-xs" onclick="copyRssUrl()">复制</button>
+                                <button type="button" class="btn btn-ghost btn-xs" onclick="copyRssUrl()">{% translate "复制" %}</button>
                             </div>
-                            <p class="text-[11px] text-base-content/40 mt-1.5">你的专属播客 RSS —— 粘贴到任意播客 App 即可订阅自己的作品</p>
+                            <p class="text-[11px] text-base-content/40 mt-1.5">{% translate "你的专属播客 RSS —— 粘贴到任意播客 App 即可订阅自己的作品" %}</p>
                         </div>
                         {% endif %}
                     </div>
@@ -65,26 +66,26 @@
             <!-- 数据统计卡片 -->
             <div class="card bg-base-100 border border-base-300 shadow-sm">
                 <div class="card-body">
-                    <h2 class="card-title">数据统计</h2>
+                    <h2 class="card-title">{% translate "数据统计" %}</h2>
                     
                     <div class="grid grid-cols-2 gap-4">
                         <div class="stat bg-base-200 rounded-lg p-4">
-                            <div class="stat-title">书籍总数</div>
+                            <div class="stat-title">{% translate "书籍总数" %}</div>
                             <div class="stat-value text-xl sm:text-2xl">{{ total_books }}</div>
                         </div>
                         
                         <div class="stat bg-base-200 rounded-lg p-4">
-                            <div class="stat-title">音频总数</div>
+                            <div class="stat-title">{% translate "音频总数" %}</div>
                             <div class="stat-value text-xl sm:text-2xl">{{ total_audio_segments }}</div>
                         </div>
                         
                         <div class="stat bg-base-200 rounded-lg p-4">
-                            <div class="stat-title">已发布</div>
+                            <div class="stat-title">{% translate "已发布" %}</div>
                             <div class="stat-value text-xl sm:text-2xl">{{ published_audio_segments }}</div>
                         </div>
                         
                         <div class="stat bg-base-200 rounded-lg p-4">
-                            <div class="stat-title">未发布</div>
+                            <div class="stat-title">{% translate "未发布" %}</div>
                             <div class="stat-value text-xl sm:text-2xl">{{ unpublished_audio_segments }}</div>
                         </div>
                     </div>
@@ -96,16 +97,16 @@
         <div class="mt-6">
             <div class="card bg-base-100 border border-base-300 shadow-sm">
                 <div class="card-body">
-                    <h2 class="card-title">积分信息</h2>
+                    <h2 class="card-title">{% translate "积分信息" %}</h2>
                     
                     <!-- 积分显示 -->
                     <div class="bg-base-200 rounded-lg p-4">
                         <div class="flex items-center justify-between">
                             <!-- 积分余量显示 -->
                             <div class="flex items-center space-x-3">
-                                <span class="text-lg font-medium">积分余量</span>
+                                <span class="text-lg font-medium">{% translate "积分余量" %}</span>
                                 <span class="text-2xl font-bold {{ status_class }}">{{ current_points }}</span>
-                                <span class="text-lg text-base-content/70">积分</span>
+                                <span class="text-lg text-base-content/70">{% translate "积分" %}</span>
                             </div>
                             
                             <!-- 规则查看图标 -->
@@ -126,18 +127,18 @@
                             <div class="flex items-center space-x-2">
                                 <div class="badge {{ status_class }}">
                                     {% if current_points > 500 %}
-                                        充足
+                                        {% translate "充足" %}
                                     {% elif current_points > 100 %}
-                                        适中
+                                        {% translate "适中" %}
                                     {% else %}
-                                        不足
+                                        {% translate "不足" %}
                                     {% endif %}
                                 </div>
                                 <span class="text-sm text-base-content/70">
                                     {% if current_points <= 100 %}
-                                        请合理使用积分
+                                        {% translate "请合理使用积分" %}
                                     {% else %}
-                                        可正常使用各项功能
+                                        {% translate "可正常使用各项功能" %}
                                     {% endif %}
                                 </span>
                             </div>
@@ -152,14 +153,14 @@
             <div class="card bg-base-100 border border-base-300 shadow-sm">
                 <div class="card-body">
                     <div class="flex items-center justify-between">
-                        <h2 class="card-title">操作记录</h2>
+                        <h2 class="card-title">{% translate "操作记录" %}</h2>
                         <a href="{% url 'operation_records' %}" class="btn btn-outline btn-primary btn-sm rounded-lg">
-                            查看详细记录
+                            {% translate "查看详细记录" %}
                         </a>
                     </div>
                     
                     <p class="text-base-content/70">
-                        点击上方按钮查看您的详细操作记录，包括音频创建、删除等所有操作的历史记录。
+                        {% translate "点击上方按钮查看您的详细操作记录，包括音频创建、删除等所有操作的历史记录。" %}
                     </p>
                 </div>
             </div>
@@ -173,7 +174,7 @@
         <form method="dialog">
             <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
         </form>
-        <h3 class="font-bold text-lg mb-4">积分扣除规则</h3>
+        <h3 class="font-bold text-lg mb-4">{% translate "积分扣除规则" %}</h3>
         
         <div class="space-y-4" id="points-rules-content">
             <div class="loading loading-spinner loading-md mx-auto"></div>

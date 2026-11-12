@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static i18n %}
 
-{% block title %}已登出 - Book2TTS{% endblock %}
+{% block title %}{% translate "已登出 - Book2TTS" %}{% endblock %}
 
 {% block content %}
 <!-- 添加禁止缓存的Meta标签 -->
@@ -13,11 +13,11 @@
   <img src="{% static 'images/logo.png' %}" alt="Book2TTS" class="w-14 h-14 rounded-2xl shadow-lg shadow-primary/20 mb-4" />
   <div class="card w-full max-w-sm bg-base-100 border border-base-300 shadow-sm">
     <div class="card-body text-center">
-      <h2 class="card-title justify-center">您已成功登出</h2>
-      <p class="my-4">感谢您使用我们的服务！</p>
+      <h2 class="card-title justify-center">{% translate "您已成功登出" %}</h2>
+      <p class="my-4">{% translate "感谢您使用我们的服务！" %}</p>
       <div class="card-actions justify-center">
-        <a href="{% url 'login' %}" class="btn btn-primary rounded-xl">重新登录</a>
-        <a href="/" class="btn btn-ghost">返回首页</a>
+        <a href="{% url 'login' %}" class="btn btn-primary rounded-xl">{% translate "重新登录" %}</a>
+        <a href="/" class="btn btn-ghost">{% translate "返回首页" %}</a>
       </div>
     </div>
   </div>

@@ -1,16 +1,17 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load static %}
 
 {% block content %}
 <div class="container mx-auto px-4 py-8 text-base-content">
     <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
         <div>
-            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">对话脚本</h1>
-            <p class="text-sm text-base-content/50 mt-1">多音色对话作品，生成后可转音频</p>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">{% translate "对话脚本" %}</h1>
+            <p class="text-sm text-base-content/50 mt-1">{% translate "多音色对话作品，生成后可转音频" %}</p>
         </div>
         <a href="{% url 'dialogue_create' %}" 
            class="btn btn-primary rounded-xl shrink-0">
-            <i class="fas fa-plus text-xs"></i>创建对话脚本
+            <i class="fas fa-plus text-xs"></i>{% translate "创建对话脚本" %}
         </a>
     </div>
     {% if page_obj.object_list %}
@@ -25,28 +26,28 @@
                             <span class="text-sm font-bold truncate">{{ script.title }}</span>
                             {% if script.audio_file %}
                                 {% if script.published %}
-                                <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-success/10 text-success flex-shrink-0">已发布</span>
+                                <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-success/10 text-success flex-shrink-0">{% translate "已发布" %}</span>
                                 {% else %}
-                                <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary flex-shrink-0">已生成</span>
+                                <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary flex-shrink-0">{% translate "已生成" %}</span>
                                 {% endif %}
                             {% else %}
-                                <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-base-200 border border-base-300 text-base-content/50 flex-shrink-0">未生成</span>
+                                <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-base-200 border border-base-300 text-base-content/50 flex-shrink-0">{% translate "未生成" %}</span>
                             {% endif %}
                         </div>
                         <div class="text-xs text-base-content/50 mt-1 truncate">
-                            {{ script.segment_count }} 段 ·
-                            {% if script.book %}关联《{{ script.book.name }}》{% else %}无关联书籍{% endif %}
+                            {{ script.segment_count }} {% translate "段 ·" %}
+                            {% if script.book %}{% translate "关联《" %}{{ script.book.name }}》{% else %}{% translate "无关联书籍" %}{% endif %}
                             · {{ script.created_at|date:"Y-m-d" }}
                         </div>
                     </div>
                     <div class="flex items-center gap-1.5 flex-shrink-0">
                         {% if script.audio_file and script.published == False %}
                         <button type="button" onclick="publishScript({{ script.id }})"
-                                class="btn btn-ghost btn-sm rounded-lg text-success hover:bg-success/10">发布</button>
+                                class="btn btn-ghost btn-sm rounded-lg text-success hover:bg-success/10">{% translate "发布" %}</button>
                         {% endif %}
                         <button type="button" onclick="deleteScript({{ script.id }}, '{{ script.title|escapejs }}')"
-                                class="btn btn-ghost btn-sm rounded-lg text-error hover:bg-error/10">删除</button>
-                        <a href="{% url 'dialogue_detail' script.id %}" class="btn btn-ghost btn-sm rounded-lg">打开编辑器 <i class="fas fa-arrow-right text-[10px]"></i></a>
+                                class="btn btn-ghost btn-sm rounded-lg text-error hover:bg-error/10">{% translate "删除" %}</button>
+                        <a href="{% url 'dialogue_detail' script.id %}" class="btn btn-ghost btn-sm rounded-lg">{% translate "打开编辑器" %} <i class="fas fa-arrow-right text-[10px]"></i></a>
                     </div>
                 </div>
                 {% endfor %}
@@ -59,18 +60,18 @@
                 {% if page_obj.has_previous %}
                     <a href="?page={{ page_obj.previous_page_number }}" 
                        class="relative inline-flex items-center px-3 py-2 rounded-l-md border border-base-300 bg-base-100 text-sm font-medium text-base-content/70 hover:bg-base-200">
-                        上一页
+                        {% translate "上一页" %}
                     </a>
                 {% endif %}
                 
                 <span class="relative inline-flex items-center px-4 py-2 border border-base-300 bg-base-100 text-sm font-medium text-base-content">
-                    第 {{ page_obj.number }} 页，共 {{ page_obj.paginator.num_pages }} 页
+                    {% translate "第" %} {{ page_obj.number }} {% translate "页，共" %} {{ page_obj.paginator.num_pages }} {% translate "页" %}
                 </span>
                 
                 {% if page_obj.has_next %}
                     <a href="?page={{ page_obj.next_page_number }}" 
                        class="relative inline-flex items-center px-3 py-2 rounded-r-md border border-base-300 bg-base-100 text-sm font-medium text-base-content/70 hover:bg-base-200">
-                        下一页
+                        {% translate "下一页" %}
                     </a>
                 {% endif %}
             </nav>
@@ -81,13 +82,13 @@
             <div class="mx-auto h-12 w-12 text-base-content/40">
                 <i class="fas fa-comments text-4xl"></i>
             </div>
-            <h3 class="mt-2 text-sm font-medium">暂无对话脚本</h3>
-            <p class="mt-1 text-sm text-base-content/70">开始创建您的第一个对话脚本</p>
+            <h3 class="mt-2 text-sm font-medium">{% translate "暂无对话脚本" %}</h3>
+            <p class="mt-1 text-sm text-base-content/70">{% translate "开始创建您的第一个对话脚本" %}</p>
             <div class="mt-6">
                 <a href="{% url 'dialogue_create' %}" 
                    class="btn btn-primary rounded-xl">
                     <i class="fas fa-plus text-xs"></i>
-                    创建对话脚本
+                    {% translate "创建对话脚本" %}
                 </a>
             </div>
         </div>
@@ -98,11 +99,11 @@
 <!-- 确认对话框 -->
 <div id="confirm-modal" class="modal">
     <div class="modal-box">
-        <h3 class="font-bold text-lg" id="confirm-title">确认操作</h3>
-        <p class="py-4" id="confirm-message">确定要执行此操作吗？</p>
+        <h3 class="font-bold text-lg" id="confirm-title">{% translate "确认操作" %}</h3>
+        <p class="py-4" id="confirm-message">{% translate "确定要执行此操作吗？" %}</p>
         <div class="modal-action">
-            <button class="btn" id="confirm-cancel">取消</button>
-            <button class="btn btn-error" id="confirm-ok">确定</button>
+            <button class="btn" id="confirm-cancel">{% translate "取消" %}</button>
+            <button class="btn btn-error" id="confirm-ok">{% translate "确定" %}</button>
         </div>
     </div>
 </div>
@@ -201,11 +202,11 @@ function deleteScript(scriptId, title) {
                     location.reload();
                 }, 1500);
             } else {
-                showToast('删除失败：' + result.error, 'error');
+                showToast({% translate "删除失败：" %} + result.error, 'error');
             }
         })
         .catch(error => {
-            showToast('网络错误：' + error.message, 'error');
+            showToast({% translate "网络错误：" %} + error.message, 'error');
         });
     });
 }

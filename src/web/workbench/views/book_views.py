@@ -1,6 +1,7 @@
 import json
 
 from django.shortcuts import render, redirect, get_object_or_404
+from django.utils.translation import gettext as _
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
@@ -70,7 +71,7 @@ def check_and_deduct_points_for_ocr(user, num_images, auto_ocr=False):
             'can_proceed': False,
             'required_points': required_points,
             'available_points': 0,
-            'error': '用户积分信息不存在，请先联系管理员。'
+            'error': _('用户积分信息不存在，请先联系管理员。')
         }
 
 
@@ -1099,7 +1100,7 @@ def get_original_content(request, book_id):
     if book.user and book.user != request.user and not (request.user.is_staff or request.user.is_superuser):
         return JsonResponse({
             'status': 'error',
-            'message': '您没有权限查看该书籍的原始内容'
+            'message': _('您没有权限查看该书籍的原始内容')
         }, status=403)
 
     # 解析请求体
@@ -1134,7 +1135,7 @@ def get_original_content(request, book_id):
     if not flattened_ids:
         return JsonResponse({
             'status': 'error',
-            'message': '请选择要查看的章节或页面'
+            'message': _('请选择要查看的章节或页面')
         }, status=400)
 
     file_type = (book.file_type or '').lower()
@@ -1163,7 +1164,7 @@ def get_original_content(request, book_id):
         if not pages:
             return JsonResponse({
                 'status': 'error',
-                'message': '未找到有效的页码'
+                'message': _('未找到有效的页码')
             }, status=400)
 
         unique_pages = sorted(set(pages))
@@ -1260,7 +1261,7 @@ def get_original_content(request, book_id):
         if not html_segments:
             return JsonResponse({
                 'status': 'error',
-                'message': '未能获取原始章节内容'
+                'message': _('未能获取原始章节内容')
             }, status=404)
 
         combined_html = ''.join(html_segments)
@@ -1273,7 +1274,7 @@ def get_original_content(request, book_id):
 
     return JsonResponse({
         'status': 'error',
-        'message': '当前格式暂不支持原文查看'
+        'message': _('当前格式暂不支持原文查看')
     }, status=400)
 
 
@@ -1283,14 +1284,14 @@ def get_epub_asset(request, book_id):
     book = get_object_or_404(Books, pk=book_id)
 
     if book.user and book.user != request.user and not (request.user.is_staff or request.user.is_superuser):
-        return JsonResponse({'status': 'error', 'message': '您没有权限访问该资源'}, status=403)
+        return JsonResponse({'status': 'error', 'message': _('您没有权限访问该资源')}, status=403)
 
     if book.file_type != '.epub':
-        return JsonResponse({'status': 'error', 'message': '当前书籍不是 EPUB 格式'}, status=400)
+        return JsonResponse({'status': 'error', 'message': _('当前书籍不是 EPUB 格式')}, status=400)
 
     href = request.GET.get('href') or request.GET.get('path')
     if not href:
-        return JsonResponse({'status': 'error', 'message': '缺少资源路径参数'}, status=400)
+        return JsonResponse({'status': 'error', 'message': _('缺少资源路径参数')}, status=400)
 
     try:
         ebook = open_ebook(book.file.path)
@@ -1305,7 +1306,7 @@ def get_epub_asset(request, book_id):
         try:
             item = ebook.get_item_with_href(href)
         except KeyError:
-            return JsonResponse({'status': 'error', 'message': '资源未找到'}, status=404)
+            return JsonResponse({'status': 'error', 'message': _('资源未找到')}, status=404)
 
     try:
         content = item.get_content()

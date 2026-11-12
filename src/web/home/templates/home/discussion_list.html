@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static custom_filters %}
+{% load static custom_filters i18n %}
 
 {% block title %}{{ display_title }}{% endblock %}
 
@@ -9,12 +9,12 @@
     <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
         <div>
             <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">{{ display_title }}</h1>
-            <p class="text-sm text-base-content/50 mt-1.5">制作技巧、音色经验与反馈建议。</p>
+            <p class="text-sm text-base-content/50 mt-1.5">{% translate "制作技巧、音色经验与反馈建议。" %}</p>
         </div>
         {% if user.is_authenticated %}
         <a href="{% url 'discussion_create' %}" class="btn btn-primary rounded-xl shrink-0">
             <i class="fas fa-plus text-xs"></i>
-            发起讨论
+            {% translate "发起讨论" %}
         </a>
         {% endif %}
     </div>
@@ -26,20 +26,20 @@
                 type="text"
                 name="q"
                 value="{{ search_query }}"
-                placeholder="搜索主题…"
+                placeholder="{% translate "搜索主题…" %}"
                 class="input input-bordered w-full rounded-xl pl-10 bg-base-100"
             >
             <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-base-content/40 text-sm pointer-events-none"></i>
         </div>
         <select name="category" class="select select-bordered rounded-xl sm:w-44 bg-base-100">
-            <option value="">全部分类</option>
+            <option value="">{% translate "全部分类" %}</option>
             {% for value, label in category_choices %}
                 <option value="{{ value }}" {% if category_filter == value %}selected{% endif %}>
                     {{ label }}
                 </option>
             {% endfor %}
         </select>
-        <button type="submit" class="btn btn-ghost rounded-xl hidden sm:inline-flex">筛选</button>
+        <button type="submit" class="btn btn-ghost rounded-xl hidden sm:inline-flex">{% translate "筛选" %}</button>
     </form>
 
     <!-- 主题列表 -->
@@ -55,13 +55,13 @@
                         {% if topic.is_pinned %}
                         <span class="badge badge-sm border-primary/30 bg-primary/10 text-primary font-semibold">
                             <i class="fas fa-thumbtack text-[10px] mr-0.5"></i>
-                            置顶
+                            {% translate "置顶" %}
                         </span>
                         {% endif %}
                         {% if topic.is_closed %}
                         <span class="badge badge-sm border-base-300 bg-base-200 text-base-content/50">
                             <i class="fas fa-lock text-[10px] mr-0.5"></i>
-                            已关闭
+                            {% translate "已关闭" %}
                         </span>
                         {% endif %}
                         <span class="badge badge-sm border-base-300 text-base-content/60 font-medium">
@@ -88,9 +88,9 @@
                     </div>
                     <span>
                         {% if topic.last_reply_at %}
-                            最后回复 {{ topic.last_reply_at|timesince }}前
+                            {% translate "最后回复" %} {{ topic.last_reply_at|timesince }}{% translate "前" %}
                         {% else %}
-                            {{ topic.created_at|timesince }}前
+                            {{ topic.created_at|timesince }}{% translate "前" %}
                         {% endif %}
                     </span>
                 </div>
@@ -101,12 +101,12 @@
                 <span class="text-xs text-base-content/50">{{ topic.author.username }} · {{ topic.created_at|date:"Y-m-d H:i" }}</span>
                 <div class="flex gap-1">
                     {% if user == topic.author %}
-                    <a href="{% url 'discussion_edit' topic.id %}" class="btn btn-ghost btn-xs btn-circle" title="编辑">
+                    <a href="{% url 'discussion_edit' topic.id %}" class="btn btn-ghost btn-xs btn-circle" title="{% translate "编辑" %}">
                         <i class="fas fa-edit text-xs"></i>
                     </a>
                     {% endif %}
                     {% if user.is_staff %}
-                    <a href="{% url 'discussion_pin' topic.id %}" class="btn btn-ghost btn-xs btn-circle" title="置顶/取消置顶">
+                    <a href="{% url 'discussion_pin' topic.id %}" class="btn btn-ghost btn-xs btn-circle" title="{% translate "置顶/取消置顶" %}">
                         <i class="fas fa-thumbtack text-xs"></i>
                     </a>
                     {% endif %}
@@ -117,16 +117,16 @@
         <!-- 空状态 -->
         <div class="text-center py-16">
             <i class="fas fa-comments text-6xl text-base-content/20 mb-4"></i>
-            <h3 class="text-xl font-semibold text-base-content/60 mb-2">暂无主题</h3>
-            <p class="text-base-content/50 mb-6">还没有人创建讨论主题，快来创建第一个吧！</p>
+            <h3 class="text-xl font-semibold text-base-content/60 mb-2">{% translate "暂无主题" %}</h3>
+            <p class="text-base-content/50 mb-6">{% translate "还没有人创建讨论主题，快来创建第一个吧！" %}</p>
             {% if user.is_authenticated %}
             <a href="{% url 'discussion_create' %}" class="btn btn-primary rounded-xl">
                 <i class="fas fa-plus mr-2"></i>
-                创建主题
+                {% translate "创建主题" %}
             </a>
             {% else %}
             <a href="{% url 'login' %}" class="btn btn-primary rounded-xl">
-                登录后创建主题
+                {% translate "登录后创建主题" %}
             </a>
             {% endif %}
         </div>
@@ -137,7 +137,7 @@
     {% if topics.paginator.num_pages > 1 %}
     <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mt-8 pt-6 border-t border-base-300">
         <div class="text-sm text-base-content/50">
-            显示 {{ topics.start_index }} - {{ topics.end_index }} 条，共 {{ topics.paginator.count }} 条主题
+            {% translate "显示" %} {{ topics.start_index }} - {{ topics.end_index }} {% translate "条，共" %} {{ topics.paginator.count }} {% translate "条主题" %}
         </div>
 
         <div class="join">
@@ -159,12 +159,12 @@
         </div>
 
         <div class="flex items-center gap-2 text-sm">
-            <span class="text-base-content/50">每页显示</span>
+            <span class="text-base-content/50">{% translate "每页显示" %}</span>
             <select class="select select-bordered select-sm rounded-lg" onchange="window.location.href=this.value">
                 {% for size in page_size_options %}
                     <option value="?page_size={{ size }}{% if search_query %}&q={{ search_query }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}"
                             {% if page_size == size %}selected{% endif %}>
-                        {{ size }} 条
+                        {{ size }} {% translate "条" %}
                     </option>
                 {% endfor %}
             </select>

@@ -1,26 +1,58 @@
-{% load static tailwind_tags %}
+{% load static tailwind_tags i18n %}
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="light">
+<html lang="{{ LANGUAGE_CODE }}" data-theme="light">
 
 <head>
-    <title>{% block title %}Book2TTS - 文本转语音和有声书制作平台{% endblock %}</title>
+    <title>{% block title %}{% translate "Book2TTS - 文本转语音和有声书制作平台" %}{% endblock %}</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     {% if site_description %}
     <meta name="description" content="{{ site_description }}">
     {% else %}
-    <meta name="description" content="Book2TTS - 专业的在线文本转语音工具，支持EPUB、PDF、扫描PDF等多种格式转换，提供高质量有声书制作、多音色对话生成、SRT字幕支持和音频内容管理服务">
+    <meta name="description" content="{% translate 'Book2TTS - 专业的在线文本转语音工具，支持EPUB、PDF、扫描PDF等多种格式转换，提供高质量有声书制作、多音色对话生成、SRT字幕支持和音频内容管理服务' %}">
     {% endif %}
     {% if site_keywords %}
     <meta name="keywords" content="{{ site_keywords }}">
     {% else %}
-    <meta name="keywords" content="文本转语音,TTS,有声书制作,EPUB解析,电子书目录,PDF转语音,OCR识别,SRT字幕,章节生成,章节标注,LLM排版,翻译润色,对话脚本,多人对话,角色扮演对话,剧本生成,音频队列,RSS章节,播客章节,播客发布,Podcast Chapters">
+    <meta name="keywords" content="{% translate '文本转语音,TTS,有声书制作,EPUB解析,电子书目录,PDF转语音,OCR识别,SRT字幕,章节生成,章节标注,LLM排版,翻译润色,对话脚本,多人对话,角色扮演对话,剧本生成,音频队列,RSS章节,播客章节,播客发布,Podcast Chapters' %}">
     {% endif %}
     <meta name="format-detection" content="telephone=no">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
-    <meta name="language" content="zh-CN">
+    {% for alt in language_alternates %}
+    <link rel="alternate" hreflang="{{ alt.hreflang }}" href="{{ alt.url }}">
+    {% endfor %}
+    {% if language_x_default %}<link rel="alternate" hreflang="x-default" href="{{ language_x_default }}">{% endif %}
+    <meta name="language" content="{{ LANGUAGE_CODE }}">
+    {# ---- Open Graph / Twitter（多语言）---- #}
+    <meta property="og:site_name" content="{% translate "Book2TTS" %}">
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+    <meta property="og:title" content="{% block og_title %}{% translate "Book2TTS - 文本转语音和有声书制作平台" %}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}{% translate "Book2TTS - 专业的在线文本转语音工具，支持EPUB、PDF、扫描PDF等多种格式转换，提供高质量有声书制作、多音色对话生成、SRT字幕支持和音频内容管理服务" %}{% endblock %}">
+    <meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
+    <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/logo.png' %}">
+    <meta property="og:locale" content="{% if LANGUAGE_CODE|slice:':2' == 'zh' %}zh_CN{% else %}en_US{% endif %}">
+    {% for alt in language_alternates %}{% if not alt.active %}<meta property="og:locale:alternate" content="{% if alt.code|slice:':2' == 'zh' %}zh_CN{% else %}en_US{% endif %}">{% endif %}{% endfor %}
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="{% block twitter_title %}{% translate "Book2TTS - 文本转语音和有声书制作平台" %}{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}{% translate "Book2TTS - 专业的在线文本转语音工具，支持EPUB、PDF、扫描PDF等多种格式转换，提供高质量有声书制作、多音色对话生成、SRT字幕支持和音频内容管理服务" %}{% endblock %}">
+    <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/logo.png' %}">
+    {# ---- 结构化数据：WebSite ---- #}
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Book2TTS",
+      "url": "{{ request.scheme }}://{{ request.get_host }}/",
+      "inLanguage": "{{ LANGUAGE_CODE }}",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "{{ request.scheme }}://{{ request.get_host }}{% url 'explore' %}?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
     <meta name="revisit-after" content="7 days">
     {% if CSS_VERSION %}
     {% tailwind_css v=CSS_VERSION %}
@@ -48,7 +80,7 @@
 
     <!-- RSS 订阅链接 -->
     {% if user.is_authenticated and user.profile.rss_token %}
-    <link rel="alternate" type="application/rss+xml" title="{{ user.username }}的Book2TTS音频"
+    <link rel="alternate" type="application/rss+xml" title="{% blocktranslate with username=user.username %}{{ username }}的Book2TTS音频{% endblocktranslate %}"
         href="{% url 'token_audio_rss_feed' token=user.profile.rss_token|stringformat:'s' %}" />
     {% endif %}
     {% if google_ads_enabled %}
@@ -59,6 +91,7 @@
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7326790660929371" crossorigin="anonymous"></script>
     {% endif %}
     {% endif %}
+    {% block structured_data %}{% endblock %}
 </head>
 
 <body class="flex flex-col min-h-screen">
@@ -75,23 +108,23 @@
                 <ul tabindex="0"
                     class="menu menu-sm dropdown-content bg-base-100 rounded-box z-50 mt-3 w-56 p-2 shadow-lg border border-base-300">
                     <li>
-                        <a>工坊</a>
+                        <a>{% translate "工坊" %}</a>
                         <ul class="p-2">
-                            <li><a href="{% url 'my_upload' %}">我的书籍</a></li>
-                            <li><a href="{% url 'task_queue' %}">生成队列</a></li>
+                            <li><a href="{% url 'my_upload' %}">{% translate "我的书籍" %}</a></li>
+                            <li><a href="{% url 'task_queue' %}">{% translate "生成队列" %}</a></li>
                         </ul>
                     </li>
                     <li>
-                        <a>声音库</a>
+                        <a>{% translate "声音库" %}</a>
                         <ul class="p-2">
-                            <li><a href="{% url 'home' %}">我的作品</a></li>
-                            <li><a href="{% url 'aggregated_audio_segments' %}">有声书成品</a></li>
-                            <li><a href="{% url 'dialogue_list' %}">对话脚本</a></li>
+                            <li><a href="{% url 'home' %}">{% translate "我的作品" %}</a></li>
+                            <li><a href="{% url 'aggregated_audio_segments' %}">{% translate "有声书成品" %}</a></li>
+                            <li><a href="{% url 'dialogue_list' %}">{% translate "对话脚本" %}</a></li>
                         </ul>
                     </li>
-                    <li><a href="{% url 'explore' %}">探索</a></li>
-                    <li><a href="{% url 'discussion_list' %}">社区</a></li>
-                    <li><a href="{% url 'about' %}">关于</a></li>
+                    <li><a href="{% url 'explore' %}">{% translate "探索" %}</a></li>
+                    <li><a href="{% url 'discussion_list' %}">{% translate "社区" %}</a></li>
+                    <li><a href="{% url 'about' %}">{% translate "关于" %}</a></li>
                 </ul>
             </div>
             <a class="btn btn-ghost px-2 gap-2" href="/">
@@ -104,44 +137,66 @@
                 {% if user.is_authenticated %}
                 <li>
                     <details data-nav-details="studio">
-                        <summary class="list-none [&::-webkit-details-marker]:hidden cursor-pointer {% if request.resolver_match.url_name == 'my_upload' or request.resolver_match.url_name == 'task_queue' or request.resolver_match.url_name == 'index' %}text-primary font-semibold{% endif %}">工坊</summary>
+                        <summary class="list-none [&::-webkit-details-marker]:hidden cursor-pointer {% if request.resolver_match.url_name == 'my_upload' or request.resolver_match.url_name == 'task_queue' or request.resolver_match.url_name == 'index' %}text-primary font-semibold{% endif %}">{% translate "工坊" %}</summary>
                         <ul class="p-2 z-50 relative w-40 mt-1 shadow-lg rounded-box border border-base-300 bg-base-100">
-                            <li><a href="{% url 'my_upload' %}">我的书籍</a></li>
-                            <li><a href="{% url 'task_queue' %}">生成队列</a></li>
+                            <li><a href="{% url 'my_upload' %}">{% translate "我的书籍" %}</a></li>
+                            <li><a href="{% url 'task_queue' %}">{% translate "生成队列" %}</a></li>
                         </ul>
                     </details>
                 </li>
                 <li>
                     <details data-nav-details="library">
-                        <summary class="list-none [&::-webkit-details-marker]:hidden cursor-pointer {% if request.resolver_match.url_name == 'home' or request.resolver_match.url_name == 'book_audio_list' or request.resolver_match.url_name == 'aggregated_audio_segments' or request.resolver_match.url_name == 'dialogue_list' %}text-primary font-semibold{% endif %}">声音库</summary>
+                        <summary class="list-none [&::-webkit-details-marker]:hidden cursor-pointer {% if request.resolver_match.url_name == 'home' or request.resolver_match.url_name == 'book_audio_list' or request.resolver_match.url_name == 'aggregated_audio_segments' or request.resolver_match.url_name == 'dialogue_list' %}text-primary font-semibold{% endif %}">{% translate "声音库" %}</summary>
                         <ul class="p-2 z-50 relative w-44 mt-1 shadow-lg rounded-box border border-base-300 bg-base-100">
-                            <li><a href="{% url 'home' %}">我的作品</a></li>
-                            <li><a href="{% url 'aggregated_audio_segments' %}">有声书成品</a></li>
-                            <li><a href="{% url 'dialogue_list' %}">对话脚本</a></li>
+                            <li><a href="{% url 'home' %}">{% translate "我的作品" %}</a></li>
+                            <li><a href="{% url 'aggregated_audio_segments' %}">{% translate "有声书成品" %}</a></li>
+                            <li><a href="{% url 'dialogue_list' %}">{% translate "对话脚本" %}</a></li>
                         </ul>
                     </details>
                 </li>
                 {% endif %}
                 <li><a href="{% url 'explore' %}"
-                        class="{% if request.resolver_match.url_name == 'explore' %}menu-active{% endif %}">探索</a></li>
+                        class="{% if request.resolver_match.url_name == 'explore' %}menu-active{% endif %}">{% translate "探索" %}</a></li>
                 <li><a href="{% url 'discussion_list' %}"
-                        class="{% if request.resolver_match.url_name == 'discussion_list' or request.resolver_match.url_name == 'discussion_topic_detail' %}menu-active{% endif %}">社区</a></li>
+                        class="{% if request.resolver_match.url_name == 'discussion_list' or request.resolver_match.url_name == 'discussion_topic_detail' %}menu-active{% endif %}">{% translate "社区" %}</a></li>
                 <li><a href="{% url 'about' %}"
-                        class="{% if request.resolver_match.url_name == 'about' %}menu-active{% endif %}">关于</a></li>
+                        class="{% if request.resolver_match.url_name == 'about' %}menu-active{% endif %}">{% translate "关于" %}</a></li>
             </ul>
         </div>
         <div class="navbar-end gap-2">
+            {# 语言切换：POST 到 set_language，next 由 Django 自动做多语言 URL 映射 #}
+            {% get_current_language as CURRENT_LANG %}
+            <div class="dropdown dropdown-end">
+                <div tabindex="0" role="button" class="btn btn-ghost btn-sm btn-circle" title="{% translate '语言' %}">
+                    <i class="fas fa-globe text-sm"></i>
+                </div>
+                <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-50 mt-3 w-40 p-2 shadow-lg border border-base-300 text-sm">
+                    {% for alt in language_alternates %}
+                    <li>
+                        <form action="{% url 'set_language' %}" method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="language" value="{{ alt.code }}">
+                            {# next 必须是目标语言下的地址，Django 的 set_language 不会翻译 next #}
+                            <input type="hidden" name="next" value="{{ alt.path }}">
+                            <button type="submit" class="w-full text-left {% if alt.active %}text-primary font-semibold{% endif %}">
+                                {{ alt.name }}{% if alt.active %} ✓{% endif %}
+                            </button>
+                        </form>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
             <button id="global-search-btn"
                     class="btn btn-ghost btn-sm rounded-full gap-2 font-normal text-base-content/60 border border-base-300 normal-case"
-                    title="全局搜索 (⌘K)">
+                    title="{% translate "全局搜索 (⌘K)" %}">
                 <i class="fas fa-search text-xs"></i>
-                <span class="hidden sm:inline">搜索…</span>
+                <span class="hidden sm:inline">{% translate "搜索…" %}</span>
                 <span class="hidden md:inline text-[10px] border border-base-300 rounded px-1 py-px">⌘K</span>
             </button>
             <button id="theme-toggle"
                     class="btn btn-ghost btn-circle"
-                    aria-label="切换主题"
-                    title="切换主题">
+                    aria-label="{% translate "切换主题" %}"
+                    title="{% translate "切换主题" %}">
                 <i class="fas fa-sun" id="theme-toggle-icon"></i>
             </button>
             {% if user.is_authenticated %}
@@ -157,17 +212,17 @@
                     class="menu menu-sm dropdown-content bg-base-100 rounded-card z-50 mt-3 w-52 p-2 shadow-lg border border-base-300">
                     <li>
                         <a href="{% url 'profile' %}" class="justify-between">
-                            个人中心
+                            {% translate "个人中心" %}
                             <span class="badge badge-sm">{{ user.username }}</span>
                         </a>
                     </li>
-                    <li><a href="{% url 'operation_records' %}">操作记录</a></li>
-                    <li><a href="{% url 'logout' %}">登出</a></li>
+                    <li><a href="{% url 'operation_records' %}">{% translate "操作记录" %}</a></li>
+                    <li><a href="{% url 'logout' %}">{% translate "登出" %}</a></li>
                 </ul>
             </div>
             {% else %}
-            <a href="{% url 'login' %}" class="btn btn-ghost btn-sm rounded-lg font-semibold hidden sm:inline-flex">登录</a>
-            <a href="{% url 'register' %}" class="btn btn-primary btn-sm rounded-lg">免费注册</a>
+            <a href="{% url 'login' %}" class="btn btn-ghost btn-sm rounded-lg font-semibold hidden sm:inline-flex">{% translate "登录" %}</a>
+            <a href="{% url 'register' %}" class="btn btn-primary btn-sm rounded-lg">{% translate "免费注册" %}</a>
             {% endif %}
         </div>
     </div>
@@ -192,7 +247,7 @@
             <div id="subtitle-container" class="mb-3 h-12 flex items-center justify-center">
                 <div id="subtitle-text"
                     class="text-center text-sm sm:text-base font-medium text-base-content bg-base-200 rounded-lg px-4 py-2 min-h-[2rem] flex items-center justify-center opacity-60 transition-opacity duration-300">
-                    <span class="italic text-base-content/60">暂无字幕</span>
+                    <span class="italic text-base-content/60">{% translate "暂无字幕" %}</span>
                 </div>
             </div>
 
@@ -207,7 +262,7 @@
                 <div class="relative flex-shrink-0">
                     <button id="global-chapter-btn"
                         class="btn btn-circle btn-sm sm:btn-md btn-ghost text-base-content/70 hover:text-base-content hidden relative"
-                        title="章节列表">
+                        title="{% translate "章节列表" %}">
                         <i class="fas fa-list-ul text-sm"></i>
                         <span id="global-chapter-availability"
                             class="hidden absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-accent shadow-md"></span>
@@ -217,21 +272,21 @@
                     <div id="global-chapter-panel"
                         class="hidden absolute bottom-full mb-3 left-1/2 -translate-x-1/2 w-56 sm:w-72 max-h-72 sm:max-h-80 overflow-hidden border border-base-300 bg-base-200 rounded-xl shadow-xl">
                         <div class="px-3 py-2 border-b border-base-300">
-                            <div class="text-[11px] uppercase tracking-wide font-semibold text-base-content/60">章节导航</div>
+                            <div class="text-[11px] uppercase tracking-wide font-semibold text-base-content/60">{% translate "章节导航" %}</div>
                             <div class="flex items-center gap-3 mt-1 text-xs text-base-content/70">
-                                <span id="global-chapter-active-title" class="flex-1 font-medium text-base-content truncate">未选择章节</span>
+                                <span id="global-chapter-active-title" class="flex-1 font-medium text-base-content truncate">{% translate "未选择章节" %}</span>
                                 <span id="global-chapter-active-time" class="font-mono text-[11px] text-base-content/60">0:00</span>
                             </div>
                         </div>
                         <ul id="global-chapter-list" class="max-h-60 sm:max-h-64 overflow-y-auto divide-y divide-base-300">
-                            <li class="px-3 py-2 text-sm text-base-content/60">暂无章节</li>
+                            <li class="px-3 py-2 text-sm text-base-content/60">{% translate "暂无章节" %}</li>
                         </ul>
                     </div>
                 </div>
 
                 <!-- 音频信息 - 紧凑布局 -->
                 <div class="flex-shrink-0 min-w-0 max-w-xs">
-                    <div id="global-audio-title" class="text-sm sm:text-base font-medium truncate">未选择音频</div>
+                    <div id="global-audio-title" class="text-sm sm:text-base font-medium truncate">{% translate "未选择音频" %}</div>
                     <div class="flex items-center gap-1 text-xs text-base-content/60">
                         <span id="current-time">0:00</span>
                         <span>/</span>
@@ -263,14 +318,14 @@
         <div class="max-w-xl mx-auto mt-20 bg-base-100 border border-base-300 rounded-2xl shadow-2xl overflow-hidden">
             <div class="flex items-center gap-3 px-4 py-3 border-b border-base-300 text-base-content/60">
                 <i class="fas fa-search text-sm"></i>
-                <input id="global-search-input" type="text" placeholder="搜索作品 / 书籍 / 社区帖…" autocomplete="off"
+                <input id="global-search-input" type="text" placeholder="{% translate "搜索作品 / 书籍 / 社区帖…" %}" autocomplete="off"
                        class="flex-1 bg-transparent outline-none text-sm placeholder:text-base-content/40">
                 <span class="text-[10px] border border-base-300 rounded px-1.5 py-0.5 text-base-content/50">ESC</span>
             </div>
             <div id="global-search-results" class="max-h-80 overflow-y-auto p-2 text-sm"></div>
             <div class="px-4 py-2 border-t border-base-300 text-[11px] text-base-content/50 flex gap-4">
-                <span>↑↓ 选择</span><span>↵ 打开</span><span>esc 关闭</span>
-                <span class="ml-auto">作品 / 书籍 / 社区帖</span>
+                <span>{% translate "↑↓ 选择" %}</span><span>{% translate "↵ 打开" %}</span><span>{% translate "esc 关闭" %}</span>
+                <span class="ml-auto">{% translate "作品 / 书籍 / 社区帖" %}</span>
             </div>
         </div>
     </div>
@@ -716,7 +771,7 @@
                     this.subtitleText.style.opacity = '0.5';
                 } else {
                     // 没有字幕文件
-                    subtitleSpan.textContent = '暂无字幕';
+                    subtitleSpan.textContent = '{% translate "暂无字幕" %}';
                     subtitleSpan.className = 'italic text-base-content/60';
                     this.subtitleText.style.opacity = '0.6';
                 }
@@ -891,7 +946,7 @@
                 if (chapters.length === 0) {
                     const emptyItem = document.createElement('li');
                     emptyItem.className = 'px-3 py-2 text-sm text-base-content/60';
-                    emptyItem.textContent = '暂无章节';
+                    emptyItem.textContent = '{% translate "暂无章节" %}';
                     this.chapterList.appendChild(emptyItem);
                     return;
                 }
@@ -998,7 +1053,7 @@
                     this.chapterActiveTitle.textContent = chapter.title || `章节 ${index + 1}`;
                     this.chapterActiveTime.textContent = this.formatTime(chapter.start);
                 } else {
-                    this.chapterActiveTitle.textContent = '未选择章节';
+                    this.chapterActiveTitle.textContent = '{% translate "未选择章节" %}';
                     this.chapterActiveTime.textContent = '0:00';
                 }
             }

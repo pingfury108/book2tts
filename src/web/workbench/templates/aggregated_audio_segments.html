@@ -1,7 +1,8 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load custom_filters %}
 
-{% block title %}我的音频库 - Book2TTS{% endblock %}
+{% block title %}{% translate "我的音频库 - Book2TTS" %}{% endblock %}
 
 {% block content %}
 <!-- Toast notification for success/error messages -->
@@ -11,15 +12,15 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <span id="toast-text">操作成功!</span>
+        <span id="toast-text">{% translate "操作成功!" %}</span>
     </div>
 </div>
 <div id="main-content" class="container mx-auto p-4">
     <!-- Initial Book List View -->
     <div id="book-list-view">
         <div class="mb-6">
-            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">有声书成品</h1>
-            <p class="text-sm text-base-content/50 mt-1">已完成的有声书，按书籍分组</p>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">{% translate "有声书成品" %}</h1>
+            <p class="text-sm text-base-content/50 mt-1">{% translate "已完成的有声书，按书籍分组" %}</p>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for book_name, book_data in books_with_ids.items %}
@@ -33,8 +34,8 @@
                     <div class="flex-1 min-w-0">
                         <div class="text-sm font-bold leading-snug line-clamp-2">{{ book_name }}</div>
                         <div class="flex items-center gap-1.5 mt-2">
-                            <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-base-200 border border-base-300 text-base-content/60">{{ book_data.segments|length }} 集</span>
-                            <span class="text-[11px] text-base-content/40">有声书成品</span>
+                            <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-base-200 border border-base-300 text-base-content/60">{{ book_data.segments|length }} {% translate "集" %}</span>
+                            <span class="text-[11px] text-base-content/40">{% translate "有声书成品" %}</span>
                         </div>
                     </div>
                     <i class="fas fa-chevron-right text-base-content/30 text-xs flex-shrink-0"></i>
@@ -45,9 +46,9 @@
                 <div class="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-3">
                     <i class="fas fa-book text-lg"></i>
                 </div>
-                <h3 class="text-sm font-bold">还没有有声书成品</h3>
-                <p class="text-[12.5px] text-base-content/50 mt-1.5">先从书籍中合成音频，成品会自动出现在这里。</p>
-                <div class="mt-4"><a href="{% url 'my_upload' %}" class="btn btn-primary btn-sm rounded-lg">上传书籍</a></div>
+                <h3 class="text-sm font-bold">{% translate "还没有有声书成品" %}</h3>
+                <p class="text-[12.5px] text-base-content/50 mt-1.5">{% translate "先从书籍中合成音频，成品会自动出现在这里。" %}</p>
+                <div class="mt-4"><a href="{% url 'my_upload' %}" class="btn btn-primary btn-sm rounded-lg">{% translate "上传书籍" %}</a></div>
             </div>
             {% endfor %}
         </div>
@@ -66,7 +67,7 @@
     document.body.addEventListener('htmx:afterSwap', function (evt) {
         if (evt.detail.target && evt.detail.target.hasAttribute('data-segment-id')) {
             // 显示成功提示
-            showToast('音频片段已成功删除', 'success');
+            showToast({% translate "音频片段已成功删除" %}, 'success');
 
             // 如果需要更新计数，可以通过HTMX重新加载书籍列表
             if (evt.detail.pathInfo && evt.detail.pathInfo.requestPath && evt.detail.pathInfo.requestPath.includes('/audio/delete/')) {
@@ -143,7 +144,7 @@
             {% endfor %}
             
             // 如果没找到对应的音频片段，显示提示信息
-            showToast('未找到音频片段 #' + audioId, 'warning');
+            showToast({% translate "未找到音频片段 #" %} + audioId, 'warning');
             // 清除URL中的锚点
             window.history.replaceState({}, document.title, window.location.pathname);
         }

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% load static custom_filters %}
+{% load static custom_filters i18n %}
 
-{% block title %}探索 - Book2TTS{% endblock %}
+{% block title %}{% translate "探索 - Book2TTS" %}{% endblock %}
 
 {% block content %}
 <div class="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
@@ -9,10 +9,10 @@
   <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
     <div>
       <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">
-        {% if search_query %}搜索“{{ search_query }}”{% else %}探索{% endif %}
+        {% if search_query %}{% translate "搜索“" %}{{ search_query }}”{% else %}{% translate "探索" %}{% endif %}
       </h1>
       <p class="text-sm text-base-content/50 mt-1.5">
-        {% if search_query %}共 {{ paginator.count }} 个结果{% else %}社区公开的有声书与对话作品，可直接收听。{% endif %}
+        {% if search_query %}{% translate "共" %} {{ paginator.count }} {% translate "个结果" %}{% else %}{% translate "社区公开的有声书与对话作品，可直接收听。" %}{% endif %}
       </p>
     </div>
     <form method="get" action="{% url 'explore' %}" class="relative w-full sm:w-96">
@@ -20,7 +20,7 @@
         type="text"
         name="q"
         value="{{ search_query }}"
-        placeholder="搜索书名、标题或作者…"
+        placeholder="{% translate "搜索书名、标题或作者…" %}"
         class="input input-bordered w-full rounded-xl pl-10 bg-base-100"
       >
       <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-base-content/40 text-sm pointer-events-none"></i>
@@ -31,7 +31,7 @@
   <!-- 分类筛选 chips -->
   <div class="flex flex-wrap items-center gap-2 mb-5">
     <a href="{% url 'explore' %}{% if search_query %}?q={{ search_query|urlencode }}{% endif %}"
-       class="btn btn-sm rounded-full {% if not category_filter %}btn-primary{% else %}btn-ghost{% endif %}">全部</a>
+       class="btn btn-sm rounded-full {% if not category_filter %}btn-primary{% else %}btn-ghost{% endif %}">{% translate "全部" %}</a>
     {% for value, label in category_choices %}
     <a href="?category={{ value }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}"
        class="btn btn-sm rounded-full {% if category_filter == value %}btn-primary{% else %}btn-ghost{% endif %}">{{ label }}</a>
@@ -60,14 +60,14 @@
                         </span>
                       </a>
                     {% else %}
-                      <span class="badge badge-outline border-base-300 text-base-content/60 text-[11px] font-semibold">独立片段</span>
+                      <span class="badge badge-outline border-base-300 text-base-content/60 text-[11px] font-semibold">{% translate "独立片段" %}</span>
                     {% endif %}
                     <span class="text-xs text-base-content/50 mt-1 truncate">{{ segment.user.username }} · {{ segment.updated_at|date:"m-d H:i" }}</span>
                   </div>
                 </div>
                 <button
                   class="btn btn-md btn-circle bg-accent hover:bg-accent-focus border-none text-accent-content play-audio-btn flex-shrink-0 shadow-md shadow-accent/30 hover:scale-105 transition-transform"
-                  title="播放"
+                  title="{% translate "播放" %}"
                   data-audio-url="{{ segment.file_url }}"
                   data-audio-title="{{ segment.title }}"
                   data-subtitle-url="{% if segment.subtitle_file %}{{ segment.subtitle_file.url }}{% endif %}"
@@ -88,7 +88,7 @@
               <div class="flex items-center justify-between pt-2 border-t border-base-200">
                 <a href="{% url 'audio_detail' segment.type segment.id %}"
                    class="text-xs sm:text-sm text-base-content/50 hover:text-primary transition-colors">
-                  查看详情
+                  {% translate "查看详情" %}
                 </a>
                 <div class="dropdown dropdown-end">
                   <div tabindex="0" role="button" class="btn btn-ghost btn-sm btn-circle text-base-content/50">
@@ -96,10 +96,10 @@
                   </div>
                   <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-[1] w-44 p-2 shadow-lg border border-base-300 text-sm">
                     {% if segment.subtitle_file %}
-                    <li><a href="{{ segment.subtitle_file.url }}" download><i class="fas fa-download"></i>下载字幕</a></li>
-                    <li><a href="#" class="view-subtitles" data-segment-id="{{ segment.type }}-{{ segment.id }}" data-subtitle-url="{{ segment.subtitle_file.url }}"><i class="fas fa-closed-captioning"></i>查看字幕</a></li>
+                    <li><a href="{{ segment.subtitle_file.url }}" download><i class="fas fa-download"></i>{% translate "下载字幕" %}</a></li>
+                    <li><a href="#" class="view-subtitles" data-segment-id="{{ segment.type }}-{{ segment.id }}" data-subtitle-url="{{ segment.subtitle_file.url }}"><i class="fas fa-closed-captioning"></i>{% translate "查看字幕" %}</a></li>
                     {% endif %}
-                    <li><a href="{% url 'audio_detail' segment.type segment.id %}"><i class="fas fa-info-circle"></i>查看详情</a></li>
+                    <li><a href="{% url 'audio_detail' segment.type segment.id %}"><i class="fas fa-info-circle"></i>{% translate "查看详情" %}</a></li>
                   </ul>
                 </div>
               </div>
@@ -119,10 +119,10 @@
         <div class="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
           <i class="fas fa-compass text-xl"></i>
         </div>
-        <h3 class="text-base font-bold">{% if search_query %}没有找到匹配的作品{% else %}暂时还没有公开作品{% endif %}</h3>
-        <p class="text-[13px] text-base-content/50 mt-1.5">{% if search_query %}换个关键词试试。{% else %}成为第一个公开作品的人。{% endif %}</p>
+        <h3 class="text-base font-bold">{% if search_query %}{% translate "没有找到匹配的作品" %}{% else %}{% translate "暂时还没有公开作品" %}{% endif %}</h3>
+        <p class="text-[13px] text-base-content/50 mt-1.5">{% if search_query %}{% translate "换个关键词试试。" %}{% else %}{% translate "成为第一个公开作品的人。" %}{% endif %}</p>
         <div class="mt-5">
-          <a href="{% url 'home' %}" class="btn btn-primary rounded-xl text-sm">返回全部</a>
+          <a href="{% url 'home' %}" class="btn btn-primary rounded-xl text-sm">{% translate "返回全部" %}</a>
         </div>
       </div>
     {% endif %}
@@ -135,13 +135,13 @@
           <!-- 项目数量信息 -->
           <div class="flex items-center text-xs text-base-content opacity-70">
             <i class="fas fa-file-alt text-xs mr-1"></i>
-            <span>显示 {{ audio_segments.start_index }}-{{ audio_segments.end_index }} 项，共 {{ paginator.count }} 项</span>
+            <span>{% translate "显示" %} {{ audio_segments.start_index }}-{{ audio_segments.end_index }} {% translate "项，共" %} {{ paginator.count }} {% translate "项" %}</span>
           </div>
 
           <!-- 每页显示数量选择器 -->
           <div class="flex items-center gap-1 sm:gap-2 text-xs">
-            <span class="hidden sm:inline">每页显示:</span>
-            <span class="sm:hidden">每页:</span>
+            <span class="hidden sm:inline">{% translate "每页显示:" %}</span>
+            <span class="sm:hidden">{% translate "每页:" %}</span>
             <select
               class="select select-xs sm:select-sm w-20 sm:w-24"
               onchange="changePageSize(this.value)"
@@ -150,7 +150,7 @@
                 <option value="{{ size }}" {% if size == page_size %}selected{% endif %}>{{ size }}</option>
               {% endfor %}
             </select>
-            <span class="hidden sm:inline">项</span>
+            <span class="hidden sm:inline">{% translate "项" %}</span>
           </div>
         </div>
 
@@ -191,7 +191,7 @@
 <div id="subtitle-modal" class="modal">
   <div class="modal-box w-11/12 max-w-3xl">
     <div class="flex justify-between items-center mb-4">
-      <h3 class="font-bold text-lg">字幕内容</h3>
+      <h3 class="font-bold text-lg">{% translate "字幕内容" %}</h3>
       <button class="btn btn-sm btn-circle btn-ghost" onclick="closeSubtitleModal()">
         <i class="fas fa-times"></i>
       </button>
@@ -200,15 +200,15 @@
     <div id="subtitle-content" class="max-h-96 overflow-y-auto">
       <div class="text-center text-base-content/40">
         <i class="fas fa-spinner fa-spin mr-2"></i>
-        加载字幕中...
+        {% translate "加载字幕中..." %}
       </div>
     </div>
 
     <div class="modal-action">
       <button class="btn btn-secondary" id="download-subtitle-btn">
-        <i class="fas fa-download mr-2"></i>下载字幕
+        <i class="fas fa-download mr-2"></i>{% translate "下载字幕" %}
       </button>
-      <button class="btn" onclick="closeSubtitleModal()">关闭</button>
+      <button class="btn" onclick="closeSubtitleModal()">{% translate "关闭" %}</button>
     </div>
   </div>
 </div>

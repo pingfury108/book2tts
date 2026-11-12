@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static i18n %}
 
 {% block title %}{{ display_title }}{% endblock %}
 
@@ -10,7 +10,7 @@
         <div class="flex items-center gap-4">
             <a href="{% url 'discussion_topic_detail' topic.id %}" class="btn btn-ghost btn-sm">
                 <i class="fas fa-arrow-left mr-2"></i>
-                返回详情
+                {% translate "返回详情" %}
             </a>
             <h1 class="text-2xl font-extrabold tracking-tight">{{ display_title }}</h1>
         </div>
@@ -33,27 +33,27 @@
                 <!-- 主题标题 -->
                 <div class="form-control mb-4">
                     <label class="label">
-                        <span class="label-text font-semibold">主题标题</span>
-                        <span class="label-text-alt text-error">* 必填</span>
+                        <span class="label-text font-semibold">{% translate "主题标题" %}</span>
+                        <span class="label-text-alt text-error">{% translate "* 必填" %}</span>
                     </label>
                     <input
                         type="text"
                         name="title"
                         value="{{ topic.title }}"
-                        placeholder="请输入主题标题（2-200个字符）"
+                        placeholder="{% translate "请输入主题标题（2-200个字符）" %}"
                         class="input input-bordered w-full"
                         required
                         maxlength="200"
                     >
                     <label class="label">
-                        <span class="label-text-alt text-base-content/60">简洁明了地描述您的主题</span>
+                        <span class="label-text-alt text-base-content/60">{% translate "简洁明了地描述您的主题" %}</span>
                     </label>
                 </div>
 
                 <!-- 主题分类 -->
                 <div class="form-control mb-4">
                     <label class="label">
-                        <span class="label-text font-semibold">主题分类</span>
+                        <span class="label-text font-semibold">{% translate "主题分类" %}</span>
                     </label>
                     <select name="category" class="select select-bordered w-full">
                         {% for value, label in category_choices %}
@@ -63,24 +63,24 @@
                         {% endfor %}
                     </select>
                     <label class="label">
-                        <span class="label-text-alt text-base-content/60">选择合适的分类有助于其他用户找到您的主题</span>
+                        <span class="label-text-alt text-base-content/60">{% translate "选择合适的分类有助于其他用户找到您的主题" %}</span>
                     </label>
                 </div>
 
                 <!-- 主题内容 -->
                 <div class="form-control mb-6">
                     <label class="label">
-                        <span class="label-text font-semibold">主题内容</span>
-                        <span class="label-text-alt text-error">* 必填</span>
+                        <span class="label-text font-semibold">{% translate "主题内容" %}</span>
+                        <span class="label-text-alt text-error">{% translate "* 必填" %}</span>
                     </label>
                     <textarea
                         name="content"
-                        placeholder="请详细描述您的问题、想法或分享的内容..."
+                        placeholder="{% translate "请详细描述您的问题、想法或分享的内容..." %}"
                         class="textarea textarea-bordered w-full h-64"
                         required
                     >{{ topic.content }}</textarea>
                     <label class="label">
-                        <span class="label-text-alt text-base-content/60">详细的内容描述有助于获得更好的回复</span>
+                        <span class="label-text-alt text-base-content/60">{% translate "详细的内容描述有助于获得更好的回复" %}</span>
                     </label>
                 </div>
 
@@ -88,10 +88,10 @@
                 <div class="flex gap-4">
                     <button type="submit" class="btn btn-primary flex-1">
                         <i class="fas fa-save mr-2"></i>
-                        保存修改
+                        {% translate "保存修改" %}
                     </button>
                     <a href="{% url 'discussion_topic_detail' topic.id %}" class="btn btn-ghost">
-                        取消
+                        {% translate "取消" %}
                     </a>
                 </div>
             </form>
@@ -101,23 +101,23 @@
     <!-- 主题信息 -->
     <div class="mt-8">
         <div class="bg-base-200 rounded-lg p-6">
-            <h3 class="text-lg font-semibold mb-4">主题信息</h3>
+            <h3 class="text-lg font-semibold mb-4">{% translate "主题信息" %}</h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-base-content/70">
                 <div class="flex items-center gap-2">
                     <i class="fas fa-user text-primary"></i>
-                    <span>作者：{{ topic.author.username }}</span>
+                    <span>{% translate "作者：" %}{{ topic.author.username }}</span>
                 </div>
                 <div class="flex items-center gap-2">
                     <i class="fas fa-calendar text-primary"></i>
-                    <span>创建时间：{{ topic.created_at|date:"Y-m-d H:i" }}</span>
+                    <span>{% translate "创建时间：" %}{{ topic.created_at|date:"Y-m-d H:i" }}</span>
                 </div>
                 <div class="flex items-center gap-2">
                     <i class="fas fa-eye text-primary"></i>
-                    <span>查看次数：{{ topic.view_count }}</span>
+                    <span>{% translate "查看次数：" %}{{ topic.view_count }}</span>
                 </div>
                 <div class="flex items-center gap-2">
                     <i class="fas fa-comment text-primary"></i>
-                    <span>回复数量：{{ topic.reply_count }}</span>
+                    <span>{% translate "回复数量：" %}{{ topic.reply_count }}</span>
                 </div>
             </div>
         </div>

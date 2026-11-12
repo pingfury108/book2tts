@@ -1,7 +1,8 @@
 {% extends "admin/base.html" %}
+{% load i18n %}
 {% load static %}
 
-{% block title %}翻译缓存管理 - {{ block.super }}{% endblock %}
+{% block title %}{% translate "翻译缓存管理 -" %} {{ block.super }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -9,16 +10,16 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h3 class="card-title">翻译缓存管理</h3>
+                    <h3 class="card-title">{% translate "翻译缓存管理" %}</h3>
                     <div class="btn-group">
                         <button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#statsModal">
-                            <i class="fas fa-chart-bar"></i> 统计信息
+                            <i class="fas fa-chart-bar"></i> {% translate "统计信息" %}
                         </button>
                         <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#cleanupModal">
-                            <i class="fas fa-broom"></i> 清理缓存
+                            <i class="fas fa-broom"></i> {% translate "清理缓存" %}
                         </button>
                         <button type="button" class="btn btn-danger btn-sm" id="bulkDeleteBtn" disabled>
-                            <i class="fas fa-trash"></i> 批量删除
+                            <i class="fas fa-trash"></i> {% translate "批量删除" %}
                         </button>
                     </div>
                 </div>
@@ -27,11 +28,11 @@
                 <div class="card-body">
                     <form method="get" class="row g-3 mb-3">
                         <div class="col-md-6">
-                            <input type="text" name="q" class="form-control" placeholder="搜索原文、译文或MD5..." value="{{ search_query }}">
+                            <input type="text" name="q" class="form-control" placeholder="{% translate "搜索原文、译文或MD5..." %}" value="{{ search_query }}">
                         </div>
                         <div class="col-md-3">
                             <select name="lang" class="form-select">
-                                <option value="">所有语言</option>
+                                <option value="">{% translate "所有语言" %}</option>
                                 {% for code, name in language_choices %}
                                     <option value="{{ code }}" {% if language_filter == code %}selected{% endif %}>
                                         {{ name }}
@@ -42,10 +43,10 @@
                         <div class="col-md-3">
                             <div class="btn-group w-100">
                                 <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-search"></i> 搜索
+                                    <i class="fas fa-search"></i> {% translate "搜索" %}
                                 </button>
                                 <a href="{% url 'translation_cache_list' %}" class="btn btn-secondary">
-                                    <i class="fas fa-times"></i> 清除
+                                    <i class="fas fa-times"></i> {% translate "清除" %}
                                 </a>
                             </div>
                         </div>
@@ -56,7 +57,7 @@
                         <div class="col-md-3">
                             <div class="card bg-info text-white">
                                 <div class="card-body">
-                                    <h5>总缓存条数</h5>
+                                    <h5>{% translate "总缓存条数" %}</h5>
                                     <h3>{{ stats.total_entries|default:0 }}</h3>
                                 </div>
                             </div>
@@ -64,7 +65,7 @@
                         <div class="col-md-3">
                             <div class="card bg-success text-white">
                                 <div class="card-body">
-                                    <h5>总命中次数</h5>
+                                    <h5>{% translate "总命中次数" %}</h5>
                                     <h3>{{ stats.total_hits|default:0 }}</h3>
                                 </div>
                             </div>
@@ -72,7 +73,7 @@
                         <div class="col-md-3">
                             <div class="card bg-warning text-white">
                                 <div class="card-body">
-                                    <h5>平均命中率</h5>
+                                    <h5>{% translate "平均命中率" %}</h5>
                                     <h3>{{ stats.avg_hits|floatformat:1|default:0 }}</h3>
                                 </div>
                             </div>
@@ -80,7 +81,7 @@
                         <div class="col-md-3">
                             <div class="card bg-primary text-white">
                                 <div class="card-body">
-                                    <h5>语言种类</h5>
+                                    <h5>{% translate "语言种类" %}</h5>
                                     <h3>{{ stats.by_language|length }}</h3>
                                 </div>
                             </div>
@@ -96,13 +97,13 @@
                                         <input type="checkbox" id="selectAll" class="form-check-input">
                                     </th>
                                     <th>MD5</th>
-                                    <th>目标语言</th>
-                                    <th>原文预览</th>
-                                    <th>译文预览</th>
-                                    <th>命中次数</th>
-                                    <th>创建时间</th>
-                                    <th>最后使用</th>
-                                    <th>操作</th>
+                                    <th>{% translate "目标语言" %}</th>
+                                    <th>{% translate "原文预览" %}</th>
+                                    <th>{% translate "译文预览" %}</th>
+                                    <th>{% translate "命中次数" %}</th>
+                                    <th>{% translate "创建时间" %}</th>
+                                    <th>{% translate "最后使用" %}</th>
+                                    <th>{% translate "操作" %}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -152,7 +153,7 @@
                                 <tr>
                                     <td colspan="9" class="text-center text-muted py-4">
                                         <i class="fas fa-inbox fa-2x mb-2"></i><br>
-                                        暂无缓存记录
+                                        {% translate "暂无缓存记录" %}
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -166,7 +167,7 @@
                         <ul class="pagination justify-content-center">
                             {% if page_obj.has_previous %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if language_filter %}&lang={{ language_filter }}{% endif %}">上一页</a>
+                                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if language_filter %}&lang={{ language_filter }}{% endif %}">{% translate "上一页" %}</a>
                                 </li>
                             {% endif %}
 
@@ -184,7 +185,7 @@
 
                             {% if page_obj.has_next %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if language_filter %}&lang={{ language_filter }}{% endif %}">下一页</a>
+                                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if language_filter %}&lang={{ language_filter }}{% endif %}">{% translate "下一页" %}</a>
                                 </li>
                             {% endif %}
                         </ul>
@@ -201,38 +202,38 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">翻译缓存统计</h5>
+                <h5 class="modal-title">{% translate "翻译缓存统计" %}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="row">
                     <div class="col-md-6">
-                        <h6>按语言统计</h6>
+                        <h6>{% translate "按语言统计" %}</h6>
                         <div class="list-group">
                             {% for lang_stat in stats.by_language %}
                             <div class="list-group-item d-flex justify-content-between align-items-center">
                                 <span>{{ lang_stat.target_language }}</span>
                                 <div>
-                                    <span class="badge bg-primary rounded-pill me-2">{{ lang_stat.count }} 条</span>
-                                    <span class="badge bg-success rounded-pill">{{ lang_stat.total_hits }} 次</span>
+                                    <span class="badge bg-primary rounded-pill me-2">{{ lang_stat.count }} {% translate "条" %}</span>
+                                    <span class="badge bg-success rounded-pill">{{ lang_stat.total_hits }} {% translate "次" %}</span>
                                 </div>
                             </div>
                             {% endfor %}
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <h6>总体统计</h6>
+                        <h6>{% translate "总体统计" %}</h6>
                         <table class="table table-sm">
                             <tr>
-                                <td>总缓存条数</td>
+                                <td>{% translate "总缓存条数" %}</td>
                                 <td><strong>{{ stats.total_entries|default:0 }}</strong></td>
                             </tr>
                             <tr>
-                                <td>总命中次数</td>
+                                <td>{% translate "总命中次数" %}</td>
                                 <td><strong>{{ stats.total_hits|default:0 }}</strong></td>
                             </tr>
                             <tr>
-                                <td>平均命中率</td>
+                                <td>{% translate "平均命中率" %}</td>
                                 <td><strong>{{ stats.avg_hits|floatformat:2|default:0 }}</strong></td>
                             </tr>
                         </table>
@@ -248,21 +249,21 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">清理翻译缓存</h5>
+                <h5 class="modal-title">{% translate "清理翻译缓存" %}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form id="cleanupForm">
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="cleanupDays" class="form-label">清理多少天前的缓存</label>
+                        <label for="cleanupDays" class="form-label">{% translate "清理多少天前的缓存" %}</label>
                         <input type="number" class="form-control" id="cleanupDays" name="days" value="30" min="1">
-                        <div class="form-text">将删除指定天数前未使用的缓存记录</div>
+                        <div class="form-text">{% translate "将删除指定天数前未使用的缓存记录" %}</div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% translate "取消" %}</button>
                     <button type="submit" class="btn btn-warning">
-                        <i class="fas fa-broom"></i> 清理
+                        <i class="fas fa-broom"></i> {% translate "清理" %}
                     </button>
                 </div>
             </form>
@@ -305,7 +306,7 @@ document.getElementById('bulkDeleteBtn').addEventListener('click', function() {
     const cacheIds = Array.from(checkedBoxes).map(cb => cb.value);
 
     if (cacheIds.length === 0) {
-        alert('请选择要删除的缓存记录');
+        alert({% translate "请选择要删除的缓存记录" %});
         return;
     }
 
@@ -316,7 +317,7 @@ document.getElementById('bulkDeleteBtn').addEventListener('click', function() {
 
 // 删除单个缓存
 function deleteCache(cacheId) {
-    if (confirm('确定要删除这条缓存记录吗？')) {
+    if (confirm({% translate "确定要删除这条缓存记录吗？" %})) {
         fetch(`{% url 'translation_cache_delete' 0 %}`.replace('0', cacheId), {
             method: 'POST',
             headers: {
@@ -329,12 +330,12 @@ function deleteCache(cacheId) {
             if (data.status === 'success') {
                 location.reload();
             } else {
-                alert('删除失败：' + data.message);
+                alert({% translate "删除失败：" %} + data.message);
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('删除失败，请重试');
+            alert({% translate "删除失败，请重试" %});
         });
     }
 }
@@ -358,12 +359,12 @@ function bulkDeleteCache(cacheIds) {
         if (data.status === 'success') {
             location.reload();
         } else {
-            alert('删除失败：' + data.message);
+            alert({% translate "删除失败：" %} + data.message);
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('删除失败，请重试');
+        alert({% translate "删除失败，请重试" %});
     });
 }
 
@@ -390,12 +391,12 @@ document.getElementById('cleanupForm').addEventListener('submit', function(e) {
                 alert(data.message);
                 location.reload();
             } else {
-                alert('清理失败：' + data.message);
+                alert({% translate "清理失败：" %} + data.message);
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('清理失败，请重试');
+            alert({% translate "清理失败，请重试" %});
         });
     }
 });

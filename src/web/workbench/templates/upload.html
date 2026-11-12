@@ -1,14 +1,15 @@
 {% extends "base.html" %}
+{% load i18n %}
 
-{% block title %}上传书籍 - Book2TTS{% endblock %}
+{% block title %}{% translate "上传书籍 - Book2TTS" %}{% endblock %}
 
 {% block content %}
 
 <div class="max-w-xl mx-auto px-4 sm:px-6 py-10">
     <!-- 页头 -->
     <div class="text-center mb-8">
-        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">上传书籍</h1>
-        <p class="text-sm text-base-content/50 mt-1.5">支持 PDF / EPUB，扫描件将自动走 OCR 识别</p>
+        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">{% translate "上传书籍" %}</h1>
+        <p class="text-sm text-base-content/50 mt-1.5">{% translate "支持 PDF / EPUB，扫描件将自动走 OCR 识别" %}</p>
     </div>
 
     <!-- 错误信息显示 -->
@@ -36,8 +37,8 @@
         </div>
         <input type="file" class="file-input file-input-bordered file-input-primary w-full max-w-xs" accept=".pdf,.epub"
             name="file" />
-        <p class="text-xs text-base-content/50 mt-3">只支持 PDF 和 EPUB 格式，最大 100MB</p>
-        <button type="submit" class="btn btn-primary rounded-xl mt-6 px-8">开始上传</button>
+        <p class="text-xs text-base-content/50 mt-3">{% translate "只支持 PDF 和 EPUB 格式，最大 100MB" %}</p>
+        <button type="submit" class="btn btn-primary rounded-xl mt-6 px-8">{% translate "开始上传" %}</button>
     </form>
 </div>
 

@@ -1,4 +1,5 @@
 from django.contrib.admin.views.decorators import staff_member_required
+from django.utils.translation import gettext as _
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import JsonResponse
@@ -81,7 +82,7 @@ def translation_cache_delete(request, cache_id):
 
     messages.success(request, f'已删除缓存记录 {cache.text_md5[:8]}...')
 
-    return JsonResponse({'status': 'success', 'message': '删除成功'})
+    return JsonResponse({'status': 'success', 'message': _('删除成功')})
 
 
 @staff_member_required
@@ -91,7 +92,7 @@ def translation_cache_cleanup(request):
     days = int(request.POST.get('days', 30))
 
     if days < 1:
-        return JsonResponse({'status': 'error', 'message': '天数必须大于0'})
+        return JsonResponse({'status': 'error', 'message': _('天数必须大于0')})
 
     deleted_count = TranslationCache.cleanup_old_cache(days)
 
@@ -126,7 +127,7 @@ def translation_cache_bulk_delete(request):
     cache_ids = request.POST.getlist('cache_ids')
 
     if not cache_ids:
-        return JsonResponse({'status': 'error', 'message': '请选择要删除的缓存记录'})
+        return JsonResponse({'status': 'error', 'message': _('请选择要删除的缓存记录')})
 
     try:
         cache_ids = [int(id) for id in cache_ids]
@@ -140,4 +141,4 @@ def translation_cache_bulk_delete(request):
             'deleted_count': deleted_count
         })
     except (ValueError, TypeError):
-        return JsonResponse({'status': 'error', 'message': '无效的缓存ID'})
+        return JsonResponse({'status': 'error', 'message': _('无效的缓存ID')})

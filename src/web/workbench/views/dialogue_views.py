@@ -4,6 +4,7 @@ import asyncio
 import tempfile
 from typing import Dict, Any
 from django.shortcuts import render, get_object_or_404, redirect
+from django.utils.translation import gettext as _
 from django.http import JsonResponse, HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
@@ -62,7 +63,7 @@ def dialogue_segment_preview(request, segment_id):
         text = (segment.utterance or '').strip()
 
         if not text:
-            return JsonResponse({'success': False, 'error': '该片段没有可用内容'}, status=400)
+            return JsonResponse({'success': False, 'error': _('该片段没有可用内容')}, status=400)
 
         voice_config = segment.script.voice_settings.get(segment.speaker, {})
 
@@ -71,7 +72,7 @@ def dialogue_segment_preview(request, segment_id):
         voice_name = voice_config.get('voice_name')
 
         if not voice_name:
-            return JsonResponse({'success': False, 'error': '该片段尚未配置音色'}, status=400)
+            return JsonResponse({'success': False, 'error': _('该片段尚未配置音色')}, status=400)
 
         temp_file = tempfile.NamedTemporaryFile(suffix='.wav', delete=False)
         temp_path = temp_file.name
@@ -135,7 +136,7 @@ def dialogue_segment_preview(request, segment_id):
                     pass
 
         if not audio_bytes:
-            return JsonResponse({'success': False, 'error': '预览音频生成失败，请稍后重试'}, status=500)
+            return JsonResponse({'success': False, 'error': _('预览音频生成失败，请稍后重试')}, status=500)
 
         response = HttpResponse(audio_bytes, content_type='audio/wav')
         response['Content-Disposition'] = 'inline; filename="segment_preview.wav"'
@@ -155,7 +156,7 @@ def dialogue_convert_text(request):
         custom_prompt = data.get('custom_prompt', '').strip()
         
         if not text:
-            return JsonResponse({'success': False, 'error': '文本内容不能为空'})
+            return JsonResponse({'success': False, 'error': _('文本内容不能为空')})
         
         if not title:
             title = f"对话脚本 - {text[:50]}..."
@@ -190,11 +191,11 @@ def dialogue_convert_text(request):
         return JsonResponse({
             'success': True,
             'task_id': user_task.task_id,
-            'message': '对话转换任务已提交，正在后台处理...'
+            'message': _('对话转换任务已提交，正在后台处理...')
         })
         
     except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': '无效的JSON数据'})
+        return JsonResponse({'success': False, 'error': _('无效的JSON数据')})
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'任务提交失败: {str(e)}'})
 
@@ -268,11 +269,11 @@ def dialogue_configure_voices(request, script_id):
         
         return JsonResponse({
             'success': True,
-            'message': '音色配置已保存'
+            'message': _('音色配置已保存')
         })
         
     except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': '无效的JSON数据'})
+        return JsonResponse({'success': False, 'error': _('无效的JSON数据')})
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'配置保存失败: {str(e)}'})
 
@@ -333,11 +334,11 @@ def dialogue_generate_audio(request, script_id):
         return JsonResponse({
             'success': True,
             'task_id': user_task.task_id,
-            'message': '音频生成任务已开始，请在任务队列中查看进度'
+            'message': _('音频生成任务已开始，请在任务队列中查看进度')
         })
         
     except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': '无效的JSON数据'})
+        return JsonResponse({'success': False, 'error': _('无效的JSON数据')})
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'任务创建失败: {str(e)}'})
 
@@ -356,7 +357,7 @@ def dialogue_generate_chapters(request, script_id):
     force = bool(payload.get('force', False))
 
     if not script.subtitle_file or not script.subtitle_file.name:
-        return JsonResponse({'success': False, 'error': '该脚本尚无字幕文件，无法生成章节'}, status=400)
+        return JsonResponse({'success': False, 'error': _('该脚本尚无字幕文件，无法生成章节')}, status=400)
 
     from ..tasks import generate_chapters_task
 
@@ -379,7 +380,7 @@ def dialogue_generate_chapters(request, script_id):
     return JsonResponse({
         'success': True,
         'task_id': task_result.id,
-        'message': '章节生成任务已提交'
+        'message': _('章节生成任务已提交')
     })
 
 @login_required
@@ -458,19 +459,19 @@ def dialogue_update_title(request, script_id):
         new_title = data.get('title', '').strip()
         
         if not new_title:
-            return JsonResponse({'success': False, 'error': '标题不能为空'})
+            return JsonResponse({'success': False, 'error': _('标题不能为空')})
         
         script.title = new_title
         script.save()
         
         return JsonResponse({
             'success': True,
-            'message': '标题已更新',
+            'message': _('标题已更新'),
             'title': script.title
         })
         
     except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': '无效的JSON数据'})
+        return JsonResponse({'success': False, 'error': _('无效的JSON数据')})
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'更新失败: {str(e)}'})
 
@@ -495,12 +496,12 @@ def dialogue_update_book(request, script_id):
         
         return JsonResponse({
             'success': True,
-            'message': '关联书籍已更新',
+            'message': _('关联书籍已更新'),
             'book_name': script.book.name if script.book else None
         })
         
     except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': '无效的JSON数据'})
+        return JsonResponse({'success': False, 'error': _('无效的JSON数据')})
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'更新失败: {str(e)}'})
 
@@ -515,14 +516,14 @@ def dialogue_ai_recommend_voices(request, script_id):
         # 获取对话脚本数据
         script_data = script.script_data
         if not script_data or 'segments' not in script_data:
-            return JsonResponse({'success': False, 'error': '对话脚本数据为空'})
+            return JsonResponse({'success': False, 'error': _('对话脚本数据为空')})
 
         # 使用AI推荐音色
         recommendation_service = VoiceRecommendationService()
         recommendations = recommendation_service.recommend_voices_for_script(script_data)
 
         if not recommendations:
-            return JsonResponse({'success': False, 'error': '未能生成音色推荐'})
+            return JsonResponse({'success': False, 'error': _('未能生成音色推荐')})
 
         return JsonResponse({
             'success': True,
@@ -587,7 +588,7 @@ def dialogue_segment_delete(request, segment_id):
         
         return JsonResponse({
             'success': True,
-            'message': '片段已删除'
+            'message': _('片段已删除')
         })
         
     except Exception as e:
@@ -639,7 +640,7 @@ def dialogue_segment_update(request, segment_id):
         
         return JsonResponse({
             'success': True,
-            'message': '片段已更新',
+            'message': _('片段已更新'),
             'segment': {
                 'id': segment.id,
                 'speaker': segment.speaker,
@@ -649,6 +650,6 @@ def dialogue_segment_update(request, segment_id):
         })
         
     except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': '无效的JSON数据'})
+        return JsonResponse({'success': False, 'error': _('无效的JSON数据')})
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'更新失败: {str(e)}'})

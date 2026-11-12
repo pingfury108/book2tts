@@ -1,35 +1,36 @@
 {% extends "base.html" %}
+{% load i18n %}
 
-{% block title %}任务队列 - Book2TTS{% endblock %}
+{% block title %}{% translate "任务队列 - Book2TTS" %}{% endblock %}
 
 {% block content %}
 <div class="container mx-auto px-4 py-6">
     <div class="flex justify-between items-center mb-6">
         <div>
-            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">任务队列</h1>
-            <p class="text-sm text-base-content/50 mt-1">生成任务的实时状态</p>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">{% translate "任务队列" %}</h1>
+            <p class="text-sm text-base-content/50 mt-1">{% translate "生成任务的实时状态" %}</p>
         </div>
         <div class="text-sm text-base-content/50">
-            共 {{ stats.total }} 个任务
+            {% translate "共" %} {{ stats.total }} {% translate "个任务" %}
         </div>
     </div>
     
     <!-- 统计信息卡片 -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div class="stat bg-base-200 rounded-lg p-4">
-            <div class="stat-title">总任务数</div>
+            <div class="stat-title">{% translate "总任务数" %}</div>
             <div class="stat-value text-xl sm:text-2xl">{{ stats.total }}</div>
         </div>
         <div class="stat bg-base-200 rounded-lg p-4">
-            <div class="stat-title">进行中</div>
+            <div class="stat-title">{% translate "进行中" %}</div>
             <div class="stat-value text-warning">{{ stats.processing }}</div>
         </div>
         <div class="stat bg-base-200 rounded-lg p-4">
-            <div class="stat-title">已完成</div>
+            <div class="stat-title">{% translate "已完成" %}</div>
             <div class="stat-value text-success">{{ stats.success }}</div>
         </div>
         <div class="stat bg-base-200 rounded-lg p-4">
-            <div class="stat-title">失败</div>
+            <div class="stat-title">{% translate "失败" %}</div>
             <div class="stat-value text-error">{{ stats.failure }}</div>
         </div>
     </div>
@@ -40,16 +41,16 @@
         <div class="hidden sm:block">
             <div class="tabs tabs-boxed">
                 <a class="tab {% if current_status == 'all' %}tab-active{% endif %}" href="?status=all">
-                    全部 ({{ stats.total }})
+                    {% translate "全部 (" %}{{ stats.total }})
                 </a>
                 <a class="tab {% if current_status == 'processing' %}tab-active{% endif %}" href="?status=processing">
-                    进行中 ({{ stats.processing }})
+                    {% translate "进行中 (" %}{{ stats.processing }})
                 </a>
                 <a class="tab {% if current_status == 'success' %}tab-active{% endif %}" href="?status=success">
-                    已完成 ({{ stats.success }})
+                    {% translate "已完成 (" %}{{ stats.success }})
                 </a>
                 <a class="tab {% if current_status == 'failure' %}tab-active{% endif %}" href="?status=failure">
-                    失败 ({{ stats.failure }})
+                    {% translate "失败 (" %}{{ stats.failure }})
                 </a>
             </div>
         </div>
@@ -58,16 +59,16 @@
         <div class="block sm:hidden">
             <div class="grid grid-cols-2 gap-2">
                 <a class="btn btn-sm {% if current_status == 'all' %}btn-primary{% else %}btn-outline{% endif %}" href="?status=all">
-                    全部 ({{ stats.total }})
+                    {% translate "全部 (" %}{{ stats.total }})
                 </a>
                 <a class="btn btn-sm {% if current_status == 'processing' %}btn-primary{% else %}btn-outline{% endif %}" href="?status=processing">
-                    进行中 ({{ stats.processing }})
+                    {% translate "进行中 (" %}{{ stats.processing }})
                 </a>
                 <a class="btn btn-sm {% if current_status == 'success' %}btn-primary{% else %}btn-outline{% endif %}" href="?status=success">
-                    已完成 ({{ stats.success }})
+                    {% translate "已完成 (" %}{{ stats.success }})
                 </a>
                 <a class="btn btn-sm {% if current_status == 'failure' %}btn-primary{% else %}btn-outline{% endif %}" href="?status=failure">
-                    失败 ({{ stats.failure }})
+                    {% translate "失败 (" %}{{ stats.failure }})
                 </a>
             </div>
         </div>
@@ -93,10 +94,10 @@
                         <div class="text-sm text-base-content/60 mt-2">
                             <!-- 移动端：垂直布局，桌面端：水平布局 -->
                             <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
-                                <span class="break-all sm:break-normal">任务ID: {{ task.task_id }}</span>
-                                <span>创建: {{ task.created_at|date:"m-d H:i" }}</span>
+                                <span class="break-all sm:break-normal">{% translate "任务ID:" %} {{ task.task_id }}</span>
+                                <span>{% translate "创建:" %} {{ task.created_at|date:"m-d H:i" }}</span>
                                 {% if task.completed_at %}
-                                    <span>完成: {{ task.completed_at|date:"m-d H:i" }}</span>
+                                    <span>{% translate "完成:" %} {{ task.completed_at|date:"m-d H:i" }}</span>
                                 {% endif %}
                             </div>
                         </div>
@@ -105,25 +106,25 @@
                         {% if task.metadata %}
                         <div class="mt-3">
                             <details class="collapse collapse-arrow bg-base-200">
-                                <summary class="collapse-title text-sm font-medium">任务详情</summary>
+                                <summary class="collapse-title text-sm font-medium">{% translate "任务详情" %}</summary>
                                 <div class="collapse-content text-sm">
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
                                         {% if task.metadata.voice_name %}
-                                            <div><strong>语音:</strong> {{ task.metadata.voice_name }}</div>
+                                            <div><strong>{% translate "语音:" %}</strong> {{ task.metadata.voice_name }}</div>
                                         {% endif %}
                                         {% if task.metadata.text_length %}
-                                            <div><strong>文本长度:</strong> {{ task.metadata.text_length }} 字符</div>
+                                            <div><strong>{% translate "文本长度:" %}</strong> {{ task.metadata.text_length }} {% translate "字符" %}</div>
                                         {% endif %}
                                         {% if task.metadata.estimated_duration %}
-                                            <div><strong>预估时长:</strong> {{ task.metadata.estimated_duration }} 秒</div>
+                                            <div><strong>{% translate "预估时长:" %}</strong> {{ task.metadata.estimated_duration }} {% translate "秒" %}</div>
                                         {% endif %}
                                         {% if task.metadata.book_page %}
-                                            <div><strong>页面:</strong> {{ task.metadata.book_page }}</div>
+                                            <div><strong>{% translate "页面:" %}</strong> {{ task.metadata.book_page }}</div>
                                         {% endif %}
                                     </div>
                                     {% if task.metadata.text %}
                                         <div class="mt-2">
-                                            <strong>文本内容:</strong>
+                                            <strong>{% translate "文本内容:" %}</strong>
                                             <div class="bg-base-300 p-2 rounded mt-1 max-h-32 overflow-y-auto text-xs">
                                                 {{ task.metadata.text|truncatechars:200 }}
                                             </div>
@@ -137,21 +138,21 @@
                         <!-- 进度信息 -->
                         {% if task.progress_message %}
                         <div class="mt-3 p-3 bg-base-200 rounded text-sm">
-                            <strong>状态:</strong> {{ task.progress_message }}
+                            <strong>{% translate "状态:" %}</strong> {{ task.progress_message }}
                         </div>
                         {% endif %}
                         
                         <!-- 错误信息 -->
                         {% if task.error_message %}
                         <div class="mt-3 p-3 bg-error/10 border border-error/30 rounded-lg text-sm">
-                            <strong class="text-error">错误:</strong> {{ task.error_message }}
+                            <strong class="text-error">{% translate "错误:" %}</strong> {{ task.error_message }}
                         </div>
                         {% endif %}
                         
                         <!-- 结果信息 -->
                         {% if task.result_data and task.status == 'success' %}
                         <div class="mt-3 p-3 bg-success/10 border border-success/30 rounded-lg text-sm">
-                            <strong class="text-success">结果:</strong>
+                            <strong class="text-success">{% translate "结果:" %}</strong>
                             <div class="mt-1">
                                 {% if task.result_data.audio_url %}
                                     <button 
@@ -161,7 +162,7 @@
                                         data-chapters-url="{% if task.result_data.chapters_url %}{{ task.result_data.chapters_url }}{% endif %}"
                                         {% if task.result_data.chapters %}data-chapters-target="task-queue-chapters-{{ task.id }}"{% endif %}
                                     >
-                                        <i class="fas fa-play mr-1"></i>播放音频
+                                        <i class="fas fa-play mr-1"></i>{% translate "播放音频" %}
                                     </button>
                                     {% if task.result_data.chapters %}
                                         {% with task_id_str=task.id|stringformat:'s' %}
@@ -172,7 +173,7 @@
                                     {% endif %}
                                 {% endif %}
                                 {% if task.result_data.audio_duration %}
-                                    <span class="ml-4">时长: {{ task.result_data.audio_duration }} 秒</span>
+                                    <span class="ml-4">{% translate "时长:" %} {{ task.result_data.audio_duration }} {% translate "秒" %}</span>
                                 {% endif %}
                             </div>
                         </div>
@@ -190,11 +191,11 @@
                             {% elif task.status == 'revoked' %}inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-base-200 text-base-content/50 border border-base-300
                             {% else %}inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-base-200 text-base-content/60 border border-base-300{% endif %}">
                             {% if task.status == 'processing' %}<span class="w-1.5 h-1.5 rounded-full bg-warning animate-pulse"></span>{% endif %}
-                            {% if task.status == 'pending' %}排队中
-                            {% elif task.status == 'processing' %}生成中
-                            {% elif task.status == 'success' %}已完成
-                            {% elif task.status == 'failure' %}失败
-                            {% elif task.status == 'revoked' %}已取消
+                            {% if task.status == 'pending' %}{% translate "排队中" %}
+                            {% elif task.status == 'processing' %}{% translate "生成中" %}
+                            {% elif task.status == 'success' %}{% translate "已完成" %}
+                            {% elif task.status == 'failure' %}{% translate "失败" %}
+                            {% elif task.status == 'revoked' %}{% translate "已取消" %}
                             {% else %}{{ task.status }}{% endif %}
                         </div>
                         
@@ -203,8 +204,8 @@
                             {% if task.status in 'pending,processing' %}
                                 <button class="btn btn-ghost btn-xs sm:btn-sm rounded-lg text-warning hover:bg-warning/10" 
                                         onclick="cancelTask('{{ task.task_id }}')"
-                                        title="取消任务">
-                                    <span class="hidden sm:inline">取消</span>
+                                        title="{% translate "取消任务" %}">
+                                    <span class="hidden sm:inline">{% translate "取消" %}</span>
                                     <i class="fas fa-times sm:hidden"></i>
                                 </button>
                             {% endif %}
@@ -212,8 +213,8 @@
                             {% if task.status in 'pending,processing' %}
                                 <button class="btn btn-ghost btn-xs sm:btn-sm rounded-lg" 
                                         onclick="refreshTask('{{ task.task_id }}')"
-                                        title="刷新状态">
-                                    <span class="hidden sm:inline">刷新</span>
+                                        title="{% translate "刷新状态" %}">
+                                    <span class="hidden sm:inline">{% translate "刷新" %}</span>
                                     <i class="fas fa-sync-alt text-xs sm:hidden"></i>
                                 </button>
                             {% endif %}
@@ -221,8 +222,8 @@
                             {% if task.is_finished %}
                                 <button class="btn btn-ghost btn-xs sm:btn-sm rounded-lg text-error hover:bg-error/10" 
                                         onclick="deleteTask('{{ task.task_id }}')"
-                                        title="删除记录">
-                                    <span class="hidden sm:inline">删除</span>
+                                        title="{% translate "删除记录" %}">
+                                    <span class="hidden sm:inline">{% translate "删除" %}</span>
                                     <i class="fas fa-trash text-xs sm:hidden"></i>
                                 </button>
                             {% endif %}
@@ -234,19 +235,19 @@
         {% empty %}
         <div class="text-center py-12">
             <i class="fas fa-clipboard-list text-6xl text-base-content/20 mb-4"></i>
-            <h3 class="text-xl font-medium mb-2">暂无任务</h3>
+            <h3 class="text-xl font-medium mb-2">{% translate "暂无任务" %}</h3>
             <p class="text-base-content/60">
                 {% if current_status == 'all' %}
-                    您还没有创建任何任务
+                    {% translate "您还没有创建任何任务" %}
                 {% elif current_status == 'processing' %}
-                    当前没有进行中的任务
+                    {% translate "当前没有进行中的任务" %}
                 {% elif current_status == 'success' %}
-                    没有已完成的任务
+                    {% translate "没有已完成的任务" %}
                 {% elif current_status == 'failure' %}
-                    没有失败的任务
+                    {% translate "没有失败的任务" %}
                 {% endif %}
             </p>
-            <a href="{% url 'index' %}" class="btn btn-primary mt-4">开始制作音频</a>
+            <a href="{% url 'index' %}" class="btn btn-primary mt-4">{% translate "开始制作音频" %}</a>
         </div>
         {% endfor %}
     </div>
@@ -280,7 +281,7 @@
 
 <script>
 function cancelTask(taskId) {
-    if (!confirm('确定要取消这个任务吗？')) return;
+    if (!confirm({% translate "确定要取消这个任务吗？" %})) return;
     
     fetch(`/workbench/task/cancel/${taskId}/`, {
         method: 'POST',
@@ -294,17 +295,17 @@ function cancelTask(taskId) {
         if (data.status === 'success') {
             location.reload();
         } else {
-            alert('取消任务失败: ' + data.message);
+            alert({% translate "取消任务失败: " %} + data.message);
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('取消任务失败');
+        alert({% translate "取消任务失败" %});
     });
 }
 
 function deleteTask(taskId) {
-    if (!confirm('确定要删除这个任务记录吗？')) return;
+    if (!confirm({% translate "确定要删除这个任务记录吗？" %})) return;
     
     fetch(`/workbench/task/delete/${taskId}/`, {
         method: 'DELETE',
@@ -321,12 +322,12 @@ function deleteTask(taskId) {
                 taskElement.remove();
             }
         } else {
-            alert('删除失败: ' + data.message);
+            alert({% translate "删除失败: " %} + data.message);
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('删除失败');
+        alert({% translate "删除失败" %});
     });
 }
 
@@ -344,7 +345,7 @@ function refreshTask(taskId) {
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('刷新失败');
+        alert({% translate "刷新失败" %});
     })
     .finally(() => {
         button.innerHTML = originalText;

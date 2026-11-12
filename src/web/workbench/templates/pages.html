@@ -1,4 +1,4 @@
-{% load custom_filters %}
+{% load custom_filters i18n %}
 <!-- Pages navigation component - optimized for jQuery loading into #src-text -->
 <div class="pages-container h-full flex flex-col" data-pages-component="true">
   <div class="flex-none">
@@ -10,7 +10,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
           </svg>
-          首页
+          {% translate "首页" %}
         </span>
       </button>
       <button class="btn btn-xs btn-outline" id="batch-extract">
@@ -18,7 +18,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
-          提取
+          {% translate "提取" %}
         </span>
       </button>
       <button class="btn btn-xs btn-outline" id="goto-page">
@@ -26,7 +26,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
-          跳转
+          {% translate "跳转" %}
         </span>
       </button>
       {% with last_page=pages|last %}
@@ -37,7 +37,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
           </svg>
-          末页
+          {% translate "末页" %}
         </span>
       </button>
       {% endwith %}
@@ -46,12 +46,12 @@
     <!-- 页面导航和控制区域 -->
     <div class="flex flex-wrap gap-1 mb-2">
       <div class="border rounded-full px-4 py-1 flex items-center justify-between w-auto">
-        <span class="inline-flex items-center text-xs">掐头</span>
+        <span class="inline-flex items-center text-xs">{% translate "掐头" %}</span>
         <input type="number" min="0" max="20" value="0" class="input-xs text-xs border-none focus:outline-none w-10" id="skip-start-input" name="head_cut"/>
-        <span class="inline-flex items-center mx-2 text-xs">去尾</span>
+        <span class="inline-flex items-center mx-2 text-xs">{% translate "去尾" %}</span>
         <input type="number" min="0" max="20" value="0" class="input-xs  text-xs border-none focus:outline-none w-10" id="skip-end-input" name="tail_cut"/>
         <input type="checkbox" id="select-all-pages" class="checkbox checkbox-sm" />
-        <label for="select-all-pages" class="text-xs ml-1">全选/取消</label>
+        <label for="select-all-pages" class="text-xs ml-1">{% translate "全选/取消" %}</label>
       </div>
     </div>
   </div>
@@ -143,9 +143,9 @@
       error: function(xhr, status, error) {
         console.error('Error loading page content:', error);
         if (typeof showToast === 'function') {
-          showToast('加载页面内容失败：' + error, 'error');
+          showToast({% translate "加载页面内容失败：" %} + error, 'error');
         } else {
-          alert('加载页面内容失败：' + error);
+          alert({% translate "加载页面内容失败：" %} + error);
         }
       }
     });
@@ -184,9 +184,9 @@
       error: function(xhr, status, error) {
         console.error('Error loading page content:', error);
         if (typeof showToast === 'function') {
-          showToast('加载页面内容失败：' + error, 'error');
+          showToast({% translate "加载页面内容失败：" %} + error, 'error');
         } else {
-          alert('加载页面内容失败：' + error);
+          alert({% translate "加载页面内容失败：" %} + error);
         }
       }
     });
@@ -238,18 +238,18 @@
         error: function(xhr, status, error) {
           console.error('Error loading batch content:', error);
           if (typeof showToast === 'function') {
-            showToast('批量加载内容失败：' + error, 'error');
+            showToast({% translate "批量加载内容失败：" %} + error, 'error');
           } else {
-            alert('批量加载内容失败：' + error);
+            alert({% translate "批量加载内容失败：" %} + error);
           }
         }
       });
     } else {
       // Alert if no checkboxes selected
       if (typeof showToast === 'function') {
-        showToast('请先选择要提取的页面！', 'warning');
+        showToast({% translate "请先选择要提取的页面！" %}, 'warning');
       } else {
-        alert('请先选择要提取的页面！');
+        alert({% translate "请先选择要提取的页面！" %});
       }
     }
   }

@@ -1,23 +1,23 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static i18n %}
 
-{% block title %}注册 - Book2TTS{% endblock %}
+{% block title %}{% translate "注册 - Book2TTS" %}{% endblock %}
 
 {% block content %}
 <div class="flex flex-col items-center mt-10 sm:mt-16 px-4">
   <img src="{% static 'images/logo.png' %}" alt="Book2TTS" class="w-14 h-14 rounded-2xl shadow-lg shadow-primary/20 mb-4" />
-  <h1 class="text-2xl font-extrabold tracking-tight">注册 Book2TTS</h1>
-  <p class="text-sm text-base-content/50 mt-1.5 mb-6">免费创建你的有声书工坊</p>
+  <h1 class="text-2xl font-extrabold tracking-tight">{% translate "注册 Book2TTS" %}</h1>
+  <p class="text-sm text-base-content/50 mt-1.5 mb-6">{% translate "免费创建你的有声书工坊" %}</p>
   <div class="card w-full max-w-sm bg-base-100 border border-base-300 shadow-sm">
     <div class="card-body">
-      <h2 class="sr-only">注册</h2>
+      <h2 class="sr-only">{% translate "注册" %}</h2>
       
       <form method="post" id="register-form">
         {% csrf_token %}
         
         <div class="form-control w-full mb-4">
           <label class="label">
-            <span class="label-text">用户名</span>
+            <span class="label-text">{% translate "用户名" %}</span>
           </label>
           {{ form.username }}
           {% if form.username.errors %}
@@ -29,7 +29,7 @@
         
         <div class="form-control w-full mb-4">
           <label class="label">
-            <span class="label-text">邮箱</span>
+            <span class="label-text">{% translate "邮箱" %}</span>
           </label>
           {{ form.email }}
           {% if form.email.errors %}
@@ -41,7 +41,7 @@
         
         <div class="form-control w-full mb-4">
           <label class="label">
-            <span class="label-text">密码</span>
+            <span class="label-text">{% translate "密码" %}</span>
           </label>
           {{ form.password1 }}
           {% if form.password1.errors %}
@@ -53,7 +53,7 @@
         
         <div class="form-control w-full mb-4">
           <label class="label">
-            <span class="label-text">确认密码</span>
+            <span class="label-text">{% translate "确认密码" %}</span>
           </label>
           {{ form.password2 }}
           {% if form.password2.errors %}
@@ -84,14 +84,14 @@
         {% endif %}
         
         <div class="card-actions justify-center">
-          <button type="submit" class="btn btn-primary w-full" id="register-btn">注册</button>
+          <button type="submit" class="btn btn-primary w-full" id="register-btn">{% translate "注册" %}</button>
         </div>
       </form>
       
       <div class="divider text-xs text-base-content/40">OR</div>
       
       <div class="text-center">
-        <a href="{% url 'login' %}" class="btn btn-ghost btn-sm">已有账号？去登录</a>
+        <a href="{% url 'login' %}" class="btn btn-ghost btn-sm">{% translate "已有账号？去登录" %}</a>
       </div>
     </div>
   </div>
@@ -115,7 +115,7 @@ document.getElementById('register-form').addEventListener('submit', function(e) 
         const turnstileToken = document.querySelector('input[name="cf_turnstile_response"]').value;
         if (!turnstileToken) {
             e.preventDefault();
-            alert('请完成人机验证');
+            alert({% translate "请完成人机验证" %});
             return false;
         }
     }

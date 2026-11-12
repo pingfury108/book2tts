@@ -27,7 +27,7 @@ def reformat(request):
     if request.method == 'POST':
         texts = request.POST.get("texts", "")
         if not texts:
-            return HttpResponse("No text content provided", status=400)
+            return HttpResponse(_("No text content provided"), status=400)
         
         # Create a response with SSE headers
         ip_address, user_agent = _get_client_meta(request)
@@ -192,9 +192,9 @@ def translate(request):
         texts = request.POST.get("texts", "")
         target_language = request.POST.get("target_language", "")
         if not texts:
-            return HttpResponse("No text content provided", status=400)
+            return HttpResponse(_("No text content provided"), status=400)
         if not target_language:
-            return HttpResponse("No target language provided", status=400)
+            return HttpResponse(_("No target language provided"), status=400)
 
         # Create a response with SSE headers
         ip_address, user_agent = _get_client_meta(request)

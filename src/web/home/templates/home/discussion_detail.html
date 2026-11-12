@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static custom_filters %}
+{% load static custom_filters i18n %}
 
 {% block title %}{{ display_title }}{% endblock %}
 
@@ -10,7 +10,7 @@
         <div class="flex items-center gap-4">
             <a href="{% url 'discussion_list' %}" class="btn btn-ghost btn-sm">
                 <i class="fas fa-arrow-left mr-2"></i>
-                返回列表
+                {% translate "返回列表" %}
             </a>
             <div>
                 <h1 class="text-2xl font-extrabold tracking-tight">{{ topic.title }}</h1>
@@ -18,13 +18,13 @@
                     {% if topic.is_pinned %}
                     <span class="badge badge-sm border-primary/30 bg-primary/10 text-primary font-semibold">
                         <i class="fas fa-thumbtack text-[10px] mr-0.5"></i>
-                        置顶
+                        {% translate "置顶" %}
                     </span>
                     {% endif %}
                     {% if topic.is_closed %}
                     <span class="badge badge-sm border-base-300 bg-base-200 text-base-content/50">
                         <i class="fas fa-lock text-[10px] mr-0.5"></i>
-                        已关闭
+                        {% translate "已关闭" %}
                     </span>
                     {% endif %}
                     <span class="badge badge-sm border-base-300 text-base-content/60 font-medium">
@@ -39,15 +39,15 @@
             {% if user == topic.author %}
             <a href="{% url 'discussion_edit' topic.id %}" class="btn btn-ghost btn-sm">
                 <i class="fas fa-edit mr-2"></i>
-                编辑
+                {% translate "编辑" %}
             </a>
             <a href="{% url 'discussion_close' topic.id %}" class="btn btn-ghost btn-sm">
                 {% if topic.is_closed %}
                 <i class="fas fa-unlock mr-2"></i>
-                重新打开
+                {% translate "重新打开" %}
                 {% else %}
                 <i class="fas fa-lock mr-2"></i>
-                关闭
+                {% translate "关闭" %}
                 {% endif %}
             </a>
             {% endif %}
@@ -55,10 +55,10 @@
             <a href="{% url 'discussion_pin' topic.id %}" class="btn btn-ghost btn-sm">
                 {% if topic.is_pinned %}
                 <i class="fas fa-thumbtack mr-2"></i>
-                取消置顶
+                {% translate "取消置顶" %}
                 {% else %}
                 <i class="fas fa-thumbtack mr-2"></i>
-                置顶
+                {% translate "置顶" %}
                 {% endif %}
             </a>
             {% endif %}
@@ -77,13 +77,13 @@
     {% if topic.is_closed %}
     <div class="alert alert-warning mb-6">
         <i class="fas fa-lock"></i>
-        <span>此主题已关闭，不能回复</span>
+        <span>{% translate "此主题已关闭，不能回复" %}</span>
     </div>
     {% endif %}
 
     <!-- 主题信息 -->
     <p class="text-sm text-base-content/50 mb-6">
-        {{ topic.author.username }} · {{ topic.created_at|date:"Y-m-d H:i" }} · {{ topic.view_count }} 次查看 · {{ topic.reply_count }} 条回复
+        {{ topic.author.username }} · {{ topic.created_at|date:"Y-m-d H:i" }} · {{ topic.view_count }} {% translate "次查看 ·" %} {{ topic.reply_count }} {% translate "条回复" %}
     </p>
 
     <!-- 主题内容 -->
@@ -97,7 +97,7 @@
 
     <!-- 留言列表 -->
     <div class="mb-6">
-        <h2 class="text-base font-bold mb-3">留言 <span class="text-xs font-medium text-base-content/40">{{ comments|length }}</span></h2>
+        <h2 class="text-base font-bold mb-3">{% translate "留言" %} <span class="text-xs font-medium text-base-content/40">{{ comments|length }}</span></h2>
 
         {% if comments %}
         <div class="space-y-4">
@@ -125,7 +125,7 @@
                             class="btn btn-ghost btn-sm"
                         >
                             <i class="fas fa-reply mr-1"></i>
-                            回复
+                            {% translate "回复" %}
                         </button>
                         {% endif %}
                     </div>
@@ -143,17 +143,17 @@
                             <input type="hidden" name="parent_id" value="{{ comment.id }}">
                             <textarea
                                 name="content"
-                                placeholder="回复 {{ comment.author.username }}..."
+                                placeholder="{% blocktranslate with name=comment.author.username %}回复 {{ name }}...{% endblocktranslate %}"
                                 class="textarea textarea-bordered w-full h-20"
                                 required
                             ></textarea>
                             <div class="flex gap-2">
                                 <button type="submit" class="btn btn-primary btn-sm rounded-lg">
                                     <i class="fas fa-paper-plane mr-1"></i>
-                                    回复
+                                    {% translate "回复" %}
                                 </button>
                                 <button type="button" onclick="hideReplyForm({{ comment.id }})" class="btn btn-ghost btn-sm">
-                                    取消
+                                    {% translate "取消" %}
                                 </button>
                             </div>
                         </form>
@@ -184,8 +184,8 @@
         <!-- 空状态 -->
         <div class="text-center py-12 bg-base-100 rounded-lg">
             <i class="fas fa-comments text-4xl text-base-content/20 mb-4"></i>
-            <h3 class="text-lg font-semibold text-base-content/60 mb-2">暂无留言</h3>
-            <p class="text-base-content/50">还没有人留言，快来发表第一个留言吧！</p>
+            <h3 class="text-lg font-semibold text-base-content/60 mb-2">{% translate "暂无留言" %}</h3>
+            <p class="text-base-content/50">{% translate "还没有人留言，快来发表第一个留言吧！" %}</p>
         </div>
         {% endif %}
     </div>
@@ -194,19 +194,19 @@
     {% if not topic.is_closed and user.is_authenticated %}
     <div class="card bg-base-100 border border-base-300 shadow-sm">
         <div class="card-body p-4">
-            <h3 class="card-title mb-3">发表留言</h3>
+            <h3 class="card-title mb-3">{% translate "发表留言" %}</h3>
             <form method="post">
                 {% csrf_token %}
                 <textarea
                     name="content"
-                    placeholder="请输入您的留言内容..."
+                    placeholder="{% translate "请输入您的留言内容..." %}"
                     class="textarea textarea-bordered w-full h-24"
                     required
                 ></textarea>
                 <div class="card-actions justify-end mt-3">
                     <button type="submit" class="btn btn-primary btn-sm rounded-lg">
                         <i class="fas fa-paper-plane mr-1"></i>
-                        发表留言
+                        {% translate "发表留言" %}
                     </button>
                 </div>
             </form>
@@ -216,7 +216,7 @@
     <!-- 未登录提示 -->
     <div class="alert alert-info">
         <i class="fas fa-info-circle"></i>
-        <span>请<a href="{% url 'login' %}" class="link link-primary">登录</a>后发表留言</span>
+        <span>{% translate "请" %}<a href="{% url 'login' %}" class="link link-primary">{% translate "登录" %}</a>{% translate "后发表留言" %}</span>
     </div>
     {% endif %}
 </div>

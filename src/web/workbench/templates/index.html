@@ -1,13 +1,14 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load static %}
 
-{% block title %}{{ title }} - 制作工作台 - Book2TTS{% endblock %}
+{% block title %}{{ title }} {% translate "- 制作工作台 - Book2TTS" %}{% endblock %}
 
 {% block content %}
 <div id="desktop-warning" class="hidden w-full bg-base-200 text-base-content text-center py-12 min-h-[calc(100vh-4rem)] flex items-center justify-center">
   <div class="max-w-md mx-auto space-y-3 px-6">
-    <h2 class="text-2xl font-bold">建议使用电脑端访问</h2>
-    <p class="text-sm">当前屏幕尺寸不足以正常使用制作工作台。请在宽屏设备上打开以获得完整体验。</p>
+    <h2 class="text-2xl font-bold">{% translate "建议使用电脑端访问" %}</h2>
+    <p class="text-sm">{% translate "当前屏幕尺寸不足以正常使用制作工作台。请在宽屏设备上打开以获得完整体验。" %}</p>
   </div>
 </div>
 
@@ -15,8 +16,8 @@
     <!-- 顶栏 -->
     <div class="flex items-center gap-3 px-4 py-2.5 bg-base-100 border-b border-base-300 flex-shrink-0">
         <span class="text-[15px] font-extrabold tracking-tight">《{{ title }}》</span>
-        <span class="text-xs text-base-content/40">制作台</span>
-        <span class="ml-auto text-xs text-base-content/40">内容更改实时保存</span>
+        <span class="text-xs text-base-content/40">{% translate "制作台" %}</span>
+        <span class="ml-auto text-xs text-base-content/40">{% translate "内容更改实时保存" %}</span>
     </div>
     <div class="flex flex-1 gap-2 p-2 min-h-0">
     <div class="grow h-full w-1/5 overflow-hidden rounded-xl border border-base-300 bg-base-100 flex flex-col">
@@ -28,14 +29,14 @@
              hx-trigger="click"
              hx-swap="innerHTML"
           >
-            TOC ({{ tocs|length }} 章)
+            TOC ({{ tocs|length }} {% translate "章)" %}
           </a>
           <a role="tab" class="tab" id="tab_page"
              hx-get="{% url 'pages' book_id=book_id %}"
              hx-target="#toc"
              hx-trigger="click"
              hx-swap="innerHTML"
-          >页面 ({{ pages|length }} 页)</a>
+          >{% translate "页面 (" %}{{ pages|length }} {% translate "页)" %}</a>
         </div>
       </div>
         <div class="container pt-2 flex-grow overflow-y-auto" id="toc" hx-get="{% url 'toc' book_id=book_id %}" hx-trigger="load">
@@ -47,38 +48,38 @@
                 <div class="flex justify-between items-center gap-2">
                     <div class="flex gap-2 items-center min-w-0">
                         <span class="inline-flex items-center gap-1.5 text-[13px] font-semibold text-base-content whitespace-nowrap">
-                            <span class="w-1.5 h-1.5 rounded-full bg-accent"></span>章节内容
+                            <span class="w-1.5 h-1.5 rounded-full bg-accent"></span>{% translate "章节内容" %}
                         </span>
-                        <span class="text-[11px] text-base-content/50 border border-base-300 rounded-full px-2 py-0.5 whitespace-nowrap" id="word-count-badge">0 字</span>
+                        <span class="text-[11px] text-base-content/50 border border-base-300 rounded-full px-2 py-0.5 whitespace-nowrap" id="word-count-badge">{% translate "0 字" %}</span>
                         <!-- 页面图片查看按钮 - 只在扫描版PDF时显示 -->
-                        <button class="btn btn-xs btn-ghost rounded-lg" id="view-page-image-btn" style="display: none;" title="查看页面原图">
+                        <button class="btn btn-xs btn-ghost rounded-lg" id="view-page-image-btn" style="display: none;" title="{% translate "查看页面原图" %}">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-4.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
                             </svg>
-                            查看原图
+                            {% translate "查看原图" %}
                         </button>
-                        <button class="btn btn-xs btn-ghost rounded-lg" id="view-original-btn" title="查看原始内容">
+                        <button class="btn btn-xs btn-ghost rounded-lg" id="view-original-btn" title="{% translate "查看原始内容" %}">
                             <i class="fas fa-eye"></i>
-                            查看原文
+                            {% translate "查看原文" %}
                         </button>
                     </div>
                     <div class="flex gap-2">
-                        <button class="btn btn-xs btn-ghost rounded-lg" id="format-text-btn">自动排版</button>
-                        <button class="btn btn-xs btn-ghost rounded-lg" id="translate-text-btn">翻译</button>
-                        <button class="btn btn-xs btn-ghost rounded-lg" id="increase-font-btn">放大字体</button>
-                        <button class="btn btn-xs btn-ghost rounded-lg" id="decrease-font-btn">缩小字体</button>
+                        <button class="btn btn-xs btn-ghost rounded-lg" id="format-text-btn">{% translate "自动排版" %}</button>
+                        <button class="btn btn-xs btn-ghost rounded-lg" id="translate-text-btn">{% translate "翻译" %}</button>
+                        <button class="btn btn-xs btn-ghost rounded-lg" id="increase-font-btn">{% translate "放大字体" %}</button>
+                        <button class="btn btn-xs btn-ghost rounded-lg" id="decrease-font-btn">{% translate "缩小字体" %}</button>
                     </div>
                 </div>
             </div>
-            <textarea class="textarea textarea-bordered flex-grow w-full bg-base-100 font-serif" id="src-text" name="texts" placeholder="选择左侧目录或页面以加载内容..." style="font-size: 16px; line-height: 1.6; min-height: 0;"></textarea>
+            <textarea class="textarea textarea-bordered flex-grow w-full bg-base-100 font-serif" id="src-text" name="texts" placeholder="{% translate "选择左侧目录或页面以加载内容..." %}" style="font-size: 16px; line-height: 1.6; min-height: 0;"></textarea>
         </div>
     </div>
     <div class="grow h-full w-1/5 overflow-hidden rounded-xl border border-base-300 bg-base-100 shadow-sm">
         <div class="flex flex-col h-full">
             <div class="px-2 pt-2">
                 <div role="tablist" class="tabs tabs-bordered" id="right-panel-tabs">
-                    <a role="tab" class="tab tab-active" id="tab_production" data-target="#production-panel" href="#">制作配置</a>
-                    <a role="tab" class="tab" id="tab_account" data-target="#account-panel" href="#">账户权益</a>
+                    <a role="tab" class="tab tab-active" id="tab_production" data-target="#production-panel" href="#">{% translate "制作配置" %}</a>
+                    <a role="tab" class="tab" id="tab_account" data-target="#account-panel" href="#">{% translate "账户权益" %}</a>
                 </div>
             </div>
             <div class="flex-1 overflow-y-auto p-2">
@@ -96,7 +97,7 @@
                         <div class="card-body p-4">
                             <div class="space-y-2" id="page-audio-status">
                                 <div class="text-sm text-base-content/40 text-center">
-                                    选择页面查看音频生成状态
+                                    {% translate "选择页面查看音频生成状态" %}
                                 </div>
                             </div>
                         </div>
@@ -106,7 +107,7 @@
                             <div class="space-y-3">
                                 <div class="relative" id="voice-dropdown">
                                     <button type="button" id="voice-dropdown-toggle" class="btn btn-outline btn-sm w-full justify-between">
-                                        <span id="voice-dropdown-label">语音模型</span>
+                                        <span id="voice-dropdown-label">{% translate "语音模型" %}</span>
                                         <i class="fas fa-chevron-down text-xs"></i>
                                     </button>
                                     <div id="voice-dropdown-menu" class="hidden absolute z-20 mt-1 w-full max-h-60 overflow-y-auto rounded-md border border-base-300 bg-base-100 shadow-lg"></div>
@@ -116,23 +117,23 @@
                                         hx-trigger="load"
                                         hx-target="this"
                                         hx-swap="innerHTML">
-                                    <option disabled selected>语音模型</option>
+                                    <option disabled selected>{% translate "语音模型" %}</option>
                                 </select>
                                 <div class="flex items-center gap-2">
-                                    <label class="text-sm font-medium">速度:</label>
+                                    <label class="text-sm font-medium">{% translate "速度:" %}</label>
                                     <input type="range" min="-50" max="50" value="0" class="range range-xs flex-1" id="audio-rate-range" />
                                     <span class="text-sm w-12 text-center" id="audio-rate-value">100%</span>
                                     <input type="hidden" id="audio-rate" value="+0%" />
                                 </div>
                                 <div class="flex flex-col gap-3">
-                                    <input type="text" id="audio-title-input" class="input input-bordered input-sm w-full text-sm" placeholder="音频标题（选填）" />
+                                    <input type="text" id="audio-title-input" class="input input-bordered input-sm w-full text-sm" placeholder="{% translate "音频标题（选填）" %}" />
                                     <button class="btn btn-outline btn-sm w-full text-sm" id="create-dialogue-btn">
                                         <i class="fas fa-comments h-4 w-4 mr-1"></i>
-                                        生成多角色音频
+                                        {% translate "生成多角色音频" %}
                                     </button>
                                     <button class="btn btn-primary btn-sm w-full text-sm" id="synthesize-btn">
                                         <i class="fas fa-wave-square h-4 w-4 mr-1"></i>
-                                        合成音频
+                                        {% translate "合成音频" %}
                                     </button>
                                 </div>
                                 <div id="audio-player-container" class="hidden mt-2 p-3 rounded-lg">
@@ -145,7 +146,7 @@
                                         <button 
                                             id="global-play-from-workbench" 
                                             class="btn btn-sm btn-primary"
-                                            title="在全局播放器中播放"
+                                            title="{% translate "在全局播放器中播放" %}"
                                             style="display: none;"
                                             onclick="playWorkbenchAudioInGlobal()">
                                             <i class="fas fa-external-link-alt h-3 w-3"></i>
@@ -157,14 +158,14 @@
                                     <button class="btn btn-secondary btn-sm flex-1 h-9" id="download-btn" disabled>
                                         <span class="flex items-center gap-1">
                                           <i class="fas fa-download h-3 w-3"></i>
-                                          <span class="text-xs">下载</span>
+                                          <span class="text-xs">{% translate "下载" %}</span>
                                         </span>
                                     </button>
                                     <button class="btn btn-accent btn-sm flex-1 h-9" id="publish-btn" disabled
                                             onclick="handlePublishClick()">
                                         <span class="flex items-center gap-1">
                                           <i class="fas fa-upload h-3 w-3"></i>
-                                          <span class="text-xs">发布</span>
+                                          <span class="text-xs">{% translate "发布" %}</span>
                                         </span>
                                     </button>
                                 </div>
@@ -183,7 +184,7 @@
                                  hx-swap="innerHTML">
                                 <div class="flex items-center justify-center">
                                     <span class="loading loading-spinner loading-sm"></span>
-                                    <span class="ml-2 text-sm">加载中...</span>
+                                    <span class="ml-2 text-sm">{% translate "加载中..." %}</span>
                                 </div>
                             </div>
                         </div>
@@ -194,19 +195,19 @@
                         <div class="card-body p-4">
                             <div class="space-y-3">
                                 <div class="text-sm text-base-content/80">
-                                    <p class="mb-2">如需购买积分或重置配额，请联系客服：</p>
+                                    <p class="mb-2">{% translate "如需购买积分或重置配额，请联系客服：" %}</p>
                                     <div class="flex items-center mb-2">
                                         <i class="fas fa-comment text-primary mr-2"></i>
-                                        <span>微信客服: qzz18580256051</span>
+                                        <span>{% translate "微信客服: qzz18580256051" %}</span>
                                     </div>
                                     <div class="flex items-center mb-3">
                                         <i class="fas fa-envelope text-primary mr-2"></i>
-                                        <span>邮箱: pingfury@outlook.com</span>
+                                        <span>{% translate "邮箱: pingfury@outlook.com" %}</span>
                                     </div>
                                 </div>
                                 <button class="btn btn-sm btn-outline btn-primary w-full" onclick="showWeChatQR()">
                                     <i class="fas fa-qrcode mr-1"></i>
-                                    微信扫码添加
+                                    {% translate "微信扫码添加" %}
                                 </button>
                             </div>
                         </div>
@@ -221,19 +222,19 @@
 <!-- 翻译语言选择模态框 -->
 <div id="translate-language-modal" class="modal">
   <div class="modal-box max-w-md">
-    <h3 class="font-bold text-lg mb-4 text-center">🌐 选择翻译语言</h3>
+    <h3 class="font-bold text-lg mb-4 text-center">{% translate "🌐 选择翻译语言" %}</h3>
     <div class="space-y-3" id="language-options">
       <button class="btn btn-outline w-full justify-start text-left" data-lang="en">
         <span class="mr-2">🇺🇸</span>
-        <span class="flex-1">English (英语)</span>
+        <span class="flex-1">{% translate "English (英语)" %}</span>
       </button>
       <button class="btn btn-outline w-full justify-start text-left" data-lang="zh">
         <span class="mr-2">🇨🇳</span>
-        <span class="flex-1">中文 (Chinese)</span>
+        <span class="flex-1">{% translate "中文 (Chinese)" %}</span>
       </button>
       <button class="btn btn-outline w-full justify-start text-left" data-lang="ja">
         <span class="mr-2">🇯🇵</span>
-        <span class="flex-1">日本語 (Japanese)</span>
+        <span class="flex-1">{% translate "日本語 (Japanese)" %}</span>
       </button>
       <button class="btn btn-outline w-full justify-start text-left" data-lang="ko">
         <span class="mr-2">🇰🇷</span>
@@ -257,7 +258,7 @@
       </button>
     </div>
     <div class="modal-action">
-      <button class="btn" onclick="closeTranslateLanguageModal()">取消</button>
+      <button class="btn" onclick="closeTranslateLanguageModal()">{% translate "取消" %}</button>
     </div>
   </div>
   <div class="modal-backdrop" onclick="closeTranslateLanguageModal()"></div>
@@ -266,16 +267,16 @@
 <!-- 页面图片查看模态框 -->
 <div id="page-image-modal" class="modal">
   <div class="modal-box max-w-6xl max-h-[90vh]">
-    <h3 class="font-bold text-lg mb-4">页面原图</h3>
+    <h3 class="font-bold text-lg mb-4">{% translate "页面原图" %}</h3>
     <div id="page-images-container" class="flex justify-center">
       <!-- 图片将通过JavaScript动态添加到这里 -->
     </div>
     <div id="image-loading" class="flex justify-center items-center h-64">
       <span class="loading loading-spinner loading-lg"></span>
-      <span class="ml-2">加载页面图片中...</span>
+      <span class="ml-2">{% translate "加载页面图片中..." %}</span>
     </div>
     <div class="modal-action">
-      <button class="btn" onclick="document.getElementById('page-image-modal').classList.remove('modal-open')">关闭</button>
+      <button class="btn" onclick="document.getElementById('page-image-modal').classList.remove('modal-open')">{% translate "关闭" %}</button>
     </div>
 </div>
 <div class="modal-backdrop" onclick="document.getElementById('page-image-modal').classList.remove('modal-open')"></div>
@@ -285,7 +286,7 @@
 <div id="original-content-modal" class="modal">
   <div class="modal-box max-w-6xl w-[96vw] max-h-[92vh] overflow-hidden">
     <div class="flex justify-between items-center mb-4">
-      <h3 class="font-bold text-lg" id="original-modal-title">原始内容</h3>
+      <h3 class="font-bold text-lg" id="original-modal-title">{% translate "原始内容" %}</h3>
       <button class="btn btn-sm btn-circle btn-ghost" id="close-original-modal">
         <i class="fas fa-times"></i>
       </button>
@@ -298,7 +299,7 @@
       <div id="original-content-body" class="space-y-4" style="display:none;"></div>
     </div>
     <div class="modal-action hidden">
-      <button class="btn" id="dismiss-original-modal">关闭</button>
+      <button class="btn" id="dismiss-original-modal">{% translate "关闭" %}</button>
     </div>
   </div>
   <div class="modal-backdrop" id="original-modal-backdrop"></div>
@@ -307,16 +308,16 @@
 <!-- 微信二维码模态框 -->
 <div id="wechat-qr-modal" class="modal">
   <div class="modal-box max-w-md">
-    <h3 class="font-bold text-lg mb-4 text-center">💬 微信购买咨询</h3>
+    <h3 class="font-bold text-lg mb-4 text-center">{% translate "💬 微信购买咨询" %}</h3>
     <div class="text-center">
       <div class="bg-white p-4 rounded-lg inline-block shadow-md">
-        <img src="{% static 'images/wechat_qr.png' %}" alt="微信二维码" class="w-48 h-48 mx-auto">
+        <img src="{% static 'images/wechat_qr.png' %}" alt="{% translate "微信二维码" %}" class="w-48 h-48 mx-auto">
       </div>
-      <p class="text-sm text-base-content/70 mt-3">扫码添加微信，获取购买服务和技术支持</p>
-      <p class="text-xs text-base-content/60 mt-2">微信号: qzz18580256051</p>
+      <p class="text-sm text-base-content/70 mt-3">{% translate "扫码添加微信，获取购买服务和技术支持" %}</p>
+      <p class="text-xs text-base-content/60 mt-2">{% translate "微信号: qzz18580256051" %}</p>
     </div>
     <div class="modal-action">
-      <button class="btn" onclick="closeWeChatQR()">关闭</button>
+      <button class="btn" onclick="closeWeChatQR()">{% translate "关闭" %}</button>
     </div>
   </div>
   <div class="modal-backdrop" onclick="closeWeChatQR()"></div>
@@ -411,7 +412,7 @@
          <span class="text-xs">发布</span>
        </span>
      `;
-     publishBtn.title = '发布';
+     publishBtn.title = '{% translate "发布" %}';
    }
 
    // 禁用下载按钮
@@ -766,7 +767,7 @@ function buildVoiceDropdown() {
 
   const options = Array.from(voiceHiddenSelect.options);
   if (!options.length) {
-    voiceDropdownLabel.textContent = '语音模型';
+    voiceDropdownLabel.textContent = '{% translate "语音模型" %}';
     voiceDropdownMenu.innerHTML = '';
     return;
   }
@@ -853,7 +854,7 @@ async function previewVoice(voiceName, triggerButton) {
   const providerValue = '{{ default_tts_provider|default:"edge_tts" }}';
 
   if (!voiceName) {
-    alert('请先选择语音模型');
+    alert({% translate "请先选择语音模型" %});
     return;
   }
 
@@ -917,7 +918,7 @@ async function previewVoice(voiceName, triggerButton) {
       setPreviewButtonState(triggerButton, 'playing');
     } catch (playError) {
       console.error('播放试听音频失败:', playError);
-      alert('浏览器阻止了自动播放，请点击播放按钮重试');
+      alert({% translate "浏览器阻止了自动播放，请点击播放按钮重试" %});
       stopVoicePreview();
     }
   } catch (error) {
@@ -1018,7 +1019,7 @@ function stopVoicePreview() {
      const textContent = textarea ? textarea.value.trim() : '';
 
      if (!textContent) {
-       alert('请先加载或输入章节内容');
+       alert({% translate "请先加载或输入章节内容" %});
        return;
      }
 
@@ -1042,7 +1043,7 @@ function stopVoicePreview() {
        sessionStorage.setItem(dialogueDraftStorageKey, JSON.stringify(draftData));
      } catch (error) {
        console.error('无法缓存对话草稿数据', error);
-       alert('浏览器存储异常，暂时无法跳转');
+       alert({% translate "浏览器存储异常，暂时无法跳转" %});
        return;
      }
 
@@ -1060,7 +1061,7 @@ function stopVoicePreview() {
      const audioTitle = document.getElementById('audio-title-input').value || window.currentPageName;
      
      if (!textContent || !voiceModel) {
-       alert('请先选择语音模型并输入文本');
+       alert({% translate "请先选择语音模型并输入文本" %});
        return;
      }
      
@@ -1262,7 +1263,7 @@ function stopVoicePreview() {
    const audioStatus = document.getElementById('audio-status');
    audioStatus.className = 'text-sm mt-1 text-center font-medium text-success';
    audioStatus.innerHTML = '';
-   audioStatus.textContent = '合成成功！';
+   audioStatus.textContent = '{% translate "合成成功！" %}';
       
    // 启用下载和发布按钮
    const downloadBtn = document.getElementById('download-btn');
@@ -1292,7 +1293,7 @@ function stopVoicePreview() {
          <span class="text-xs">发布</span>
        </span>
      `;
-     publishBtn.title = '发布';
+     publishBtn.title = '{% translate "发布" %}';
    }
 
    logState('Audio synthesized successfully');
@@ -1328,7 +1329,7 @@ function stopVoicePreview() {
      // 隐藏音频播放器本身，只显示错误信息
      const audioPlayer = document.getElementById('audio-player');
      audioPlayer.style.display = 'none';
-     document.getElementById('audio-title').textContent = '配额不足';
+     document.getElementById('audio-title').textContent = '{% translate "配额不足" %}';
    }
    
    logState('Audio synthesis failed: ' + errorMessage);
@@ -1338,7 +1339,7 @@ function stopVoicePreview() {
 async function playWorkbenchAudioInGlobal() {
   const globalPlayBtn = document.getElementById('global-play-from-workbench');
   if (!globalPlayBtn || !window.globalAudioPlayer) {
-    alert('全局播放器未准备就绪');
+    alert({% translate "全局播放器未准备就绪" %});
     return;
   }
   
@@ -1473,7 +1474,7 @@ async function playWorkbenchAudioInGlobal() {
    const translateBtn = document.getElementById('translate-text-btn');
    if (translateBtn) {
      translateBtn.disabled = false;
-     translateBtn.innerHTML = '翻译';
+     translateBtn.innerHTML = '{% translate "翻译" %}';
    }
 
    // 如果文本框是空的，但过程中没收到任何内容，恢复原文本
@@ -1505,7 +1506,7 @@ async function playWorkbenchAudioInGlobal() {
    const formatBtn = document.getElementById('format-text-btn');
    if (formatBtn) {
      formatBtn.disabled = false;
-     formatBtn.innerHTML = '自动排版';
+     formatBtn.innerHTML = '{% translate "自动排版" %}';
    }
    
    // 如果文本框是空的，但过程中没收到任何内容，恢复原文本
@@ -1578,7 +1579,7 @@ async function playWorkbenchAudioInGlobal() {
      originalTranslateTextContent = document.getElementById('src-text').value;
 
      if (!originalTranslateTextContent.trim()) {
-       showToast('请先输入或加载文本内容', 'warning', 3000);
+       showToast({% translate "请先输入或加载文本内容" %}, 'warning', 3000);
        return;
      }
 
@@ -1722,7 +1723,7 @@ async function playWorkbenchAudioInGlobal() {
                    console.log('翻译完成');
                  } else if (eventType === 'error') {
                    console.error('翻译错误:', dataContent);
-                   showToast('翻译失败: ' + dataContent, 'error', 5000);
+                   showToast({% translate "翻译失败: " %} + dataContent, 'error', 5000);
                    cleanupTranslation();
                  }
                }
@@ -1733,7 +1734,7 @@ async function playWorkbenchAudioInGlobal() {
            readStream();
          }).catch(error => {
            console.error('读取翻译流错误:', error);
-           showToast('读取翻译结果时出错: ' + error.message, 'error', 5000);
+           showToast({% translate "读取翻译结果时出错: " %} + error.message, 'error', 5000);
            cleanupTranslation();
          });
        }
@@ -1743,11 +1744,11 @@ async function playWorkbenchAudioInGlobal() {
      }).catch(error => {
        console.error('发送翻译文本错误:', error);
        cleanupTranslation();
-       showToast('翻译失败: ' + error.message, 'error', 5000);
+       showToast({% translate "翻译失败: " %} + error.message, 'error', 5000);
      });
    } catch (error) {
      console.error('捕获到的翻译错误:', error);
-     showToast('翻译过程中发生错误: ' + error.message, 'error', 5000);
+     showToast({% translate "翻译过程中发生错误: " %} + error.message, 'error', 5000);
      cleanupTranslation();
    }
  }
@@ -1760,13 +1761,13 @@ async function playWorkbenchAudioInGlobal() {
      const formatBtn = this;
      
      if (!originalTextContent.trim()) {
-       showToast('请先输入或加载文本内容', 'warning', 3000);
+       showToast({% translate "请先输入或加载文本内容" %}, 'warning', 3000);
        return;
      }
      
      // 禁用按钮并显示加载状态
      formatBtn.disabled = true;
-     formatBtn.innerHTML = '正在排版...';
+     formatBtn.innerHTML = '{% translate "正在排版..." %}';
      
      // 关闭任何已存在的连接
      cleanupFormatting();
@@ -1878,7 +1879,7 @@ async function playWorkbenchAudioInGlobal() {
                      console.log('格式化完成');
                    } else if (eventType === 'error') {
                      console.error('格式化错误:', dataContent);
-                     showToast('自动排版失败: ' + dataContent, 'error', 5000);
+                     showToast({% translate "自动排版失败: " %} + dataContent, 'error', 5000);
                      cleanupFormatting();
                    }
                  }
@@ -1889,7 +1890,7 @@ async function playWorkbenchAudioInGlobal() {
              readStream();
            }).catch(error => {
              console.error('读取流错误:', error);
-             showToast('读取排版结果时出错: ' + error.message, 'error', 5000);
+             showToast({% translate "读取排版结果时出错: " %} + error.message, 'error', 5000);
              cleanupFormatting();
            });
          }
@@ -1899,11 +1900,11 @@ async function playWorkbenchAudioInGlobal() {
        }).catch(error => {
          console.error('发送文本错误:', error);
          cleanupFormatting();
-         showToast('自动排版失败: ' + error.message, 'error', 5000);
+         showToast({% translate "自动排版失败: " %} + error.message, 'error', 5000);
        });
             } catch (error) {
          console.error('捕获到的错误:', error);
-         showToast('自动排版过程中发生错误: ' + error.message, 'error', 5000);
+         showToast({% translate "自动排版过程中发生错误: " %} + error.message, 'error', 5000);
          cleanupFormatting();
        }
    });
@@ -1978,7 +1979,7 @@ async function playWorkbenchAudioInGlobal() {
    const publishStatus = document.getElementById('publish-status');
    
    if (!window.currentAudioSegmentId) {
-     showToast('没有可发布的音频片段', 'warning');
+     showToast({% translate "没有可发布的音频片段" %}, 'warning');
      return;
    }
    
@@ -2036,7 +2037,7 @@ async function playWorkbenchAudioInGlobal() {
      publishBtn.innerHTML = originalContent;
      
      // 显示错误通知
-     showToast('网络错误，请稍后重试', 'error');
+     showToast({% translate "网络错误，请稍后重试" %}, 'error');
      
      // 更新发布状态显示
      if (publishStatus) {
@@ -2067,7 +2068,7 @@ async function playWorkbenchAudioInGlobal() {
          <span class="text-xs">取消发布</span>
        </span>
      `;
-     publishBtn.title = '取消发布';
+     publishBtn.title = '{% translate "取消发布" %}';
    } else {
      // 未发布状态 - 显示发布按钮
      publishBtn.className = 'btn btn-success btn-sm flex-1 h-9';
@@ -2077,7 +2078,7 @@ async function playWorkbenchAudioInGlobal() {
          <span class="text-xs">发布</span>
        </span>
      `;
-     publishBtn.title = '发布';
+     publishBtn.title = '{% translate "发布" %}';
    }
  }
 
@@ -2114,7 +2115,7 @@ function handleViewPageImage() {
   
   if (pagesToView.length === 0) {
     if (typeof showToast === 'function') {
-      showToast('请先选择要查看的页面', 'warning');
+      showToast({% translate "请先选择要查看的页面" %}, 'warning');
     }
     return;
   }
@@ -2412,7 +2413,7 @@ async function renderPdfOriginalContent(pageIds) {
         openLink.target = '_blank';
         openLink.rel = 'noopener';
         openLink.className = 'link link-secondary text-sm';
-        openLink.textContent = '新标签打开';
+        openLink.textContent = '{% translate "新标签打开" %}';
         actions.appendChild(openLink);
         wrapper.appendChild(actions);
 

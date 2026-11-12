@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static i18n %}
 
 {% block title %}{{ display_title }}{% endblock %}
 
@@ -10,7 +10,7 @@
         <div class="flex items-center gap-4">
             <a href="{% url 'discussion_list' %}" class="btn btn-ghost btn-sm">
                 <i class="fas fa-arrow-left mr-2"></i>
-                返回列表
+                {% translate "返回列表" %}
             </a>
             <h1 class="text-2xl font-extrabold tracking-tight">{{ display_title }}</h1>
         </div>
@@ -33,27 +33,27 @@
                 <!-- 主题标题 -->
                 <div class="form-control mb-4">
                     <label class="label">
-                        <span class="label-text font-semibold">主题标题</span>
-                        <span class="label-text-alt text-error">* 必填</span>
+                        <span class="label-text font-semibold">{% translate "主题标题" %}</span>
+                        <span class="label-text-alt text-error">{% translate "* 必填" %}</span>
                     </label>
                     <input
                         type="text"
                         name="title"
                         value="{{ title }}"
-                        placeholder="请输入主题标题（2-200个字符）"
+                        placeholder="{% translate "请输入主题标题（2-200个字符）" %}"
                         class="input input-bordered w-full"
                         required
                         maxlength="200"
                     >
                     <label class="label">
-                        <span class="label-text-alt text-base-content/60">简洁明了地描述您的主题</span>
+                        <span class="label-text-alt text-base-content/60">{% translate "简洁明了地描述您的主题" %}</span>
                     </label>
                 </div>
 
                 <!-- 主题分类 -->
                 <div class="form-control mb-4">
                     <label class="label">
-                        <span class="label-text font-semibold">主题分类</span>
+                        <span class="label-text font-semibold">{% translate "主题分类" %}</span>
                     </label>
                     <select name="category" class="select select-bordered w-full">
                         {% for value, label in category_choices %}
@@ -63,24 +63,24 @@
                         {% endfor %}
                     </select>
                     <label class="label">
-                        <span class="label-text-alt text-base-content/60">选择合适的分类有助于其他用户找到您的主题</span>
+                        <span class="label-text-alt text-base-content/60">{% translate "选择合适的分类有助于其他用户找到您的主题" %}</span>
                     </label>
                 </div>
 
                 <!-- 主题内容 -->
                 <div class="form-control mb-6">
                     <label class="label">
-                        <span class="label-text font-semibold">主题内容</span>
-                        <span class="label-text-alt text-error">* 必填</span>
+                        <span class="label-text font-semibold">{% translate "主题内容" %}</span>
+                        <span class="label-text-alt text-error">{% translate "* 必填" %}</span>
                     </label>
                     <textarea
                         name="content"
-                        placeholder="请详细描述您的问题、想法或分享的内容..."
+                        placeholder="{% translate "请详细描述您的问题、想法或分享的内容..." %}"
                         class="textarea textarea-bordered w-full h-64"
                         required
                     >{{ content }}</textarea>
                     <label class="label">
-                        <span class="label-text-alt text-base-content/60">详细的内容描述有助于获得更好的回复</span>
+                        <span class="label-text-alt text-base-content/60">{% translate "详细的内容描述有助于获得更好的回复" %}</span>
                     </label>
                 </div>
 
@@ -88,10 +88,10 @@
                 <div class="flex gap-4">
                     <button type="submit" class="btn btn-primary flex-1">
                         <i class="fas fa-paper-plane mr-2"></i>
-                        发布主题
+                        {% translate "发布主题" %}
                     </button>
                     <a href="{% url 'discussion_list' %}" class="btn btn-ghost">
-                        取消
+                        {% translate "取消" %}
                     </a>
                 </div>
             </form>
@@ -101,23 +101,23 @@
     <!-- 发帖指南 -->
     <div class="mt-8">
         <div class="bg-base-200 rounded-lg p-6">
-            <h3 class="text-lg font-semibold mb-4">发帖指南</h3>
+            <h3 class="text-lg font-semibold mb-4">{% translate "发帖指南" %}</h3>
             <ul class="space-y-2 text-sm text-base-content/70">
                 <li class="flex items-start gap-2">
                     <i class="fas fa-check text-success mt-1"></i>
-                    <span>标题要简洁明了，准确反映主题内容</span>
+                    <span>{% translate "标题要简洁明了，准确反映主题内容" %}</span>
                 </li>
                 <li class="flex items-start gap-2">
                     <i class="fas fa-check text-success mt-1"></i>
-                    <span>内容要详细具体，便于他人理解和回复</span>
+                    <span>{% translate "内容要详细具体，便于他人理解和回复" %}</span>
                 </li>
                 <li class="flex items-start gap-2">
                     <i class="fas fa-check text-success mt-1"></i>
-                    <span>选择合适的分类，方便主题归类</span>
+                    <span>{% translate "选择合适的分类，方便主题归类" %}</span>
                 </li>
                 <li class="flex items-start gap-2">
                     <i class="fas fa-check text-success mt-1"></i>
-                    <span>遵守社区规范，文明交流</span>
+                    <span>{% translate "遵守社区规范，文明交流" %}</span>
                 </li>
             </ul>
         </div>

@@ -7,6 +7,7 @@ import json
 from collections import defaultdict
 
 from django.shortcuts import render, get_object_or_404, redirect
+from django.utils.translation import gettext as _
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
@@ -347,9 +348,26 @@ def aggregated_audio_segments(request):
 
 @login_required
 def get_voice_list(request):
-    """Get available voices from edge_tts"""
+    """Get available voices from edge_tts (当前语言的音色排前面作为默认)"""
+    from django.conf import settings
+    from django.utils.translation import get_language
+
     voices = edge_tts_volices()
-    return render(request, "voice_list.html", {"voices": voices})
+    lang = (get_language() or "en").lower()
+    prefix = "zh-cn-" if lang.startswith("zh") else "en-us-"
+    default_voice = settings.DEFAULT_VOICE_BY_LANGUAGE.get(
+        "zh-hans" if lang.startswith("zh") else "en",
+        settings.DEFAULT_VOICE_FALLBACK,
+    )
+    # 同语言音色排最前，其余保持字母序，方便默认选中同语言音色
+    voices = sorted(voices, key=lambda v: (0 if v.lower().startswith(prefix) else 1, v))
+    if default_voice not in voices and voices:
+        default_voice = voices[0]
+    return render(
+        request,
+        "voice_list.html",
+        {"voices": voices, "default_voice": default_voice},
+    )
 
 
 @login_required
@@ -663,7 +681,7 @@ def check_task_status(request, task_id):
         except UserTask.DoesNotExist:
             return JsonResponse({
                 'status': 'error',
-                'message': '任务不存在或无权限访问'
+                'message': _('任务不存在或无权限访问')
             }, status=404)
 
         # 任务运行中会直接更新 UserTask；此处仅用后端结果同步终态（如 worker 崩溃未及写入）
@@ -755,7 +773,7 @@ def generate_audio_chapters(request, segment_id):
     segment = get_object_or_404(AudioSegment, pk=segment_id)
 
     if segment.user != request.user:
-        return JsonResponse({'success': False, 'error': '您没有权限操作该音频片段'}, status=403)
+        return JsonResponse({'success': False, 'error': _('您没有权限操作该音频片段')}, status=403)
 
     try:
         payload = json.loads(request.body or '{}')
@@ -765,7 +783,7 @@ def generate_audio_chapters(request, segment_id):
     force = bool(payload.get('force', False))
 
     if not segment.subtitle_file or not segment.subtitle_file.name:
-        return JsonResponse({'success': False, 'error': '该音频暂无字幕文件，无法生成章节'}, status=400)
+        return JsonResponse({'success': False, 'error': _('该音频暂无字幕文件，无法生成章节')}, status=400)
 
     task_result = generate_chapters_task.enqueue('audio', segment.id, force)
 
@@ -786,7 +804,7 @@ def generate_audio_chapters(request, segment_id):
     return JsonResponse({
         'success': True,
         'task_id': task_result.id,
-        'message': '章节生成任务已提交'
+        'message': _('章节生成任务已提交')
     })
 
 
@@ -1082,12 +1100,12 @@ def cancel_task(request, task_id):
             
             return JsonResponse({
                 'status': 'success',
-                'message': '任务已取消'
+                'message': _('任务已取消')
             })
         else:
             return JsonResponse({
                 'status': 'error',
-                'message': '只能取消进行中的任务'
+                'message': _('只能取消进行中的任务')
             }, status=400)
             
     except Exception as e:
@@ -1111,12 +1129,12 @@ def delete_task_record(request, task_id):
             
             return JsonResponse({
                 'status': 'success',
-                'message': '任务记录已删除'
+                'message': _('任务记录已删除')
             })
         else:
             return JsonResponse({
                 'status': 'error',
-                'message': '只能删除已完成的任务记录'
+                'message': _('只能删除已完成的任务记录')
             }, status=400)
             
     except Exception as e:
@@ -1137,7 +1155,7 @@ def download_audio(request, segment_id, segment_type):
         else:
             return JsonResponse({
                 'status': 'error',
-                'message': '无效的片段类型'
+                'message': _('无效的片段类型')
             }, status=400)
 
         # 检查音频文件是否存在
@@ -1145,7 +1163,7 @@ def download_audio(request, segment_id, segment_type):
         if not file_field:
             return JsonResponse({
                 'status': 'error',
-                'message': '该音频片段没有音频文件'
+                'message': _('该音频片段没有音频文件')
             }, status=404)
 
         # 设置响应头，使用音频标题作为下载文件名
@@ -1181,14 +1199,14 @@ def download_subtitle(request, segment_id, segment_type):
         else:
             return JsonResponse({
                 'status': 'error',
-                'message': '无效的片段类型'
+                'message': _('无效的片段类型')
             }, status=400)
 
         # 检查字幕文件是否存在
         if not segment.subtitle_file:
             return JsonResponse({
                 'status': 'error',
-                'message': '该音频片段没有字幕文件'
+                'message': _('该音频片段没有字幕文件')
             }, status=404)
 
         # 设置响应头，使用音频标题作为下载文件名（存储文件名保持不变）

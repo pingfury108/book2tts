@@ -1,6 +1,7 @@
 from urllib.parse import urlparse, urlunparse
 
 from django.core.cache import cache
+from django.utils.translation import gettext as _
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
@@ -772,7 +773,7 @@ def explore(request):
     category_choices = BooksModel.CATEGORY_CHOICES
 
     # 分页配置
-    display_title = '探索音频作品'
+    display_title = _('探索音频作品')
     if search_query:
         display_title = f'搜索: "{search_query}"'
 
@@ -949,7 +950,7 @@ def discussion_list(request):
         'search_query': search_query,
         'category_filter': category_filter,
         'category_choices': DiscussionTopic.CATEGORY_CHOICES,
-        'display_title': '讨论区',
+        'display_title': _('讨论区'),
     }
 
     return render(request, "home/discussion_list.html", context)
@@ -968,7 +969,7 @@ def discussion_create(request):
         # 表单验证
         if not title:
             return render(request, "home/discussion_create.html", {
-                'error': '请输入主题标题',
+                'error': _('请输入主题标题'),
                 'title': title,
                 'content': content,
                 'category': category,
@@ -977,7 +978,7 @@ def discussion_create(request):
 
         if not content:
             return render(request, "home/discussion_create.html", {
-                'error': '请输入主题内容',
+                'error': _('请输入主题内容'),
                 'title': title,
                 'content': content,
                 'category': category,
@@ -1028,8 +1029,8 @@ def discussion_detail(request, topic_id):
             return render(request, "home/discussion_detail.html", {
                 'topic': topic,
                 'comments': comments,
-                'error': '此主题已关闭，不能回复',
-                'display_title': f'{topic.title} - 讨论区',
+                'error': _('此主题已关闭，不能回复'),
+                'display_title': f"{topic.title} - " + _('讨论区'),
             })
 
         content = request.POST.get('content', '').strip()
@@ -1039,8 +1040,8 @@ def discussion_detail(request, topic_id):
             return render(request, "home/discussion_detail.html", {
                 'topic': topic,
                 'comments': comments,
-                'error': '请输入留言内容',
-                'display_title': f'{topic.title} - 讨论区',
+                'error': _('请输入留言内容'),
+                'display_title': f"{topic.title} - " + _('讨论区'),
             })
 
         # 创建留言
@@ -1061,7 +1062,7 @@ def discussion_detail(request, topic_id):
     context = {
         'topic': topic,
         'comments': comments,
-        'display_title': f'{topic.title} - 讨论区',
+        'display_title': f"{topic.title} - " + _('讨论区'),
     }
 
     return render(request, "home/discussion_detail.html", context)
@@ -1088,14 +1089,14 @@ def discussion_edit(request, topic_id):
         if not title:
             return render(request, "home/discussion_edit.html", {
                 'topic': topic,
-                'error': '请输入主题标题',
+                'error': _('请输入主题标题'),
                 'category_choices': DiscussionTopic.CATEGORY_CHOICES,
             })
 
         if not content:
             return render(request, "home/discussion_edit.html", {
                 'topic': topic,
-                'error': '请输入主题内容',
+                'error': _('请输入主题内容'),
                 'category_choices': DiscussionTopic.CATEGORY_CHOICES,
             })
 

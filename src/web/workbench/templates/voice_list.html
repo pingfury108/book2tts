@@ -1,4 +1,4 @@
-<option disabled selected>语音模型</option>
+{% load i18n %}
 {% for voice in voices %}
-<option value="{{ voice }}" {% if voice == "zh-CN-YunxiNeural" %}selected{% endif %}>{{ voice }}</option>
+<option value="{{ voice }}" {% if voice == default_voice %}selected{% endif %}>{{ voice }}</option>
 {% endfor %}

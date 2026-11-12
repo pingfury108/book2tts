@@ -1,7 +1,8 @@
 {% extends "admin/base.html" %}
+{% load i18n %}
 {% load static %}
 
-{% block title %}缓存详情 - {{ block.super }}{% endblock %}
+{% block title %}{% translate "缓存详情 -" %} {{ block.super }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -10,15 +11,15 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h3 class="card-title">
-                        翻译缓存详情
+                        {% translate "翻译缓存详情" %}
                         <code class="text-muted">{{ cache.text_md5|slice:":8" }}...</code>
                     </h3>
                     <div class="btn-group">
                         <a href="{% url 'translation_cache_list' %}" class="btn btn-secondary btn-sm">
-                            <i class="fas fa-arrow-left"></i> 返回列表
+                            <i class="fas fa-arrow-left"></i> {% translate "返回列表" %}
                         </a>
                         <button type="button" class="btn btn-danger btn-sm" onclick="deleteCache()">
-                            <i class="fas fa-trash"></i> 删除
+                            <i class="fas fa-trash"></i> {% translate "删除" %}
                         </button>
                     </div>
                 </div>
@@ -27,36 +28,36 @@
                     <div class="row">
                         <!-- 基本信息 -->
                         <div class="col-md-6">
-                            <h5>基本信息</h5>
+                            <h5>{% translate "基本信息" %}</h5>
                             <table class="table table-sm">
                                 <tr>
-                                    <td width="30%"><strong>MD5哈希</strong></td>
+                                    <td width="30%"><strong>{% translate "MD5哈希" %}</strong></td>
                                     <td><code>{{ cache.text_md5 }}</code></td>
                                 </tr>
                                 <tr>
-                                    <td><strong>源语言</strong></td>
+                                    <td><strong>{% translate "源语言" %}</strong></td>
                                     <td>
                                         {% if cache.source_language == 'auto' %}
-                                            <span class="badge bg-secondary">自动检测</span>
+                                            <span class="badge bg-secondary">{% translate "自动检测" %}</span>
                                         {% else %}
                                             <span class="badge bg-info">{{ cache.source_language }}</span>
                                         {% endif %}
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td><strong>目标语言</strong></td>
+                                    <td><strong>{% translate "目标语言" %}</strong></td>
                                     <td><span class="badge bg-primary">{{ cache.get_target_language_display }}</span></td>
                                 </tr>
                                 <tr>
-                                    <td><strong>命中次数</strong></td>
+                                    <td><strong>{% translate "命中次数" %}</strong></td>
                                     <td><span class="badge bg-success">{{ cache.hit_count }}</span></td>
                                 </tr>
                                 <tr>
-                                    <td><strong>创建时间</strong></td>
+                                    <td><strong>{% translate "创建时间" %}</strong></td>
                                     <td>{{ cache.created_at|date:"Y-m-d H:i:s" }}</td>
                                 </tr>
                                 <tr>
-                                    <td><strong>最后使用</strong></td>
+                                    <td><strong>{% translate "最后使用" %}</strong></td>
                                     <td>{{ cache.last_used_at|date:"Y-m-d H:i:s" }}</td>
                                 </tr>
                             </table>
@@ -64,26 +65,26 @@
 
                         <!-- 文本长度统计 -->
                         <div class="col-md-6">
-                            <h5>文本统计</h5>
+                            <h5>{% translate "文本统计" %}</h5>
                             <table class="table table-sm">
                                 <tr>
-                                    <td width="30%"><strong>原文字符数</strong></td>
-                                    <td>{{ cache.original_text|length }} 字符</td>
+                                    <td width="30%"><strong>{% translate "原文字符数" %}</strong></td>
+                                    <td>{{ cache.original_text|length }} {% translate "字符" %}</td>
                                 </tr>
                                 <tr>
-                                    <td><strong>译文字符数</strong></td>
-                                    <td>{{ cache.translated_text|length }} 字符</td>
+                                    <td><strong>{% translate "译文字符数" %}</strong></td>
+                                    <td>{{ cache.translated_text|length }} {% translate "字符" %}</td>
                                 </tr>
                                 <tr>
-                                    <td><strong>原文行数</strong></td>
-                                    <td>{{ cache.original_text|linebreaksbr|length }} 行</td>
+                                    <td><strong>{% translate "原文行数" %}</strong></td>
+                                    <td>{{ cache.original_text|linebreaksbr|length }} {% translate "行" %}</td>
                                 </tr>
                                 <tr>
-                                    <td><strong>译文行数</strong></td>
-                                    <td>{{ cache.translated_text|linebreaksbr|length }} 行</td>
+                                    <td><strong>{% translate "译文行数" %}</strong></td>
+                                    <td>{{ cache.translated_text|linebreaksbr|length }} {% translate "行" %}</td>
                                 </tr>
                                 <tr>
-                                    <td><strong>翻译比率</strong></td>
+                                    <td><strong>{% translate "翻译比率" %}</strong></td>
                                     <td>
                                         {% if original_len %}
                                             {{ translated_len }}:{{ original_len }}
@@ -103,9 +104,9 @@
                     <div class="row mt-4">
                         <div class="col-12">
                             <h5>
-                                原文内容
+                                {% translate "原文内容" %}
                                 <button class="btn btn-outline-secondary btn-sm" onclick="copyToClipboard('original-text')">
-                                    <i class="fas fa-copy"></i> 复制
+                                    <i class="fas fa-copy"></i> {% translate "复制" %}
                                 </button>
                             </h5>
                             <div class="card">
@@ -120,9 +121,9 @@
                     <div class="row mt-4">
                         <div class="col-12">
                             <h5>
-                                译文内容
+                                {% translate "译文内容" %}
                                 <button class="btn btn-outline-secondary btn-sm" onclick="copyToClipboard('translated-text')">
-                                    <i class="fas fa-copy"></i> 复制
+                                    <i class="fas fa-copy"></i> {% translate "复制" %}
                                 </button>
                             </h5>
                             <div class="card">
@@ -138,10 +139,10 @@
                         <div class="col-12">
                             <div class="btn-group">
                                 <button type="button" class="btn btn-info" onclick="refreshUsage()">
-                                    <i class="fas fa-sync"></i> 刷新统计
+                                    <i class="fas fa-sync"></i> {% translate "刷新统计" %}
                                 </button>
                                 <button type="button" class="btn btn-warning" onclick="exportCache()">
-                                    <i class="fas fa-download"></i> 导出为JSON
+                                    <i class="fas fa-download"></i> {% translate "导出为JSON" %}
                                 </button>
                             </div>
                         </div>
@@ -173,13 +174,13 @@ function copyToClipboard(elementId) {
         }, 2000);
     }).catch(err => {
         console.error('复制失败:', err);
-        alert('复制失败，请手动选择文本复制');
+        alert({% translate "复制失败，请手动选择文本复制" %});
     });
 }
 
 // 删除缓存
 function deleteCache() {
-    if (confirm('确定要删除这条缓存记录吗？')) {
+    if (confirm({% translate "确定要删除这条缓存记录吗？" %})) {
         fetch('{% url "translation_cache_delete" cache.id %}', {
             method: 'POST',
             headers: {
@@ -192,12 +193,12 @@ function deleteCache() {
             if (data.status === 'success') {
                 window.location.href = '{% url "translation_cache_list" %}';
             } else {
-                alert('删除失败：' + data.message);
+                alert({% translate "删除失败：" %} + data.message);
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('删除失败，请重试');
+            alert({% translate "删除失败，请重试" %});
         });
     }
 }

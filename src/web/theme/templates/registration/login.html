@@ -1,23 +1,23 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static i18n %}
 
-{% block title %}登录 - Book2TTS{% endblock %}
+{% block title %}{% translate "登录 - Book2TTS" %}{% endblock %}
 
 {% block content %}
 <div class="flex flex-col items-center mt-10 sm:mt-16 px-4">
   <img src="{% static 'images/logo.png' %}" alt="Book2TTS" class="w-14 h-14 rounded-2xl shadow-lg shadow-primary/20 mb-4" />
-  <h1 class="text-2xl font-extrabold tracking-tight">登录 Book2TTS</h1>
-  <p class="text-sm text-base-content/50 mt-1.5 mb-6">继续你的有声书制作</p>
+  <h1 class="text-2xl font-extrabold tracking-tight">{% translate "登录 Book2TTS" %}</h1>
+  <p class="text-sm text-base-content/50 mt-1.5 mb-6">{% translate "继续你的有声书制作" %}</p>
   <div class="card w-full max-w-sm bg-base-100 border border-base-300 shadow-sm">
     <div class="card-body">
-      <h2 class="sr-only">登录</h2>
+      <h2 class="sr-only">{% translate "登录" %}</h2>
       
       <form method="post" id="login-form">
         {% csrf_token %}
         
         <div class="form-control w-full mb-4">
           <label class="label">
-            <span class="label-text">用户名</span>
+            <span class="label-text">{% translate "用户名" %}</span>
           </label>
           {{ form.username }}
           {% if form.username.errors %}
@@ -29,7 +29,7 @@
         
         <div class="form-control w-full mb-4">
           <label class="label">
-            <span class="label-text">密码</span>
+            <span class="label-text">{% translate "密码" %}</span>
           </label>
           {{ form.password }}
           {% if form.password.errors %}
@@ -56,21 +56,21 @@
               {{ error }}
             {% endfor %}
             {% if not form.non_field_errors %}
-              登录失败，请检查用户名和密码
+              {% translate "登录失败，请检查用户名和密码" %}
             {% endif %}
           </div>
         </div>
         {% endif %}
         
         <div class="card-actions justify-center">
-          <button type="submit" class="btn btn-primary w-full" id="login-btn">登录</button>
+          <button type="submit" class="btn btn-primary w-full" id="login-btn">{% translate "登录" %}</button>
         </div>
       </form>
       
       <div class="divider text-xs text-base-content/40">OR</div>
       
       <div class="text-center">
-        <a href="{% url 'register' %}" class="btn btn-ghost btn-sm">没有账号？去注册</a>
+        <a href="{% url 'register' %}" class="btn btn-ghost btn-sm">{% translate "没有账号？去注册" %}</a>
       </div>
     </div>
   </div>
@@ -94,7 +94,7 @@ document.getElementById('login-form').addEventListener('submit', function(e) {
         const turnstileToken = document.querySelector('input[name="cf_turnstile_response"]').value;
         if (!turnstileToken) {
             e.preventDefault();
-            alert('请完成人机验证');
+            alert({% translate "请完成人机验证" %});
             return false;
         }
     }

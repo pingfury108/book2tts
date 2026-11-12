@@ -1,4 +1,4 @@
-{% load custom_filters %}
+{% load custom_filters i18n %}
 {% load static %}
 <!-- 响应式容器 -->
 <div class="container mx-auto px-2 sm:px-4 lg:px-6 xl:px-8">
@@ -7,7 +7,7 @@
         <!-- 返回按钮 -->
         <a href="{% url 'aggregated_audio_segments' %}" class="btn btn-sm btn-ghost rounded-lg">
             <i class="fas fa-arrow-left text-xs"></i>
-            <span>返回书籍列表</span>
+            <span>{% translate "返回书籍列表" %}</span>
         </a>
 
         <!-- 书籍 Hero：封面 + 书名 + 统计 -->
@@ -20,10 +20,10 @@
                 <div class="flex items-center gap-2 flex-wrap">
                     <h1 class="text-lg sm:text-xl font-extrabold tracking-tight truncate">《{{ book_name }}》</h1>
                     {% if total_segments %}
-                    <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-success/10 text-success flex-shrink-0">{{ total_segments }} 集</span>
+                    <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-success/10 text-success flex-shrink-0">{{ total_segments }} {% translate "集" %}</span>
                     {% endif %}
                 </div>
-                <div class="text-xs text-base-content/50 mt-1">有声书成品 · 点集收听</div>
+                <div class="text-xs text-base-content/50 mt-1">{% translate "有声书成品 · 点集收听" %}</div>
             </div>
         </div>
     </div>
@@ -38,26 +38,26 @@
                 <div class="flex items-center justify-center md:justify-start space-x-2">
                     <i class="fas fa-file-text h-3 w-3 sm:h-4 sm:w-4"></i>
                     <span>
-                        显示 {{ page_obj.start_index }}-{{ page_obj.end_index }} / {{ paginator.count }} 项
+                        {% translate "显示" %} {{ page_obj.start_index }}-{{ page_obj.end_index }} / {{ paginator.count }} {% translate "项" %}
                     </span>
                 </div>
 
                 <!-- 页面大小选择器 -->
                 <div class="flex items-center justify-center md:justify-start space-x-2">
-                    <span class="whitespace-nowrap">每页显示:</span>
+                    <span class="whitespace-nowrap">{% translate "每页显示:" %}</span>
                     <select class="select select-xs sm:select-md w-24 sm:w-28" onchange="changePageSize(this.value)"
                         id="page-size-selector">
                         {% for size in page_size_options %}
                         <option value="{{ size }}" {% if size == page_size %}selected{% endif %}>{{ size }}</option>
                         {% endfor %}
                     </select>
-                    <span>项</span>
+                    <span>{% translate "项" %}</span>
                 </div>
 
                 <!-- 页面信息 -->
                 <div class="flex items-center justify-center md:justify-end space-x-2">
                     <span>
-                        第 {{ page_obj.number }} / {{ paginator.num_pages }} 页
+                        {% translate "第" %} {{ page_obj.number }} / {{ paginator.num_pages }} {% translate "页" %}
                     </span>
                 </div>
             </div>
@@ -121,7 +121,7 @@
                 });
             } else {
                 input.value = currentPage;
-                alert('请输入有效的页码（1-' + maxPages + '）');
+                alert({% translate "请输入有效的页码（1-" %} + maxPages + '）');
             }
         }
 
@@ -248,7 +248,7 @@
 
             buttonElement.disabled = true;
             buttonElement.innerHTML = `<span class="loading loading-spinner loading-xs"></span>`;
-            buttonElement.title = '处理中...';
+            buttonElement.title = '{% translate "处理中..." %}';
 
             try {
                 const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
@@ -281,7 +281,7 @@
                 buttonElement.innerHTML = originalContent;
                 buttonElement.className = originalClass;
                 buttonElement.title = originalTitle;
-                showToast('网络错误，请稍后重试', 'error');
+                showToast({% translate "网络错误，请稍后重试" %}, 'error');
             }
         }
 
@@ -292,11 +292,11 @@
             if (data.published) {
                 buttonElement.className = 'btn btn-circle btn-xs sm:btn-sm lg:btn-md btn-warning touch-manipulation';
                 buttonElement.innerHTML = `<i class="fas fa-times h-4 w-4"></i>`;
-                buttonElement.title = '取消发布';
+                buttonElement.title = '{% translate "取消发布" %}';
             } else {
                 buttonElement.className = 'btn btn-circle btn-xs sm:btn-sm lg:btn-md btn-success touch-manipulation';
                 buttonElement.innerHTML = `<i class="fas fa-check h-4 w-4"></i>`;
-                buttonElement.title = '发布';
+                buttonElement.title = '{% translate "发布" %}';
             }
         }
     </script>
@@ -334,7 +334,7 @@
                                     </h3>
                                     <div class="flex items-center gap-2 mt-1 text-[11.5px] text-base-content/50 flex-wrap">
                                         {% if segment.type == 'dialogue_script' and segment.speakers %}
-                                        <span>{{ segment.speakers|length }} 个角色</span><span>·</span>
+                                        <span>{{ segment.speakers|length }} {% translate "个角色" %}</span><span>·</span>
                                         {% endif %}
                                         {% if segment.book_page %}
                                         <span>{{ segment.book_page }}</span><span>·</span>
@@ -344,7 +344,7 @@
                                             {% if segment.published %}text-success bg-success/10
                                             {% else %}text-base-content/50 bg-base-200 border border-base-300{% endif %}
                                             px-1.5 py-0.5 rounded-full font-semibold">
-                                            {% if segment.published %}已发布{% else %}草稿{% endif %}
+                                            {% if segment.published %}{% translate "已发布" %}{% else %}{% translate "草稿" %}{% endif %}
                                         </span>
                                     </div>
                                 </div>
@@ -358,7 +358,7 @@
                             {% if segment.file_url %}
                             <button type="button"
                                     class="btn btn-circle btn-sm bg-accent hover:bg-accent-focus border-none text-accent-content play-audio-btn flex-shrink-0 shadow-md shadow-accent/30"
-                                    title="播放"
+                                    title="{% translate "播放" %}"
                                     data-audio-url="{{ segment.file_url }}"
                                     data-audio-title="{{ segment.title }}"
                                     data-subtitle-url="{% if segment.subtitle_file %}{{ segment.subtitle_file.url }}{% endif %}"
@@ -368,14 +368,14 @@
                             {% endif %}
                             <!-- 下载按钮 -->
                             {% if segment.file_url %}
-                            <a href="{% url 'download_audio' segment_type=segment.type segment_id=segment.id %}" class="btn btn-ghost btn-sm rounded-lg text-base-content/60 hover:text-primary touch-manipulation flex-shrink-0" title="下载音频（保存为：{{ segment.title }}.wav）">
+                            <a href="{% url 'download_audio' segment_type=segment.type segment_id=segment.id %}" class="btn btn-ghost btn-sm rounded-lg text-base-content/60 hover:text-primary touch-manipulation flex-shrink-0" title="{% blocktranslate with name=segment.title %}下载音频（保存为：{{ name }}.wav）{% endblocktranslate %}">
                                 <i class="fas fa-download h-4 w-4 "></i>
                             </a>
                             {% endif %}
 
                             <!-- 字幕下载按钮 -->
                             {% if segment.subtitle_file %}
-                            <a href="{% url 'download_subtitle' segment_type=segment.type segment_id=segment.id %}" class="btn btn-ghost btn-sm rounded-lg text-base-content/60 hover:text-primary touch-manipulation flex-shrink-0" title="下载字幕（保存为：{{ segment.title }}.srt）">
+                            <a href="{% url 'download_subtitle' segment_type=segment.type segment_id=segment.id %}" class="btn btn-ghost btn-sm rounded-lg text-base-content/60 hover:text-primary touch-manipulation flex-shrink-0" title="{% blocktranslate with name=segment.title %}下载字幕（保存为：{{ name }}.srt）{% endblocktranslate %}">
                                 <i class="fas fa-closed-captioning h-4 w-4"></i>
                             </a>
                             {% endif %}
@@ -384,19 +384,19 @@
                             {% if segment.type == 'dialogue_script' %}
                             <!-- 对话脚本的发布按钮 - 目前只显示状态，不提供切换功能 -->
                             {% if segment.published %}
-                            <span class="px-2 py-1 text-xs bg-success/10 text-success rounded-full">已发布</span>
+                            <span class="px-2 py-1 text-xs bg-success/10 text-success rounded-full">{% translate "已发布" %}</span>
                             {% else %}
-                            <span class="px-2 py-1 text-xs bg-info/10 text-info rounded-full">已生成</span>
+                            <span class="px-2 py-1 text-xs bg-info/10 text-info rounded-full">{% translate "已生成" %}</span>
                             {% endif %}
                             {% else %}
                             <!-- 传统音频片段的发布切换按钮 -->
                             {% if segment.published %}
-                            <button class="btn btn-ghost btn-sm rounded-lg text-warning hover:text-warning-focus touch-manipulation flex-shrink-0" title="取消发布"
+                            <button class="btn btn-ghost btn-sm rounded-lg text-warning hover:text-warning-focus touch-manipulation flex-shrink-0" title="{% translate "取消发布" %}"
                                 onclick="handleSegmentPublishClick('{{ segment.id }}', this)">
                                 <i class="fas fa-times h-3 w-3 sm:h-4 sm:w-4"></i>
                             </button>
                             {% else %}
-                            <button class="btn btn-ghost btn-sm rounded-lg text-success hover:text-success-focus touch-manipulation flex-shrink-0" title="发布"
+                            <button class="btn btn-ghost btn-sm rounded-lg text-success hover:text-success-focus touch-manipulation flex-shrink-0" title="{% translate "发布" %}"
                                 onclick="handleSegmentPublishClick('{{ segment.id }}', this)">
                                 <i class="fas fa-check h-4 w-4"></i>
                             </button>
@@ -406,12 +406,12 @@
                             <!-- 删除按钮 - 根据类型使用不同的删除逻辑 -->
                             {% if segment.type == 'dialogue_script' %}
                             <!-- 对话脚本删除：跳转到对话脚本详情页面 -->
-                            <a href="{% url 'dialogue_detail' segment.id %}" class="btn btn-ghost btn-sm rounded-lg text-base-content/60 hover:text-primary touch-manipulation flex-shrink-0" title="编辑对话脚本">
+                            <a href="{% url 'dialogue_detail' segment.id %}" class="btn btn-ghost btn-sm rounded-lg text-base-content/60 hover:text-primary touch-manipulation flex-shrink-0" title="{% translate "编辑对话脚本" %}">
                                 <i class="fas fa-edit h-4 w-4 "></i>
                             </a>
                             {% else %}
                             <!-- 传统音频片段删除 -->
-                            <button class="btn btn-ghost btn-sm rounded-lg text-error hover:text-error-focus touch-manipulation flex-shrink-0" title="删除音频"
+                            <button class="btn btn-ghost btn-sm rounded-lg text-error hover:text-error-focus touch-manipulation flex-shrink-0" title="{% translate "删除音频" %}"
                                 hx-delete="/workbench/audio/delete/{{ segment.id }}/"
                                 hx-confirm="确定要删除音频片段 '{{ segment.title }}' 吗？此操作无法撤销。"
                                 hx-target="[data-segment-id='{{ segment.id }}']" hx-swap="outerHTML" hx-trigger="click">
@@ -435,7 +435,7 @@
                                         <!-- 书籍信息 -->
                                         <div class="flex items-center justify-center sm:justify-start space-x-2">
                                             <i class="fas fa-book h-3 w-3 sm:h-4 sm:w-4"></i>
-                                            <span class="font-medium">书籍:</span>
+                                            <span class="font-medium">{% translate "书籍:" %}</span>
                                             <span class="truncate">{{ book_name }}</span>
                                         </div>
 
@@ -444,13 +444,13 @@
                                         {% if segment.audio_duration %}
                                         <div class="flex items-center justify-center sm:justify-start space-x-2">
                                             <i class="fas fa-clock h-3 w-3 sm:h-4 sm:w-4"></i>
-                                            <span class="font-medium">时长:</span>
+                                            <span class="font-medium">{% translate "时长:" %}</span>
                                             <span>{{ segment.audio_duration }}</span>
                                         </div>
                                         {% endif %}
                                         {% else %}
                                         <div class="flex items-center justify-center sm:justify-start space-x-2">
-                                            <span class="font-medium">页面:</span>
+                                            <span class="font-medium">{% translate "页面:" %}</span>
                                             {% if segment.book_page %}
                                             <button
                                                 class="bg-secondary text-secondary-content rounded-full w-6 h-6 sm:w-7 sm:h-7
@@ -460,7 +460,7 @@
                                                 data-book-id="{{ book_id|default:1 }}"
                                                 data-names="{{ segment.book_page|stringformat:'s' }}"
                                                 onclick="loadPageContent(this); document.getElementById('modal-{{ segment.id }}').showModal()"
-                                                title="点击查看页面内容">
+                                                title="{% translate "点击查看页面内容" %}">
                                                 {{ forloop.counter|add:page_obj.start_index|add:"-1" }}
                                             </button>
                                             {% else %}
@@ -476,7 +476,7 @@
                                         <div
                                             class="flex items-center justify-center sm:justify-start lg:justify-end space-x-2">
                                             <i class="fas fa-clock h-3 w-3 sm:h-4 sm:w-4"></i>
-                                            <span class="font-medium">更新:</span>
+                                            <span class="font-medium">{% translate "更新:" %}</span>
                                             <span>{{ segment.updated_at|date:"m-d H:i" }}</span>
                                         </div>
                                     </div>
@@ -488,7 +488,7 @@
                                             <div class="flex items-center justify-between mb-4">
                                                 <div class="flex items-center space-x-2">
                                                     <i class="fas fa-file-alt h-4 w-4 sm:h-5 sm:w-5"></i>
-                                                    <h3 class="font-medium text-xs sm:text-sm">页面内容</h3>
+                                                    <h3 class="font-medium text-xs sm:text-sm">{% translate "页面内容" %}</h3>
                                                 </div>
                                                 <form method="dialog">
                                                     <button class="btn btn-sm btn-circle touch-manipulation">✕</button>
@@ -503,7 +503,7 @@
                                             </div>
                                         </div>
                                         <form method="dialog" class="modal-backdrop">
-                                            <button>关闭</button>
+                                            <button>{% translate "关闭" %}</button>
                                         </form>
                                     </dialog>
                                 </div>
@@ -515,7 +515,7 @@
                                     <div class="flex items-center justify-between gap-2 mb-3" data-chapter-wrapper>
                                         <div class="flex items-center gap-2">
                                             <i class="fas fa-list text-primary"></i>
-                                            <span class="font-semibold text-sm sm:text-base">章节导航</span>
+                                            <span class="font-semibold text-sm sm:text-base">{% translate "章节导航" %}</span>
                                         </div>
                                         <button class="btn btn-xs sm:btn-sm btn-outline w-32 sm:w-36 justify-center"
                                             data-generate-url="{% if segment.type == 'dialogue_script' %}{% url 'dialogue_generate_chapters' segment.id %}{% else %}{% url 'generate_audio_chapters' segment.id %}{% endif %}"
@@ -523,7 +523,7 @@
                                             onclick="triggerChapterGeneration(this)"
                                             {% if not segment.subtitle_file.url %}disabled{% endif %}>
                                             <i class="fas fa-magic mr-1"></i>
-                                            {% if segment.chapters %}重新生成章节{% else %}生成章节{% endif %}
+                                            {% if segment.chapters %}{% translate "重新生成章节" %}{% else %}{% translate "生成章节" %}{% endif %}
                                         </button>
                                     </div>
                                     {% if segment.chapters %}
@@ -547,7 +547,7 @@
                                     {% endwith %}
                                     {% else %}
                                     <div class="text-xs sm:text-sm text-base-content/60">
-                                        暂无章节信息，可点击上方按钮生成。
+                                        {% translate "暂无章节信息，可点击上方按钮生成。" %}
                                     </div>
                                     {% endif %}
                                 </div>
@@ -565,7 +565,7 @@
                                             <div class="flex items-center">
                                                 <i
                                                 class="fas fa-align-left h-3 w-3 sm:h-4 sm:w-4 mr-2 text-base-content/60"></i>
-                                                <span>文本内容</span>
+                                                <span>{% translate "文本内容" %}</span>
                                             </div>
                                             <i
                                                 class="fas fa-chevron-down transition-transform duration-200 text-base-content/60 text-collapse-icon"></i>
@@ -590,9 +590,9 @@
                                     <div class="flex items-center justify-center">
                                         <button class="btn btn-primary w-full sm:w-auto sm:btn-md"
                                             onclick="playInGlobalPlayer('{{ segment.file_url }}', '{{ segment.title|escapejs }}', {% if segment.subtitle_file %}{% if segment.subtitle_file.url %}'{{ segment.subtitle_file.url }}'{% else %}null{% endif %}{% else %}null{% endif %}, {% if segment.chapters %}'workbench-chapters-{{ segment.id }}'{% else %}null{% endif %}, {% if segment.chapters_file and segment.chapters_file.url %}'{{ segment.chapters_file.url }}'{% else %}null{% endif %})"
-                                            title="播放音频">
+                                            title="{% translate "播放音频" %}">
                                             <i class="fas fa-play h-3 w-3 sm:h-4 sm:w-4 mr-2"></i>
-                                            播放音频{% if segment.subtitle_file %}{% if segment.subtitle_file.url %}<i class="fas fa-closed-captioning ml-2 text-yellow-300" title="含字幕"></i>{% endif %}{% endif %}
+                                            {% translate "播放音频" %}{% if segment.subtitle_file %}{% if segment.subtitle_file.url %}<i class="fas fa-closed-captioning ml-2 text-yellow-300" title="{% translate "含字幕" %}"></i>{% endif %}{% endif %}
                                         </button>
                                     </div>
                                 </div>
@@ -605,7 +605,7 @@
         {% empty %}
         <div class="alert alert-info shadow-lg">
             <i class="fas fa-info-circle h-5 w-5 sm:h-6 sm:w-6"></i>
-            <span class="text-xs sm:text-sm">该书籍下没有任何音频片段。</span>
+            <span class="text-xs sm:text-sm">{% translate "该书籍下没有任何音频片段。" %}</span>
         </div>
         {% endfor %}
     </div>
@@ -662,7 +662,7 @@
         <div id="loading-indicator" class="htmx-indicator">
             <div class="flex items-center space-x-2">
                 <div class="loading loading-spinner loading-sm sm:loading-md"></div>
-                <span class="text-xs sm:text-sm">加载中...</span>
+                <span class="text-xs sm:text-sm">{% translate "加载中..." %}</span>
             </div>
         </div>
     </div>
@@ -681,7 +681,7 @@
         const force = button.dataset.force === 'true';
 
         if (!requestUrl) {
-            showToast('未找到章节生成接口', 'error');
+            showToast({% translate "未找到章节生成接口" %}, 'error');
             return;
         }
 
@@ -725,7 +725,7 @@
                 button.style.width = '';
             }
         } catch (error) {
-            showToast('章节生成请求失败：' + error.message, 'error');
+            showToast({% translate "章节生成请求失败：" %} + error.message, 'error');
             button.disabled = false;
             button.innerHTML = originalContent;
             button.style.width = '';
@@ -808,7 +808,7 @@
 
         if (!window.globalAudioPlayer) {
             console.error('[集成] 全局播放器未初始化');
-            alert('播放器正在加载中，请稍后再试');
+            alert({% translate "播放器正在加载中，请稍后再试" %});
             return;
         }
 
@@ -905,12 +905,12 @@
                 if (data.status === 'success') {
                     targetElement.textContent = data.texts;
                 } else {
-                    targetElement.textContent = '加载失败: ' + (data.message || '未知错误');
+                    targetElement.textContent = '{% translate "加载失败: " %}' + (data.message || '未知错误');
                 }
             })
             .catch(error => {
                 console.error('Error loading page content:', error);
-                targetElement.textContent = '加载失败: ' + error.message;
+                targetElement.textContent = '{% translate "加载失败: " %}' + error.message;
             });
     }
 </script>
